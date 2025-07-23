@@ -37,7 +37,6 @@ GET  /api/v1/projects/:id                  - Get project details
 PUT  /api/v1/projects/:id                  - Update project
 DELETE /api/v1/projects/:id                - Delete project
 GET  /api/v1/projects/:id/datasets         - List project datasets
-GET  /api/v1/projects/:id/models           - List project models
 GET  /api/v1/projects/:id/stats            - Project statistics
 ```
 
@@ -53,21 +52,7 @@ GET  /api/v1/datasets/:id/quality          - Data quality report
 POST /api/v1/datasets/:id/validate         - Validate dataset
 ```
 
-#### 4. Model Management
-```
-GET  /api/v1/models                        - List models
-POST /api/v1/models                        - Create model
-GET  /api/v1/models/:id                    - Get model details
-PUT  /api/v1/models/:id                    - Update model
-DELETE /api/v1/models/:id                  - Delete model
-POST /api/v1/models/:id/train              - Train model
-GET  /api/v1/models/:id/training-status    - Get training status
-GET  /api/v1/models/:id/metrics            - Model performance metrics
-POST /api/v1/models/:id/deploy             - Deploy model
-POST /api/v1/models/:id/predict            - Make predictions
-```
-
-#### 5. Alert & Notification Management
+#### 4. Alert & Notification Management
 ```
 GET  /api/v1/alerts                        - List alerts
 GET  /api/v1/alerts/:id                    - Get alert details
@@ -78,7 +63,7 @@ GET  /api/v1/alerts/unacknowledged         - Get unacknowledged alerts
 POST /api/v1/alerts/bulk-acknowledge       - Bulk acknowledge alerts
 ```
 
-#### 6. Real-time & Monitoring
+#### 5. Real-time & Monitoring
 ```
 GET  /api/v1/dashboard/stats               - Dashboard statistics
 GET  /api/v1/dashboard/charts              - Chart data for dashboard
@@ -87,7 +72,7 @@ GET  /api/v1/system/metrics                - System metrics
 WebSocket /api/v1/ws                       - Real-time updates
 ```
 
-#### 7. Job & Task Management
+#### 6. Job & Task Management
 ```
 GET  /api/v1/jobs                          - List background jobs
 GET  /api/v1/jobs/:id                      - Get job status
@@ -96,7 +81,7 @@ GET  /api/v1/jobs/:id/logs                 - Get job logs
 POST /api/v1/jobs/:id/retry                - Retry failed job
 ```
 
-#### 8. File & Export Management
+#### 7. File & Export Management
 ```
 GET  /api/v1/files                         - List uploaded files
 GET  /api/v1/files/:id                     - Get file details
@@ -224,22 +209,10 @@ POST /api/v1/export/report/:id             - Generate and export report
    func (s *DataQualityService) GetQualityScore(data [][]string) float64
    ```
 
-### Phase 4: Advanced Analytics & Models (Week 4-5)
+### Phase 4: Async Job Processing (Week 4-5)
 **Priority: Medium**
 
-1. **Model Management System**
-   ```go
-   type ModelService struct {
-       trainingQueue *JobQueue
-       storage       ModelStorage
-   }
-   
-   func (s *ModelService) CreateModel(req *CreateModelRequest) (*Model, error)
-   func (s *ModelService) TrainModel(modelID string) (*Job, error)
-   func (s *ModelService) GetTrainingStatus(modelID string) (*TrainingStatus, error)
-   ```
-
-2. **Async Job Processing**
+1. **Async Job Processing**
    ```go
    type JobQueue struct {
        redis  *redis.Client

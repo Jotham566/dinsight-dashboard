@@ -28,13 +28,13 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 - **Processing**: Go routines for async processing
 - **Containerization**: Docker with multi-stage builds
 
-#### Frontend (React)
-- **Framework**: React 18+ with TypeScript
+#### Frontend (Next.js)
+- **Framework**: Next.js 15.3 with React 19 and TypeScript 5.6
 - **State Management**: Redux Toolkit / Zustand
-- **UI Library**: Material-UI v5 or Ant Design
+- **UI Library**: Material-UI v6 or Ant Design v5
 - **Charts**: Recharts or D3.js for advanced visualizations
 - **Real-time**: WebSocket or Server-Sent Events
-- **Build Tool**: Vite for fast development
+- **Build Tool**: Next.js built-in build system (Turbopack for development)
 
 #### Infrastructure
 - **Database**: PostgreSQL 15+ (for JSON support and arrays)
@@ -80,7 +80,7 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   API Gateway   │    │   Backend API   │
-│   (React)       │◄──►│   (Nginx)       │◄──►│   (Go/Gin)      │
+│   (Next.js)     │◄──►│   (Nginx)       │◄──►│   (Go/Gin)      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                                         │
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐

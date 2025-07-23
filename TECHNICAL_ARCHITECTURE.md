@@ -33,39 +33,38 @@ github.com/spf13/viper v1.19.0
 ### Frontend Technology Stack
 
 #### Core Framework
-- **React 19** (Latest stable - December 2024)
-- **TypeScript 5.6+** - Type safety and developer experience
-- **Vite 6.0** (Latest stable - Build tool)
+- **Next.js 15.3** (Latest stable - July 2025) with React 19
+- **TypeScript 5.6** - Type safety and developer experience
+- **Turbopack** (Built-in Next.js build system)
 - **Material-UI v6** or **Ant Design v5** - UI Component Library
 
 #### Frontend Dependencies
 ```json
 {
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "typescript": "^5.6.3",
-    "@mui/material": "^6.1.6",
-    "@emotion/react": "^11.13.3",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.0",
+    "@mui/material": "^6.0.0",
+    "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
-    "react-router-dom": "^7.0.1",
     "@reduxjs/toolkit": "^2.3.0",
-    "react-redux": "^9.1.2",
-    "recharts": "^2.13.3",
-    "axios": "^1.7.9",
-    "@tanstack/react-query": "^5.59.16"
+    "react-redux": "^9.1.0",
+    "recharts": "^2.13.0",
+    "axios": "^1.7.0",
+    "@tanstack/react-query": "^5.59.0"
   },
   "devDependencies": {
-    "vite": "^6.0.1",
-    "@vitejs/plugin-react": "^4.3.3",
+    "@next/eslint-config-next": "^15.3.0",
     "eslint": "^9.15.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "prettier": "^3.3.3",
-    "vitest": "^2.1.4",
-    "@testing-library/react": "^16.0.1",
-    "@testing-library/jest-dom": "^6.6.3"
+    "prettier": "^3.3.0",
+    "jest": "^29.7.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.6.0"
   }
 }
 ```
@@ -91,7 +90,7 @@ github.com/spf13/viper v1.19.0
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                        │
+│                       Frontend (Next.js)                      │
 │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐  │
 │  │   Dashboard     │ │   Data Upload   │ │   Monitoring    │  │
 │  │   Components    │ │   Components    │ │   Components    │  │
@@ -529,6 +528,8 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8080
 
 volumes:
   postgres_data:

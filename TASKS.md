@@ -4,6 +4,8 @@
 - **Phase**: Foundation & Architecture Setup
 - **Last Updated**: July 23, 2025
 - **Current Sprint**: Sprint 1 - Core Backend Infrastructure
+- **Frontend Framework**: Next.js 15.3 with React 19 and TypeScript 5.6
+- **Recent Updates**: Migrated from React to Next.js, removed Model Management features
 
 ---
 
@@ -18,12 +20,12 @@
 - [x] Setup .gitignore for temporary API exclusion
 - [x] Create frontend directory structure
 
-#### 🔄 **Task 1.2: Backend Architecture Analysis** (In Progress)
-- [ ] Study existing codebase and API endpoints
-- [ ] Document current data models and database schema
-- [ ] Identify missing API endpoints from requirements
-- [ ] Create API enhancement plan
-- [ ] Document technical debt and improvement opportunities
+#### ✅ **Task 1.2: Backend Architecture Analysis** (Completed)
+- [x] Study existing codebase and API endpoints
+- [x] Document current data models and database schema
+- [x] Identify missing API endpoints from requirements
+- [x] Create API enhancement plan
+- [x] Document technical debt and improvement opportunities
 
 #### 📋 **Task 1.3: Enhanced Backend API Design**
 **Priority**: High | **Estimate**: 5 days
@@ -35,8 +37,6 @@
 - [ ] `DELETE /api/v1/datasets/{id}` - Delete dataset
 - [ ] `GET /api/v1/projects` - Project management endpoints
 - [ ] `POST /api/v1/projects` - Create new project
-- [ ] `GET /api/v1/models` - Model management endpoints
-- [ ] `POST /api/v1/models/{id}/train` - Train model endpoint
 - [ ] `GET /api/v1/alerts` - Alert management endpoints
 - [ ] `POST /api/v1/alerts/acknowledge` - Acknowledge alerts
 - [ ] `GET /api/v1/health/detailed` - Detailed health check
@@ -118,20 +118,11 @@
 
 ---
 
-## Epic 3: Advanced Analytics & ML 🤖
+## Epic 3: Advanced Analytics & Detection 🤖
 
-### Sprint 3: Model Management & Training
+### Sprint 3: Enhanced Analytics & Detection
 
-#### 📋 **Task 3.1: Model Management System**
-**Priority**: High | **Estimate**: 5 days
-- [ ] Create model versioning and storage
-- [ ] Implement model deployment pipeline
-- [ ] Add model performance monitoring
-- [ ] Create A/B testing framework for models
-- [ ] Add automated model retraining
-- [ ] Implement model explainability features
-
-#### 📋 **Task 3.2: Enhanced Anomaly Detection**
+#### 📋 **Task 3.1: Enhanced Anomaly Detection**
 **Priority**: High | **Estimate**: 4 days
 - [ ] Implement multiple anomaly detection algorithms
 - [ ] Add adaptive threshold adjustment
@@ -140,7 +131,7 @@
 - [ ] Implement anomaly severity scoring
 - [ ] Add false positive reduction techniques
 
-#### 📋 **Task 3.3: Feature Engineering Pipeline**
+#### 📋 **Task 3.2: Feature Engineering Pipeline**
 **Priority**: Medium | **Estimate**: 4 days
 - [ ] Automated feature extraction algorithms
 - [ ] Feature importance analysis
@@ -149,13 +140,13 @@
 - [ ] Custom feature creation tools
 - [ ] Feature store for reusable features
 
-#### 📋 **Task 3.4: Model Training Optimization**
+#### 📋 **Task 3.3: Data Processing Optimization**
 **Priority**: Medium | **Estimate**: 3 days
-- [ ] Hyperparameter optimization algorithms
-- [ ] Cross-validation frameworks
-- [ ] Model performance benchmarking
-- [ ] Training progress tracking and visualization
-- [ ] Distributed training capabilities
+- [ ] Advanced data processing algorithms
+- [ ] Cross-validation frameworks for data quality
+- [ ] Data processing performance benchmarking
+- [ ] Processing progress tracking and visualization
+- [ ] Distributed processing capabilities
 - [ ] Resource usage optimization
 
 ---
@@ -204,15 +195,15 @@
 
 ## Epic 5: Frontend Development 🎨
 
-### Sprint 5: Modern React Frontend
+### Sprint 5: Modern Next.js Frontend
 
 #### 📋 **Task 5.1: Frontend Project Setup**
 **Priority**: High | **Estimate**: 2 days
-- [ ] Create React + TypeScript project with Vite
-- [ ] Setup Material-UI or Ant Design
+- [ ] Create Next.js 15.3 + TypeScript 5.6 project
+- [ ] Setup Material-UI v6 or Ant Design v5
 - [ ] Configure state management (Redux Toolkit/Zustand)
-- [ ] Setup routing with React Router
-- [ ] Configure development environment
+- [ ] Setup Next.js App Router for navigation
+- [ ] Configure development environment with Turbopack
 - [ ] Add testing framework (Jest, React Testing Library)
 
 #### 📋 **Task 5.2: Authentication UI**
