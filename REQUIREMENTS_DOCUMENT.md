@@ -129,28 +129,42 @@
 - **FR-VR-014**: Report sharing and collaboration
 - **FR-VR-015**: Historical trend reports
 
-### 5. User Management & Security
+### 5. Enterprise Authentication & Security
 
-#### 5.1 Authentication
-- **FR-US-001**: Multi-factor authentication support
-- **FR-US-002**: Single sign-on (SSO) integration
-- **FR-US-003**: Session management and timeouts
-- **FR-US-004**: Password policy enforcement
-- **FR-US-005**: Account lockout protection
+#### 5.1 Dual-Layer Authentication System
+- **FR-US-001**: Preserve existing RSA-based device licensing system
+- **FR-US-002**: Implement user-level JWT authentication (15-minute access tokens)
+- **FR-US-003**: Multi-factor authentication support (TOTP, SMS backup)
+- **FR-US-004**: Single sign-on (SSO) integration via SAML/OAuth2
+- **FR-US-005**: Redis-backed session management for scalability
 
-#### 5.2 Authorization
-- **FR-US-006**: Role-based access control
-- **FR-US-007**: Project-level permissions
-- **FR-US-008**: Data access restrictions
-- **FR-US-009**: Feature-level access control
-- **FR-US-010**: Audit logging for all user actions
+#### 5.2 Enhanced Password Security
+- **FR-US-006**: Argon2id password hashing (industry best practice 2025)
+- **FR-US-007**: Password policy enforcement (12+ chars, complexity requirements)
+- **FR-US-008**: Account lockout protection (15-minute lockout after failed attempts)
+- **FR-US-009**: Password strength validation and feedback
+- **FR-US-010**: Secure password reset via email verification
 
-#### 5.3 License Management
-- **FR-US-011**: Device-based licensing
-- **FR-US-012**: Concurrent user limits
-- **FR-US-013**: Feature licensing controls
-- **FR-US-014**: License usage reporting
-- **FR-US-015**: License renewal notifications
+#### 5.3 Multi-Tenant Role-Based Access Control
+- **FR-US-011**: Organization-level data isolation
+- **FR-US-012**: Five-tier role hierarchy (system_admin, org_admin, project_lead, analyst, viewer)
+- **FR-US-013**: Granular permission system for data, projects, and system features
+- **FR-US-014**: Project-level access control with inheritance
+- **FR-US-015**: Feature flag control per organization subscription tier
+
+#### 5.4 Enterprise License Management
+- **FR-US-016**: Preserve device-based licensing with license.lic file validation
+- **FR-US-017**: Organization-license linking for multi-tenant support
+- **FR-US-018**: Concurrent user limits per organization subscription
+- **FR-US-019**: Feature licensing controls (basic, pro, enterprise tiers)
+- **FR-US-020**: License usage reporting and analytics
+
+#### 5.5 Security Monitoring & Compliance
+- **FR-US-021**: Comprehensive audit logging for all user actions
+- **FR-US-022**: Failed login attempt monitoring and alerting
+- **FR-US-023**: Session timeout management (configurable per role)
+- **FR-US-024**: API rate limiting with token bucket algorithm
+- **FR-US-025**: Security headers and XSS protection
 
 ## Non-Functional Requirements
 
@@ -200,28 +214,42 @@
 - **NFR-R-014**: Automatic retry mechanisms
 - **NFR-R-015**: Circuit breaker patterns
 
-### Security Requirements
+### Enhanced Security Requirements
 
-#### Data Protection
-- **NFR-S-001**: Encryption at rest (AES-256)
-- **NFR-S-002**: Encryption in transit (TLS 1.3)
-- **NFR-S-003**: Data anonymization capabilities
-- **NFR-S-004**: PII data handling compliance
-- **NFR-S-005**: Data residency controls
+#### Enterprise Data Protection
+- **NFR-S-001**: Encryption at rest (AES-256) for all sensitive data
+- **NFR-S-002**: Encryption in transit (TLS 1.3) for all communications
+- **NFR-S-003**: Multi-tenant data isolation with organization-level encryption keys
+- **NFR-S-004**: PII data handling compliance with automatic detection
+- **NFR-S-005**: Data residency controls with geographic data boundaries
 
-#### Access Control
-- **NFR-S-006**: Principle of least privilege
-- **NFR-S-007**: Regular access reviews
-- **NFR-S-008**: Privileged account monitoring
-- **NFR-S-009**: API rate limiting
-- **NFR-S-010**: Input validation and sanitization
+#### Advanced Access Control
+- **NFR-S-006**: Zero-trust security model with principle of least privilege
+- **NFR-S-007**: Regular automated access reviews with anomaly detection
+- **NFR-S-008**: Privileged account monitoring with session recording
+- **NFR-S-009**: Adaptive API rate limiting based on user behavior and threat level
+- **NFR-S-010**: Multi-layer input validation and sanitization (XSS, SQL injection, CSRF protection)
 
-#### Compliance
-- **NFR-S-011**: GDPR compliance for EU users
-- **NFR-S-012**: SOC 2 Type II certification
-- **NFR-S-013**: Industry-specific compliance (ISO 27001)
-- **NFR-S-014**: Audit trail maintenance
-- **NFR-S-015**: Data retention policy enforcement
+#### Authentication Security Standards
+- **NFR-S-011**: Argon2id password hashing with configurable work factors
+- **NFR-S-012**: JWT token security with short-lived access tokens (15 minutes) and secure refresh tokens
+- **NFR-S-013**: Multi-factor authentication enforcement for admin roles
+- **NFR-S-014**: Device fingerprinting integration with user authentication
+- **NFR-S-015**: Session security with Redis-backed storage and automatic cleanup
+
+#### Enterprise Compliance
+- **NFR-S-016**: GDPR compliance for EU users with data portability and right to deletion
+- **NFR-S-017**: SOC 2 Type II certification readiness with continuous monitoring
+- **NFR-S-018**: Industry-specific compliance (ISO 27001, NIST frameworks)
+- **NFR-S-019**: Comprehensive audit trail maintenance with tamper-proof logging
+- **NFR-S-020**: Automated data retention policy enforcement with secure deletion
+
+#### Security Monitoring & Incident Response
+- **NFR-S-021**: Real-time security event monitoring with automated alerting
+- **NFR-S-022**: Intrusion detection system (IDS) integration
+- **NFR-S-023**: Security incident response automation with predefined playbooks
+- **NFR-S-024**: Threat intelligence integration for proactive security measures
+- **NFR-S-025**: Regular security vulnerability assessments and penetration testing
 
 ### Usability Requirements
 

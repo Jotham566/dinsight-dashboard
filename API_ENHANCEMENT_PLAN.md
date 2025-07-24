@@ -92,12 +92,84 @@ POST /api/v1/export/results/:id            - Export analysis results
 POST /api/v1/export/report/:id             - Generate and export report
 ```
 
+## Enterprise Authentication & Licensing Strategy
+
+### Current Licensing System Analysis
+The existing implementation has a **sophisticated device-based licensing system** that should be preserved and enhanced:
+
+**Strengths:**
+- RSA-based JWT license validation with embedded public key
+- Device fingerprinting and registration management
+- License expiration tracking with cache optimization
+- Production-ready licensing middleware
+
+**Recommendation: Preserve and enhance** the current licensing system rather than replace it.
+
+### Dual-Layer Authentication Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    REQUEST FLOW                                │
+│                                                                │
+│  Client Request                                               │
+│        ↓                                                      │
+│  ┌─────────────────┐    ┌─────────────────┐                  │
+│  │  License Check  │ -> │   User Auth     │ -> Application   │
+│  │  (Device Level) │    │  (User Level)   │                  │
+│  └─────────────────┘    └─────────────────┘                  │
+│                                                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Enhanced Middleware Stack
+```go
+// Updated middleware chain preserving license system
+r.Use(
+    middleware.CORS(),
+    middleware.RequestID(),
+    middleware.LicenseMiddleware(licenseManager, deviceManager), // Keep existing
+    middleware.AuthenticationMiddleware(authService),            // Add user auth
+    middleware.AuthorizationMiddleware(rbacService),            // Add RBAC
+    middleware.RateLimitMiddleware(rateLimiter),                // Add rate limiting
+)
+```
+
 ## Implementation Priority
 
-### Phase 1: Core Infrastructure (Week 1-2)
-**Priority: Critical**
+### Phase 1: Enhanced Authentication Foundation (Week 1-2)
+**Priority: Critical - Preserve Current + Add Enterprise Auth**
 
-1. **Enhanced Error Handling & Response Format**
+1. **Multi-Tenant User Management System**
+   ```go
+   // Enhanced user model with organization support
+   type User struct {
+       ID               uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+       Email            string    `gorm:"unique;not null"`
+       PasswordHash     string    `gorm:"not null" json:"-"`
+       FirstName        string    
+       LastName         string    
+       Role             UserRole  `gorm:"not null;default:'user'"`
+       OrganizationID   uuid.UUID `gorm:"type:uuid"`
+       IsActive         bool      `gorm:"default:true"`
+       EmailVerified    bool      `gorm:"default:false"`
+       FailedAttempts   int       `gorm:"default:0"`
+       LockedUntil      *time.Time
+       LastLogin        *time.Time
+   }
+
+   type Organization struct {
+       ID               uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+       Name             string    `gorm:"not null"`
+       Slug             string    `gorm:"unique;not null"`
+       LicenseKey       string    // Link to existing device licensing
+       SubscriptionTier string    `gorm:"default:'basic'"`
+       MaxUsers         int       `gorm:"default:10"`
+       MaxProjects      int       `gorm:"default:5"`
+       Features         datatypes.JSON `gorm:"default:'[]'"`
+   }
+   ```
+
+2. **Enhanced Error Handling & Response Format**
    ```go
    type APIResponse struct {
        Success   bool        `json:"success"`
@@ -133,14 +205,138 @@ POST /api/v1/export/report/:id             - Generate and export report
    -- Add constraints and foreign keys
    ```
 
-### Phase 2: Authentication & Authorization (Week 2-3)
-**Priority: High**
-
-1. **User Management System**
+3. **JWT Authentication Service (Industry Standard)**
    ```go
-   type User struct {
-       ID        uuid.UUID `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-       Email     string    `json:"email" gorm:"unique;not null"`
+   type TokenPair struct {
+       AccessToken  string `json:"access_token"`  // 15 minutes
+       RefreshToken string `json:"refresh_token"` // 7 days
+   }
+
+   type JWTClaims struct {
+       UserID         string   `json:"user_id"`
+       Email          string   `json:"email"`
+       Role           string   `json:"role"`
+       OrganizationID string   `json:"org_id"`
+       Permissions    []string `json:"permissions"`
+       jwt.RegisteredClaims
+   }
+
+   type AuthService struct {
+       userRepo        UserRepository
+       passwordService *PasswordService  // Argon2id implementation
+       jwtService      *JWTService
+       sessionService  *SessionService   // Redis-backed
+   }
+   ```
+
+4. **Database Schema Enhancement (Preserve Current + Add)**
+   ```sql
+   -- KEEP ALL EXISTING TABLES (6 tables working perfectly):
+   -- file_uploads, config_data, dinsight_data, feature_data, experiments, monitor_data
+
+   -- ADD ENTERPRISE TABLES:
+   CREATE TABLE organizations (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       name VARCHAR(255) NOT NULL,
+       slug VARCHAR(100) UNIQUE NOT NULL,
+       license_key VARCHAR(500), -- Link to existing device licensing
+       subscription_tier VARCHAR(50) DEFAULT 'basic',
+       max_users INTEGER DEFAULT 10,
+       max_projects INTEGER DEFAULT 5,
+       features JSONB DEFAULT '[]',
+       created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+
+   CREATE TABLE users (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       email VARCHAR(255) UNIQUE NOT NULL,
+       password_hash VARCHAR(255) NOT NULL,
+       organization_id UUID REFERENCES organizations(id),
+       role user_role NOT NULL DEFAULT 'user',
+       is_active BOOLEAN DEFAULT true,
+       failed_login_attempts INTEGER DEFAULT 0,
+       locked_until TIMESTAMPTZ,
+       created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+
+   -- Enhance existing tables with user/project context
+   ALTER TABLE file_uploads ADD COLUMN project_id UUID REFERENCES projects(id);
+   ALTER TABLE file_uploads ADD COLUMN user_id UUID REFERENCES users(id);
+   ```
+
+### Phase 2: RBAC & Project Management (Week 2-3)
+**Priority: High - Add Enterprise Features**
+
+1. **Role-Based Access Control (RBAC)**
+   ```go
+   type Role string
+   const (
+       RoleSystemAdmin Role = "system_admin"    // Full system access
+       RoleOrgAdmin    Role = "org_admin"       // Organization management
+       RoleProjectLead Role = "project_lead"    // Project management
+       RoleAnalyst     Role = "analyst"         // Data analysis
+       RoleViewer      Role = "viewer"          // Read-only access
+   )
+
+   type Permission string
+   const (
+       // Data permissions
+       PermissionDataRead     Permission = "data:read"
+       PermissionDataWrite    Permission = "data:write"
+       PermissionDataDelete   Permission = "data:delete"
+       PermissionDataExport   Permission = "data:export"
+       
+       // Project permissions
+       PermissionProjectCreate Permission = "project:create"
+       PermissionProjectManage Permission = "project:manage"
+       PermissionProjectDelete Permission = "project:delete"
+       
+       // System permissions
+       PermissionSystemConfig Permission = "system:config"
+       PermissionUserManage   Permission = "user:manage"
+       PermissionLicenseView  Permission = "license:view"
+   )
+   ```
+
+2. **Backward Compatibility Strategy**
+   ```go
+   // All existing endpoints remain functional with optional authentication
+   func AuthOptionalMiddleware() gin.HandlerFunc {
+       return func(c *gin.Context) {
+           // Try to authenticate, but don't require it
+           if token := c.GetHeader("Authorization"); token != "" {
+               user, err := auth.ValidateToken(token)
+               if err == nil {
+                   c.Set("user", user)
+               }
+           }
+           c.Next()
+       }
+   }
+
+   // Enhanced existing handlers preserve functionality
+   func (h *UploadHandler) HandleFileUpload(c *gin.Context) {
+       // Get user from context (optional for backward compatibility)
+       user := auth.GetUserFromContext(c) // Can be nil
+       
+       // Existing logic works unchanged
+       // If user exists, associate with upload
+       if user != nil {
+           fileUpload.UserID = &user.ID
+       }
+       
+       // ... rest of existing logic unchanged
+   }
+   ```
+
+3. **Feature Flags for Gradual Rollout**
+   ```go
+   type FeatureFlags struct {
+       AuthRequired    bool `env:"AUTH_REQUIRED" default:"false"`
+       MFARequired     bool `env:"MFA_REQUIRED" default:"false"`
+       ProjectsEnabled bool `env:"PROJECTS_ENABLED" default:"false"`
+   }
+   ```
        Password  string    `json:"-" gorm:"not null"`
        FirstName string    `json:"first_name"`
        LastName  string    `json:"last_name"`

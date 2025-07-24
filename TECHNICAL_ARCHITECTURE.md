@@ -23,11 +23,17 @@ github.com/swaggo/gin-swagger v1.6.0
 github.com/go-redis/redis/v8 v8.11.5
 github.com/golang-migrate/migrate/v4 v4.17.1
 
+// Authentication & Security
+golang.org/x/crypto/argon2 v0.16.0      // Password hashing (Argon2id)
+github.com/golang-jwt/jwt/v5 v5.2.1      // JWT tokens
+github.com/google/uuid v1.6.0            // UUID generation
+golang.org/x/time v0.5.0                 // Rate limiting
+
 // Additional utilities
-github.com/google/uuid v1.6.0
 github.com/lib/pq v1.10.9
 github.com/stretchr/testify v1.9.0
 github.com/spf13/viper v1.19.0
+gorm.io/datatypes v1.2.0                 // JSONB support
 ```
 
 ### Frontend Technology Stack
@@ -162,42 +168,94 @@ github.com/spf13/viper v1.19.0
 
 ### Database Architecture
 
-#### PostgreSQL Schema Design
+#### Enhanced Enterprise Schema Design
 
-##### Core Tables
+##### Authentication & Multi-Tenancy Tables
 ```sql
--- Users and Authentication
+-- Organizations (Multi-tenant support)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    license_key VARCHAR(500), -- Link to existing device licensing system
+    subscription_tier VARCHAR(50) DEFAULT 'basic',
+    max_users INTEGER DEFAULT 10,
+    max_projects INTEGER DEFAULT 5,
+    features JSONB DEFAULT '[]',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enhanced Users with RBAC and security features
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    role VARCHAR(50) DEFAULT 'user',
+    role user_role NOT NULL DEFAULT 'user',
+    organization_id UUID REFERENCES organizations(id),
     is_active BOOLEAN DEFAULT true,
+    email_verified BOOLEAN DEFAULT false,
+    failed_login_attempts INTEGER DEFAULT 0,
+    locked_until TIMESTAMPTZ,
     last_login TIMESTAMPTZ,
+    mfa_enabled BOOLEAN DEFAULT false,
+    mfa_secret VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Projects (container for related datasets)
+-- User roles enumeration
+CREATE TYPE user_role AS ENUM (
+    'system_admin',
+    'org_admin', 
+    'project_lead',
+    'analyst',
+    'viewer'
+);
+
+-- Session management
+CREATE TABLE user_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    refresh_token_hash VARCHAR(255) NOT NULL,
+    device_info JSONB,
+    ip_address INET,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Projects with organization context
 CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    organization_id UUID REFERENCES organizations(id),
     owner_id UUID REFERENCES users(id),
-    is_public BOOLEAN DEFAULT false,
+    visibility project_visibility DEFAULT 'private',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enhanced file uploads
-CREATE TABLE file_uploads (
-    id SERIAL PRIMARY KEY,
-    project_id UUID REFERENCES projects(id),
-    user_id UUID REFERENCES users(id),
-    original_filename VARCHAR(255) NOT NULL,
-    stored_filename VARCHAR(255) NOT NULL,
+CREATE TYPE project_visibility AS ENUM ('private', 'organization', 'public');
+
+##### Existing Tables (Enhanced with User/Project Context)
+```sql
+-- EXISTING WORKING TABLES - Enhanced with user/project context
+-- These 6 tables are preserved from current working implementation
+
+-- Enhanced file uploads (add user/project context to existing)
+ALTER TABLE file_uploads ADD COLUMN project_id UUID REFERENCES projects(id);
+ALTER TABLE file_uploads ADD COLUMN user_id UUID REFERENCES users(id);
+
+-- Current structure preserved:
+-- file_uploads: id, original_file_name, file_size, status, error_message, is_merged, merged_files
+-- config_data: gamma0, optimizer, alpha, end_meta, start_dim, end_dim, etc.
+-- dinsight_data: file_upload_id, config_id, dinsight_x[], dinsight_y[], source_files[]
+-- feature_data: file_upload_id, source_file_name, metadata, feature_values[]
+-- experiments: name, file_references[], dinsight_base_id
+-- monitor_data: dinsight_data_id, file_upload_id, monitor_values[], dinsight_x, dinsight_y
     file_size BIGINT NOT NULL,
     mime_type VARCHAR(100),
     checksum VARCHAR(64),
@@ -285,21 +343,76 @@ CREATE INDEX idx_file_uploads_status_created ON file_uploads(status, created_at 
 CREATE INDEX idx_alerts_unack_severity ON alerts(is_acknowledged, severity, created_at DESC);
 ```
 
-### Security Architecture
+### Enhanced Security Architecture
 
-#### Authentication & Authorization
+#### Dual-Layer Authentication System
 
-##### JWT Token Strategy
+The platform implements a **dual-layer authentication system** that preserves the existing sophisticated device-based licensing while adding enterprise user authentication:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SECURITY LAYERS                             │
+│                                                                │
+│  ┌─────────────────┐    ┌─────────────────┐                  │
+│  │  Layer 1:       │    │  Layer 2:       │                  │
+│  │  Device License │ -> │  User Auth      │ -> Application   │
+│  │  (RSA JWT)      │    │  (JWT + RBAC)   │                  │
+│  └─────────────────┘    └─────────────────┘                  │
+│                                                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Enhanced JWT Token Strategy
 ```go
-type Claims struct {
-    UserID   string   `json:"user_id"`
-    Email    string   `json:"email"`
-    Role     string   `json:"role"`
-    Permissions []string `json:"permissions"`
+// Preserve existing license claims
+type LicenseClaims struct {
+    CustomerID string    `json:"customer_id"`
+    ExpiresAt  time.Time `json:"expires_at"`
+    MaxDevices int       `json:"max_devices"`
+    Version    string    `json:"version"`
+    Features   []string  `json:"features"`
     jwt.RegisteredClaims
 }
 
-// Token expiration: 15 minutes (access) + 7 days (refresh)
+// New user authentication claims
+type UserClaims struct {
+    UserID         string   `json:"user_id"`
+    Email          string   `json:"email"`
+    Role           string   `json:"role"`
+    OrganizationID string   `json:"org_id"`
+    Permissions    []string `json:"permissions"`
+    SessionID      string   `json:"session_id"`
+    jwt.RegisteredClaims
+}
+
+// Token pairs for user authentication
+type TokenPair struct {
+    AccessToken  string `json:"access_token"`  // 15 minutes
+    RefreshToken string `json:"refresh_token"` // 7 days
+}
+```
+
+#### Password Security (Argon2id - Industry Best Practice)
+```go
+type PasswordService struct {
+    time    uint32 // 3 iterations
+    memory  uint32 // 64*1024 (64MB)
+    threads uint8  // 4 threads
+    keyLen  uint32 // 32 bytes
+}
+
+func (p *PasswordService) HashPassword(password string) (string, error) {
+    salt := make([]byte, 16)
+    rand.Read(salt)
+    
+    hash := argon2.IDKey([]byte(password), salt, p.time, p.memory, p.threads, p.keyLen)
+    
+    // Format: $argon2id$v=19$m=65536,t=3,p=4$salt$hash
+    return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
+        argon2.Version, p.memory, p.time, p.threads,
+        base64.RawStdEncoding.EncodeToString(salt),
+        base64.RawStdEncoding.EncodeToString(hash)), nil
+}
 ```
 
 ##### Role-Based Access Control (RBAC)

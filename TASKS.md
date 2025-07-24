@@ -125,51 +125,64 @@
 - **Constraints**: Foreign keys, unique constraints, check constraints for data integrity
 - **Migration Safety**: Concurrent index creation and proper error handling
 
-#### 📋 **Task 1.5: Authentication & Authorization**
+#### 📋 **Task 1.5: Enterprise Dual-Layer Authentication & Authorization**
 **Priority**: High | **Status**: Pending 
 
-**📋 Complete JWT Authentication System**:
-- [ ] Enhanced AuthHandler with secure JWT token generation and validation
-- [ ] Access token (15 min) and refresh token (7 days) implementation
-- [ ] User registration with email validation and password hashing (bcrypt)
-- [ ] Secure login with account lockout after 5 failed attempts
-- [ ] Token-based session management with proper expiration handling
+**📋 Dual-Layer Authentication System**:
+- [ ] **Preserve existing RSA-based device licensing system** with license.lic validation
+- [ ] **Add user-level JWT authentication** with 15-minute access tokens and 7-day refresh tokens
+- [ ] **Implement organization-level multi-tenancy** with device licensing integration
+- [ ] **Create authentication middleware chain** preserving existing license validation
+- [ ] **Add backward compatibility mode** for existing API endpoints
 
-**📋 Role-Based Access Control (RBAC)**:
-- [ ] 5-tier user role system (Admin, Manager, Analyst, Viewer, User)
-- [ ] 8 granular permissions for fine-grained access control
-- [ ] Dynamic permission assignment based on user roles
-- [ ] Permission validation middleware for API endpoints
-- [ ] Role hierarchy with proper inheritance system
+**📋 Enhanced Password Security (Industry Best Practice 2025)**:
+- [ ] **Argon2id password hashing** with configurable work factors (time=3, memory=64MB, threads=4)
+- [ ] **Advanced password policy enforcement** (12+ chars, complexity, strength validation)
+- [ ] **Account lockout protection** (15-minute lockout after 5 failed attempts)
+- [ ] **Secure password reset** via email verification with token expiration
+- [ ] **Password strength validation** with real-time feedback
 
-**📋 Advanced Security Features**:
-- [ ] Password hashing with bcrypt and configurable cost
-- [ ] Account lockout mechanism (15 min after 5 failed attempts)
-- [ ] JWT token validation with signature verification
-- [ ] User status validation (active/inactive accounts)
-- [ ] Secure password change with current password verification
+**📋 Multi-Tenant Role-Based Access Control (RBAC)**:
+- [ ] **Five-tier role hierarchy**: system_admin, org_admin, project_lead, analyst, viewer
+- [ ] **Organization-level data isolation** with project-based access control
+- [ ] **Granular permission system** for data, projects, and system features
+- [ ] **Feature flag control** per organization subscription tier
+- [ ] **Permission inheritance** from organization settings
 
-**📋 Enterprise Authentication Middleware**:
-- [ ] RequireAuth() - JWT token validation and user authentication
-- [ ] RequirePermission() - Fine-grained permission checking
-- [ ] RequireRole() - Role-based access control
-- [ ] RequireProjectAccess() - Project-level access control
-- [ ] OptionalAuth() - Flexible authentication for public endpoints
+**📋 Enterprise Authentication Middleware Stack**:
+- [ ] **LicenseMiddleware**: Preserve existing RSA-based device validation
+- [ ] **AuthenticationMiddleware**: User-level JWT token validation
+- [ ] **AuthorizationMiddleware**: RBAC permission checking
+- [ ] **RateLimitMiddleware**: Token bucket algorithm rate limiting
+- [ ] **SessionMiddleware**: Redis-backed session management
 
-**📋 User Management Features**:
-- [ ] User profile management (first name, last name, email updates)
-- [ ] Secure password change functionality
-- [ ] User context storage for request handling
-- [ ] Comprehensive user helper methods (HasPermission, IsAdmin, etc.)
-- [ ] Database-backed user validation and verification
+**📋 Multi-Factor Authentication (MFA)**:
+- [ ] **TOTP (Time-based One-Time Password)** integration
+- [ ] **SMS backup authentication** for secondary verification
+- [ ] **MFA enforcement** for admin roles and sensitive operations
+- [ ] **Recovery codes** for account recovery scenarios
+- [ ] **Device trust management** for known devices
 
-**📊 Authentication & Authorization Summary**:
-- **JWT Implementation**: Secure token-based auth with access/refresh tokens
-- **Security Features**: Account lockout, password hashing, permission validation
-- **RBAC System**: 5 roles, 8 permissions, hierarchical access control
-- **Middleware Stack**: 4 authentication middleware for different use cases
-- **Enterprise Ready**: Project-level access control, audit trails, session management
-- [ ] Add device fingerprinting for licensing
+**📋 Enterprise Session & Token Management**:
+- [ ] **Redis-backed session storage** for horizontal scalability
+- [ ] **JWT token pairs** with short-lived access tokens (15 min) and secure refresh tokens
+- [ ] **Session timeout management** configurable per role
+- [ ] **Token revocation** and blacklisting capabilities
+- [ ] **Cross-device session management** with device fingerprinting
+
+**📋 Security Monitoring & Compliance**:
+- [ ] **Comprehensive audit logging** for all authentication events
+- [ ] **Failed login attempt monitoring** with automatic alerting
+- [ ] **Security headers** and XSS protection implementation
+- [ ] **Input sanitization** and SQL injection prevention
+- [ ] **API rate limiting** with adaptive threat detection
+
+**📊 Enhanced Authentication & Authorization Summary**:
+- **Dual-Layer Security**: Device licensing (Layer 1) + User authentication (Layer 2)
+- **Enterprise Standards**: Argon2id hashing, JWT tokens, MFA support, Redis sessions
+- **Multi-Tenant Architecture**: Organization isolation, subscription tiers, feature flags
+- **Backward Compatibility**: Existing endpoints preserved with optional authentication
+- **Industry Compliance**: SOC 2, GDPR, NIST security framework alignment
 
 #### 📋 **Task 1.6: Error Handling & Validation**
 **Priority**: Medium | **Status**: Pending 

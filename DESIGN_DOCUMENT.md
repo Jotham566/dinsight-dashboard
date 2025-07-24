@@ -24,7 +24,8 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 - **Framework**: Gin (HTTP router)
 - **Database**: PostgreSQL with GORM ORM
 - **Documentation**: Swagger/OpenAPI 3.0
-- **Authentication**: JWT with device-based licensing
+- **Authentication**: Dual-layer (Device licensing + User JWT)
+- **Security**: Argon2id password hashing, RBAC, MFA support
 - **Processing**: Go routines for async processing
 - **Containerization**: Docker with multi-stage builds
 
@@ -117,12 +118,14 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 ## Data Models
 
 ### Core Entities
-1. **Project**: Container for related datasets and models
-2. **Dataset**: Uploaded data with metadata
-3. **Model**: Trained baseline models
-4. **MonitorSession**: Active monitoring configurations
-5. **Alert**: Anomaly detection results
-6. **User**: Authentication and authorization
+**Enterprise Multi-Tenant Architecture:**
+1. **Organization**: Multi-tenant container with licensing integration
+2. **User**: Enhanced with RBAC, MFA, and organization context
+3. **Project**: Organization-scoped container for related datasets
+4. **Dataset**: Uploaded data with user/project association
+5. **Model**: Trained baseline models with access control
+6. **MonitorSession**: Active monitoring configurations
+7. **Alert**: Anomaly detection results with notification workflows
 
 ### Database Schema Design
 - Normalized structure for data integrity
@@ -131,23 +134,45 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 - Indexing strategy for performance
 - Audit trails for data lineage
 
-## Security Considerations
+## Enhanced Security Architecture
 
-### Authentication & Authorization
-- JWT-based authentication
-- Role-based access control (RBAC)
-- Device fingerprinting for licensing
-- Session management with refresh tokens
+### Dual-Layer Authentication Strategy
+**Preserving Existing Investment while Adding Enterprise Features:**
 
-### Data Security
-- Input sanitization and validation
-- SQL injection prevention
-- File upload security (type validation, size limits)
-- Data encryption at rest and in transit
+#### Layer 1: Device-Based Licensing (Preserved)
+- **RSA-based JWT license validation** with embedded public key
+- **Device fingerprinting and registration** management
+- **License expiration tracking** with cache optimization
+- **Production-ready licensing middleware** already implemented
 
-### API Security
-- Rate limiting
-- CORS configuration
+#### Layer 2: User Authentication (New)
+- **JWT-based user authentication** with access/refresh tokens
+- **Argon2id password hashing** (industry best practice 2025)
+- **Multi-factor authentication** support (TOTP + SMS)
+- **Redis-backed session management** for scalability
+
+### Role-Based Access Control (RBAC)
+```
+system_admin  -> Full system access
+org_admin     -> Organization management
+project_lead  -> Project management
+analyst       -> Data analysis capabilities
+viewer        -> Read-only access
+```
+
+### Multi-Tenant Security
+- **Organization-level data isolation**
+- **Project-based access control**
+- **User permission inheritance** from organization settings
+- **Feature flag control** per organization subscription
+
+### Enterprise Security Features
+- **Account lockout** after failed attempts (15 min lockout)
+- **Password policy enforcement** (12+ chars, complexity)
+- **Session timeout** and management
+- **API rate limiting** with token bucket algorithm
+- **Input sanitization** and XSS protection
+- **SQL injection prevention** with prepared statements
 - Request/response logging
 - Security headers
 
