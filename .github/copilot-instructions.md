@@ -75,6 +75,11 @@ go run cmd/migrate/main.go
 - Rate limiting tests with concurrent requests
 - Use `database.GetDB()` for database access in handlers
 
+### Debugging Tips
+- Use `internal/logging/error_logger.go` for structured error logging.
+- Debugging distance functions: Add debug logs in `internal/dinsightmon/distanceFuncLib/`.
+- Monitor real-time processing logs in `internal/dinsightmon/monitor.go`.
+
 ## Security & Validation
 
 ### Input Validation
@@ -100,6 +105,10 @@ go run cmd/migrate/main.go
 - Multi-format support: CSV, Excel, JSON with metadata extraction
 - Chunked uploads for large files (5MB chunks, resumable)
 - Progress tracking stored in database with status updates
+
+### External APIs
+- Webhooks for alert notifications: Implemented in `internal/export/webhooks.go`.
+- Integration API for exporting data: See `internal/export/integration_api.go`.
 
 ## Common Gotchas
 
