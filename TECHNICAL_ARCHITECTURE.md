@@ -554,6 +554,78 @@ volumes:
 
 ---
 
+## Mahalanobis Anomaly Detection System
+
+### Mathematical Implementation
+
+#### Core Algorithm
+```go
+type MahalanobisDetector struct {
+    BaselineData     []Point2D
+    BaselineCentroid Point2D
+    CovarianceMatrix *mat.Dense
+    InvCovMatrix     *mat.Dense
+    BaselineDistances []float64
+    ThresholdMean    float64
+    ThresholdStd     float64
+}
+
+type Point2D struct {
+    X float64 `json:"dinsight_x"`
+    Y float64 `json:"dinsight_y"`
+}
+```
+
+#### Distance Calculation
+```
+distance = sqrt((x - μ)ᵀ × Σ⁻¹ × (x - μ))
+
+Where:
+- x = monitoring data point (2D coordinate)
+- μ = reference dataset centroid 
+- Σ⁻¹ = inverse covariance matrix of reference dataset
+```
+
+#### Adaptive Threshold System
+```
+threshold = mean(baseline_distances) + sensitivity_factor × std(baseline_distances)
+
+Sensitivity Levels:
+- High Sensitivity: ≤1.5x (detects subtle variations)
+- Medium Sensitivity: 2.0-3.5x (balanced detection) 
+- Low Sensitivity: ≥4.0x (focuses on significant deviations)
+```
+
+### API Endpoints
+- `POST /api/v1/anomaly/detect` - Core anomaly detection
+- `GET /api/v1/anomaly/distance-distribution/{baseline_id}/{monitoring_id}` - Histogram data
+- `POST /api/v1/anomaly/batch-detect` - Multiple monitoring datasets
+- `GET /api/v1/anomaly/sensitivity-analysis/{baseline_id}/{monitoring_id}` - Sensitivity curves
+
+### Database Integration
+```sql
+-- Anomaly detection results storage
+CREATE TABLE anomaly_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    baseline_dataset_id UUID REFERENCES datasets(id),
+    monitoring_dataset_id UUID REFERENCES datasets(id),
+    sensitivity_factor DECIMAL(3,1),
+    threshold_value DECIMAL(10,6),
+    anomaly_count INTEGER,
+    total_points INTEGER,
+    anomaly_percentage DECIMAL(5,2),
+    baseline_centroid JSONB,
+    covariance_matrix JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### External Dependencies
+- **gonum/stat** - Statistical functions and matrix operations
+- **gonum/mat** - Matrix operations and linear algebra
+
+---
+
 ## Development Best Practices
 
 ### Code Quality Standards

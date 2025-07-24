@@ -51,29 +51,29 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 - **File Organization**: Project-based file management with metadata tracking
 - **Data Pipeline**: ETL processes with data cleaning and normalization
 
-### 2. Baseline Model Training
-- **Dimensionality Reduction**: Advanced algorithms (PCA, t-SNE, UMAP, custom implementations)
-- **Parameter Optimization**: Automated hyperparameter tuning
-- **Model Persistence**: Trained model storage and versioning
-- **Feature Engineering**: Automated feature extraction and selection
+### 2. Dinsight Coordinate Processing
+- **Coordinate Data Processing**: Analysis of dinsight_x and dinsight_y coordinate pairs from dimensionality reduction
+- **Baseline Dataset Management**: Reference dataset storage and statistical analysis for comparison
+- **Configuration Management**: Processing parameters (gamma0, optimizer, alpha) for coordinate generation
+- **Dataset Compatibility Validation**: Statistical validation and consistency checking between datasets
 
-### 3. Real-time Monitoring
-- **Streaming Data**: Real-time data ingestion from various sources
-- **Anomaly Detection**: Mahalanobis distance-based detection with adaptive thresholds
-- **Alert System**: Configurable alerts with multiple notification channels
-- **Dashboard**: Real-time monitoring dashboard with customizable widgets
+### 3. Mahalanobis Anomaly Detection System
+- **Statistical Analysis**: Centroid and covariance matrix calculation from baseline datasets
+- **Adaptive Threshold Control**: Sensitivity factor adjustment (0.5x to 5.0x) with real-time threshold updates
+- **Distance Calculation**: Mahalanobis distance computation for monitoring points against baseline statistics
+- **Classification & Reporting**: Binary anomaly classification with percentage reporting and distribution analysis
 
-### 4. Advanced Analytics
-- **Statistical Analysis**: Comprehensive statistical reporting
-- **Trend Analysis**: Historical trend identification and prediction
-- **Comparative Analysis**: Multi-dataset comparisons
-- **Report Generation**: Automated report generation with insights
+### 4. Feature Data Analysis & Visualization
+- **Feature Data Management**: Loading and processing of raw feature data with metadata integration
+- **Sample-based Analysis**: Individual sample exploration with participant and segment metadata
+- **Multi-strategy Data Loading**: Intelligent ID resolution for feature data access across multiple API endpoints
+- **Feature Distribution Analysis**: Value plotting and comparative analysis across samples
 
-### 5. Visualization Engine
-- **Interactive Charts**: Drag-and-drop chart builder
-- **3D Visualization**: Advanced 3D scatter plots and heatmaps
-- **Custom Dashboards**: User-configurable dashboard layouts
-- **Export Capabilities**: PDF, PNG, SVG export options
+### 5. Interactive Data Visualization Engine
+- **Multi-chart Plotting**: Scatter plots, side-by-side comparisons, and anomaly detection overlays
+- **Real-time Chart Updates**: Dynamic visualization updates with zoom, pan, and export capabilities
+- **Distance Distribution Visualization**: Histogram generation for Mahalanobis distance analysis
+- **Statistical Overlays**: Centroid markers, threshold circles, and density contour plotting
 
 ## System Architecture
 

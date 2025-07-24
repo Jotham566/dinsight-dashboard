@@ -60,28 +60,28 @@
 - **FR-DM-014**: Support data cleaning and transformation
 - **FR-DM-015**: Generate data quality reports
 
-### 2. Analytics Engine
+### 2. Dinsight Coordinate Processing Engine
 
-#### 2.1 Baseline Model Training
-- **FR-AE-001**: Support multiple dimensionality reduction algorithms
-- **FR-AE-002**: Automated hyperparameter optimization
-- **FR-AE-003**: Cross-validation and model performance metrics
+#### 2.1 Coordinate Data Management
+- **FR-AE-001**: Process dinsight_x and dinsight_y coordinate pairs from dimensionality reduction
+- **FR-AE-002**: Support configurable processing parameters (gamma0, optimizer, alpha)
+- **FR-AE-003**: Validate dataset compatibility and coordinate consistency
 - **FR-AE-004**: Model comparison and selection tools
 - **FR-AE-005**: Export trained models for external use
 
-#### 2.2 Feature Engineering
-- **FR-AE-006**: Automated feature extraction and selection
-- **FR-AE-007**: Custom feature creation capabilities
-- **FR-AE-008**: Feature importance analysis
-- **FR-AE-009**: Feature correlation and dependency analysis
-- **FR-AE-010**: Time-series feature engineering
+#### 2.2 Feature Data Analysis
+- **FR-AE-006**: Load and process raw feature data with metadata integration
+- **FR-AE-007**: Support multiple ID resolution strategies for feature data access
+- **FR-AE-008**: Sample-based feature exploration and visualization
+- **FR-AE-009**: Feature distribution analysis and comparative visualization
+- **FR-AE-010**: Metadata handling for participant, segment, and temporal data
 
-#### 2.3 Model Management
-- **FR-AE-011**: Version control for trained models
-- **FR-AE-012**: Model deployment and rollback
-- **FR-AE-013**: A/B testing for model comparison
-- **FR-AE-014**: Model performance monitoring
-- **FR-AE-015**: Automated model retraining
+#### 2.3 Baseline Dataset Management
+- **FR-AE-011**: Statistical analysis of baseline coordinate datasets
+- **FR-AE-012**: Data source tracking and lineage management
+- **FR-AE-013**: Dataset compatibility validation and consistency checking
+- **FR-AE-014**: Baseline vs monitoring dataset synchronization
+- **FR-AE-015**: Statistical validation and quality reporting
 
 ### 3. Monitoring & Anomaly Detection
 
@@ -92,12 +92,12 @@
 - **FR-MD-004**: Maintain processing state across restarts
 - **FR-MD-005**: Support event-driven processing
 
-#### 3.2 Anomaly Detection
-- **FR-MD-006**: Multiple anomaly detection algorithms
-- **FR-MD-007**: Configurable sensitivity thresholds
-- **FR-MD-008**: Adaptive threshold adjustment
-- **FR-MD-009**: Multi-variate anomaly detection
-- **FR-MD-010**: Historical anomaly pattern analysis
+#### 3.2 Mahalanobis Distance Anomaly Detection
+- **FR-MD-006**: Implement Mahalanobis distance calculation using baseline centroid and covariance matrix
+- **FR-MD-007**: Adaptive sensitivity factor controls (0.5x to 5.0x standard deviation)
+- **FR-MD-008**: Real-time threshold adjustment with immediate classification updates
+- **FR-MD-009**: Statistical threshold calculation based on baseline distance distribution
+- **FR-MD-010**: Anomaly percentage reporting and statistical summaries
 
 #### 3.3 Alert System
 - **FR-MD-011**: Real-time alert generation
@@ -116,11 +116,11 @@
 - **FR-VR-005**: Export dashboards as PDF/images
 
 #### 4.2 Chart Types
-- **FR-VR-006**: 2D/3D scatter plots
-- **FR-VR-007**: Time-series line charts
-- **FR-VR-008**: Heatmaps and correlation matrices
-- **FR-VR-009**: Distribution plots and histograms
-- **FR-VR-010**: Custom chart configurations
+- **FR-VR-006**: Interactive scatter plots with dinsight coordinate visualization
+- **FR-VR-007**: Side-by-side dataset comparison plots in grid layouts
+- **FR-VR-008**: Anomaly detection overlays with statistical markers
+- **FR-VR-009**: Mahalanobis distance distribution histograms
+- **FR-VR-010**: Statistical overlays (centroid markers, threshold circles, density contours)
 
 #### 4.3 Reporting
 - **FR-VR-011**: Automated report generation
