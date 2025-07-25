@@ -53,27 +53,46 @@ GET  /api/v1/datasets/:id/quality          - Data quality report
 POST /api/v1/datasets/:id/validate         - Validate dataset
 ```
 
-#### 4. Alert & Notification Management
+#### 4. Industrial Alert & Notification Management
 ```
-GET  /api/v1/alerts                        - List alerts
-GET  /api/v1/alerts/:id                    - Get alert details
-POST /api/v1/alerts/:id/acknowledge        - Acknowledge alert
-PUT  /api/v1/alerts/:id                    - Update alert
-DELETE /api/v1/alerts/:id                  - Delete alert
-GET  /api/v1/alerts/unacknowledged         - Get unacknowledged alerts
-POST /api/v1/alerts/bulk-acknowledge       - Bulk acknowledge alerts
-```
-
-#### 5. Real-time & Monitoring
-```
-GET  /api/v1/dashboard/stats               - Dashboard statistics
-GET  /api/v1/dashboard/charts              - Chart data for dashboard
-GET  /api/v1/system/health                 - System health check
-GET  /api/v1/system/metrics                - System metrics
-WebSocket /api/v1/ws                       - Real-time updates
+GET  /api/v1/alerts                        - List industrial equipment alerts
+GET  /api/v1/alerts/:id                    - Get detailed alert information
+POST /api/v1/alerts/:id/acknowledge        - Acknowledge equipment failure alert
+PUT  /api/v1/alerts/:id                    - Update alert severity or status
+DELETE /api/v1/alerts/:id                  - Delete resolved alert
+GET  /api/v1/alerts/unacknowledged         - Get critical unacknowledged alerts
+POST /api/v1/alerts/bulk-acknowledge       - Bulk acknowledge multiple alerts
+GET  /api/v1/alerts/by-machine/:machine_id - Get alerts for specific equipment
+POST /api/v1/alerts/escalate/:id           - Escalate alert to supervisor
+GET  /api/v1/alerts/patterns               - Get alert patterns for predictive analysis
 ```
 
-#### 6. Job & Task Management
+#### 5. Industrial Real-time Monitoring & Dashboard
+```
+GET  /api/v1/dashboard/stats               - Multi-machine performance statistics
+GET  /api/v1/dashboard/charts              - Real-time equipment trend charts
+GET  /api/v1/dashboard/kpi                 - OEE and operational KPIs
+GET  /api/v1/dashboard/config/:area        - Get dashboard configuration for operational area
+POST /api/v1/dashboard/config/:area       - Update dashboard layout and widgets
+GET  /api/v1/system/health                 - Industrial system health check
+GET  /api/v1/system/metrics                - Equipment performance metrics
+WebSocket /api/v1/ws                       - Real-time industrial data streaming
+SSE /api/v1/stream/:machine_id             - Server-sent events for specific machine
+GET  /api/v1/shift-reports/:shift_id       - Automated shift operational reports
+```
+
+#### 6. Industrial Notification & Integration
+```
+POST /api/v1/notifications/email           - Send equipment failure email notifications
+POST /api/v1/notifications/sms             - Send critical SMS alerts to operators
+POST /api/v1/notifications/webhook         - Trigger CMMS webhook integration
+GET  /api/v1/notifications/delivery/:id    - Check notification delivery status
+POST /api/v1/notifications/templates       - Create custom notification templates
+GET  /api/v1/maintenance/schedule          - Get maintenance windows for alert suppression
+POST /api/v1/maintenance/mode/:machine_id  - Enable/disable maintenance mode
+```
+
+#### 7. Job & Task Management
 ```
 GET  /api/v1/jobs                          - List background jobs
 GET  /api/v1/jobs/:id                      - Get job status
@@ -420,71 +439,106 @@ r.Use(
    func (q *JobQueue) ProcessJobs(ctx context.Context)
    ```
 
-### Phase 5: Real-time & Monitoring + Essential Analytics (Week 5-6)
-**Priority: Medium**
+### Phase 5: Industrial Real-time Monitoring & Alert Management (Week 5-7)
+**Priority: HIGH - Business Critical for Industrial Operations**
 
-1. **Essential Anomaly Detection**
+1. **Industrial Data Streaming Pipeline**
    ```go
-   type AnomalyDetector struct {
-       threshold float64
+   type IndustrialStreamHandler struct {
+       bufferSize       int
+       maxPointsPerSec  int
+       activeSessions   map[string]*MachineSession
    }
    
-   // Add Mahalanobis distance anomaly detection to existing monitoring
-   func (d *AnomalyDetector) DetectAnomalies(data [][]float64) []bool
-   func (d *AnomalyDetector) CalculateMahalanobisDistance(point, mean []float64, invCov [][]float64) float64
+   // Handle continuous sensor data from industrial machines
+   func (h *IndustrialStreamHandler) StreamMachineData(c *gin.Context)  // WebSocket /api/v1/ws
+   func (h *IndustrialStreamHandler) ProcessDataPoint(machineID string, data SensorData)
+   func (h *IndustrialStreamHandler) BufferDataDuringOutage(machineID string, data []SensorData)
+   func (h *IndustrialStreamHandler) GetMachineStatus(c *gin.Context)   // GET /api/v1/stream/:machine_id/status
    ```
 
-2. **Enhanced Monitoring Integration**
+2. **Production Alert Management System**
    ```go
-   // Extend existing monitor endpoints with anomaly detection
-   func (h *MonitorHandler) ProcessMonitoringData(c *gin.Context) {
-       // Existing monitoring logic + anomaly detection
+   type IndustrialAlertManager struct {
+       alertRules       map[string]AlertRule
+       escalationChains map[string]EscalationChain
+       maintenanceMode  map[string]bool
    }
    
-   func (h *MonitorHandler) GetAnomalies(c *gin.Context)  // GET /api/v1/monitor/:id/anomalies
+   // Intelligent alerting for equipment failures
+   func (m *IndustrialAlertManager) ProcessEquipmentAlert(alert EquipmentAlert) error
+   func (m *IndustrialAlertManager) EscalateToSupervisor(alertID string) error
+   func (m *IndustrialAlertManager) SuppressMaintenanceAlerts(machineID string, duration time.Duration)
+   func (m *IndustrialAlertManager) AnalyzeAlertPatterns(machineID string) PatternAnalysis
    ```
 
-3. **WebSocket Support**
+3. **Multi-Channel Notification Service**
    ```go
-   type WSHandler struct {
-       upgrader websocket.Upgrader
-       clients  map[string]*websocket.Conn
+   type NotificationService struct {
+       emailService    EmailNotifier
+       smsService      SMSNotifier
+       webhookService  WebhookNotifier
+       pushService     PushNotifier
    }
    
-   func (h *WSHandler) HandleWebSocket(c *gin.Context)
-   func (h *WSHandler) BroadcastMessage(msg *WSMessage)
+   // Critical equipment failure notifications
+   func (s *NotificationService) SendEquipmentFailureEmail(alert EquipmentAlert, recipients []string)
+   func (s *NotificationService) SendCriticalSMS(alert EquipmentAlert, phoneNumbers []string)
+   func (s *NotificationService) TriggerCMMSWebhook(alert EquipmentAlert, workOrderData WorkOrder)
+   func (s *NotificationService) ConfirmDelivery(notificationID string) DeliveryStatus
    ```
 
-4. **Alert Management**
+4. **Enhanced Anomaly Detection with Industrial Context**
    ```go
-   type AlertService struct {
-       notificationChannels []NotificationChannel
+   type IndustrialAnomalyDetector struct {
+       threshold       float64
+       machineProfiles map[string]MachineProfile
    }
    
-   func (s *AlertService) CreateAlert(alert *Alert) error
-   func (s *AlertService) ProcessAlert(alert *Alert) error
+   // Equipment-specific anomaly detection
+   func (d *IndustrialAnomalyDetector) DetectEquipmentAnomalies(machineID string, data [][]float64) []bool
+   func (d *IndustrialAnomalyDetector) CalculateMahalanobisDistance(point, mean []float64, invCov [][]float64) float64
+   func (d *IndustrialAnomalyDetector) GetEquipmentBaseline(machineID string) BaselineData
    ```
 
-5. **Essential Data Export (Simplified Implementation)**
+5. **Industrial Dashboard Backend**
    ```go
-   type ExportHandler struct {
+   type IndustrialDashboardService struct {
+       metricsCalculator OEECalculator
+       configManager     DashboardConfigManager
+       reportGenerator   ShiftReportGenerator
+   }
+   
+   // Multi-machine performance dashboards
+   func (s *IndustrialDashboardService) GetFactoryOverview(c *gin.Context)     // GET /api/v1/dashboard/stats
+   func (s *IndustrialDashboardService) GetEquipmentTrends(c *gin.Context)     // GET /api/v1/dashboard/charts
+   func (s *IndustrialDashboardService) CalculateOEE(machineID string) OEEMetrics
+   func (s *IndustrialDashboardService) GenerateShiftReport(shiftID string) ShiftReport
+   func (s *IndustrialDashboardService) GetComplianceData(c *gin.Context)      // GET /api/v1/dashboard/compliance
+   ```
+
+6. **Essential Data Export with Industrial Context**
+   ```go
+   type IndustrialExportHandler struct {
        authService *auth.AuthService
    }
    
-   // Simple, focused export endpoints
-   func (h *ExportHandler) ExportDinsightCSV(c *gin.Context)    // GET /api/v2/export/dinsight/:id/csv
-   func (h *ExportHandler) ExportDinsightJSON(c *gin.Context)   // GET /api/v2/export/dinsight/:id/json
-   func (h *ExportHandler) ExportFeatureCSV(c *gin.Context)     // GET /api/v2/export/feature/:id/csv
-   func (h *ExportHandler) ExportMonitorCSV(c *gin.Context)     // GET /api/v2/export/monitor/:id/csv
-   func (h *ExportHandler) ExportQualityJSON(c *gin.Context)    // GET /api/v2/export/quality-report/:id/json
+   // Industrial data export with equipment metadata
+   func (h *IndustrialExportHandler) ExportEquipmentDataCSV(c *gin.Context)    // GET /api/v2/export/equipment/:id/csv
+   func (h *IndustrialExportHandler) ExportShiftReportJSON(c *gin.Context)     // GET /api/v2/export/shift-report/:id/json
+   func (h *IndustrialExportHandler) ExportComplianceDataCSV(c *gin.Context)   // GET /api/v2/export/compliance/:id/csv
+   func (h *IndustrialExportHandler) ExportMaintenanceLogCSV(c *gin.Context)   // GET /api/v2/export/maintenance/:id/csv
+   func (h *IndustrialExportHandler) ExportOEEReportJSON(c *gin.Context)       // GET /api/v2/export/oee-report/:id/json
    ```
 
-   **Export Features:**
-   - Direct HTTP responses with proper file headers (`Content-Disposition: attachment`)
-   - CSV and JSON formats only (covers 95% of use cases)
-   - Authentication integration with existing JWT system
-   - File naming with timestamps and descriptions
-   - ~8 hours implementation (75% scope reduction from original complex plan)
+   **Industrial Implementation Features:**
+   - Real-time data streaming for 50+ concurrent machines
+   - Equipment-specific alert configurations and escalation chains
+   - Multi-channel notifications (email, SMS, webhooks, push) for 24/7 operations
+   - Industrial dashboard with OEE metrics and compliance reporting
+   - CMMS integration and maintenance workflow automation
+   - Regulatory compliance data export and audit trail capabilities
+   - ~3 weeks implementation (justified by preventing $50,000+ per hour downtime costs)
 
 ### Phase 6: System Health & Metrics (Week 6)
 **Priority: Low**

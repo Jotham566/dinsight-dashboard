@@ -83,51 +83,69 @@
 - **FR-AE-014**: Simple baseline vs monitoring dataset synchronization
 - **FR-AE-015**: Basic statistical validation and error reporting
 
-### 3. Monitoring & Anomaly Detection
+### 3. Industrial Real-time Monitoring & Alert Management
 
-#### 3.1 Real-time Processing
-- **FR-MD-001**: Process monitoring data with reasonable latency (< 5 seconds)
-- **FR-MD-002**: Handle single data stream processing efficiently
-- **FR-MD-003**: Basic scaling for moderate data volumes
-- **FR-MD-004**: Maintain processing state consistency
-- **FR-MD-005**: Support request-response processing model
+#### 3.1 Industrial Data Streaming & Processing
+- **FR-IM-001**: Process continuous sensor data streams from industrial machines with < 1 second latency
+- **FR-IM-002**: Handle 100+ data points per second per machine for real-time trend analysis
+- **FR-IM-003**: Support 50+ concurrent machine monitoring sessions simultaneously
+- **FR-IM-004**: Maintain data integrity during network interruptions and equipment communication failures
+- **FR-IM-005**: Provide WebSocket/SSE endpoints for live dashboard updates and real-time visualization
+- **FR-IM-006**: Buffer and batch data during network issues to prevent data loss
+- **FR-IM-007**: Support integration with PLCs, SCADA systems, and industrial protocols
 
-#### 3.2 Essential Mahalanobis Distance Anomaly Detection
-- **FR-MD-006**: Implement core Mahalanobis distance calculation using baseline centroid and covariance matrix
-- **FR-MD-007**: Basic sensitivity factor controls (configurable threshold multiplier)
-- **FR-MD-008**: Simple threshold-based classification for anomaly detection
-- **FR-MD-009**: Basic statistical threshold calculation based on baseline statistics
-- **FR-MD-010**: Essential anomaly reporting: count, percentage, and threshold values
+#### 3.2 Production Alert Management System
+- **FR-IM-008**: Implement intelligent alert rules based on thresholds, trends, and failure patterns
+- **FR-IM-009**: Support multi-severity alerting (Critical/Warning/Info) with appropriate operator responses
+- **FR-IM-010**: Detect and correlate cascading failures across related industrial equipment
+- **FR-IM-011**: Automatic alert escalation to supervisors when operators don't acknowledge critical alerts
+- **FR-IM-012**: Maintenance mode alert suppression during scheduled equipment servicing
+- **FR-IM-013**: Track alert patterns for predictive maintenance optimization and false positive reduction
+- **FR-IM-014**: Machine-specific alert configurations based on equipment type and criticality levels
 
-#### 3.3 Basic Alert System
-- **FR-MD-011**: Simple anomaly detection reporting
-- **FR-MD-012**: Basic threshold-based alerts (API response format)
-- **FR-MD-013**: Integration with existing monitoring endpoints
-- **FR-MD-014**: Basic anomaly flagging in monitoring results
-- **FR-MD-015**: Configurable anomaly detection parameters
+#### 3.3 Multi-Channel Notification Service
+- **FR-IM-015**: Email notifications with detailed equipment failure reports and trending charts
+- **FR-IM-016**: SMS/text alerts for immediate critical failure notifications to mobile devices
+- **FR-IM-017**: Webhook integration with existing CMMS and maintenance management systems
+- **FR-IM-018**: Mobile push notifications for factory floor personnel and operators
+- **FR-IM-019**: Customizable notification templates per machine type and failure mode
+- **FR-IM-020**: Delivery confirmation to ensure critical equipment alerts reach responsible operators
+- **FR-IM-021**: Support for shift-based alert routing and on-call rotation schedules
 
-### 4. Visualization & Reporting
+#### 3.4 Essential Mahalanobis Distance Anomaly Detection
+- **FR-IM-022**: Implement core Mahalanobis distance calculation using baseline centroid and covariance matrix
+- **FR-IM-023**: Basic sensitivity factor controls (configurable threshold multiplier)
+- **FR-IM-024**: Simple threshold-based classification for anomaly detection
+- **FR-IM-025**: Basic statistical threshold calculation based on baseline statistics
+- **FR-IM-026**: Essential anomaly reporting: count, percentage, and threshold values
+- **FR-IM-027**: Integration of anomaly detection with industrial alert management system
 
-### 4. Data Access & Reporting
+### 4. Industrial Dashboard & Operational Intelligence
 
-#### 4.1 Data Export & Access
-- **FR-VR-001**: Export processed data as CSV/JSON formats
-- **FR-VR-002**: Basic data retrieval endpoints for frontend consumption
-- **FR-VR-003**: Coordinate data access for visualization
-- **FR-VR-004**: Anomaly detection results in structured format
-- **FR-VR-005**: Monitoring data with anomaly flags
+#### 4.1 Real-time Industrial Dashboard Backend
+- **FR-ID-001**: Real-time metrics aggregation for multi-machine performance dashboards
+- **FR-ID-002**: Dashboard configuration API for custom operational area dashboards (production lines, utilities, quality)
+- **FR-ID-003**: Historical trend analysis for predictive maintenance insights and equipment performance trending
+- **FR-ID-004**: Calculate performance KPIs including OEE (Overall Equipment Effectiveness), uptime, and efficiency metrics
+- **FR-ID-005**: Generate automated shift reports for operational summaries and management reporting
+- **FR-ID-006**: Compliance reporting features for regulatory audits and industrial safety requirements
+- **FR-ID-007**: Role-based dashboard access (operators vs. maintenance vs. management)
+- **FR-ID-008**: Multi-plant monitoring capabilities for enterprise manufacturing facilities
 
-#### 4.2 API Data Provision
-- **FR-VR-006**: Structured coordinate data for frontend scatter plots
-- **FR-VR-007**: Anomaly detection results with classification data
-- **FR-VR-008**: Basic statistical summaries (means, counts, percentages)
-- **FR-VR-009**: Dataset compatibility status and validation results
-- **FR-VR-010**: Error reporting and validation messages
+#### 4.2 Data Export & Access for Industrial Operations
+- **FR-ID-009**: Export processed data as CSV/JSON formats with industrial metadata and timestamps
+- **FR-ID-010**: Real-time data retrieval endpoints for live dashboard consumption and visualization
+- **FR-ID-011**: Equipment coordinate data access for real-time trend visualization and monitoring
+- **FR-ID-012**: Anomaly detection results with industrial alert context and severity levels
+- **FR-ID-013**: Monitoring data with equipment health flags and operational status indicators
 
-#### 4.3 Integration Support
-- **FR-VR-011**: RESTful API endpoints for data access
-- **FR-VR-012**: Consistent JSON response formats
-- **FR-VR-013**: Proper HTTP status codes and error handling
+#### 4.3 Enterprise Integration Support
+- **FR-ID-014**: RESTful API endpoints optimized for industrial data access patterns
+- **FR-ID-015**: Integration with ERP systems for cost analysis and maintenance budgeting
+- **FR-ID-016**: CMMS (Computerized Maintenance Management System) webhook integration
+- **FR-ID-017**: Consistent JSON response formats with industrial equipment metadata
+- **FR-ID-018**: Proper HTTP status codes and comprehensive industrial error handling
+- **FR-ID-019**: Regulatory compliance data export for safety audits and certifications
 - **FR-VR-014**: API documentation and examples
 - **FR-VR-015**: Frontend integration support through clean data contracts
 
@@ -170,51 +188,57 @@
 
 ## Non-Functional Requirements
 
-### Performance Requirements
+### Industrial Performance Requirements
 
-#### Response Times
-- **NFR-P-001**: API responses < 200ms for data queries
-- **NFR-P-002**: Dashboard loading < 3 seconds
-- **NFR-P-003**: File upload processing < 30 seconds for 100MB files
-- **NFR-P-004**: Real-time alerts delivered within 1 second
-- **NFR-P-005**: Model training completion time based on data size
+#### Industrial Real-time Response Times
+- **NFR-IP-001**: Industrial sensor data processing < 1 second latency for real-time trend monitoring
+- **NFR-IP-002**: Equipment failure alert delivery < 500ms for critical safety systems
+- **NFR-IP-003**: Dashboard loading < 2 seconds for factory floor monitoring stations
+- **NFR-IP-004**: File upload processing < 30 seconds for 100MB industrial sensor data files
+- **NFR-IP-005**: Anomaly detection processing < 2 seconds for 1000+ data points
+- **NFR-IP-006**: WebSocket message delivery < 100ms for real-time equipment visualization
 
-#### Throughput
-- **NFR-P-006**: Support 1000+ concurrent users
-- **NFR-P-007**: Process 10,000+ data points per second
-- **NFR-P-008**: Handle 100+ simultaneous file uploads
-- **NFR-P-009**: Support 50+ active monitoring sessions
-- **NFR-P-010**: Database queries under 100ms
+#### Industrial System Throughput
+- **NFR-IP-007**: Support 50+ concurrent machine monitoring sessions simultaneously
+- **NFR-IP-008**: Process 100+ sensor data points per second per machine
+- **NFR-IP-009**: Handle 1000+ simultaneous dashboard connections for large manufacturing facilities
+- **NFR-IP-010**: Support 500+ active alert rules across all monitored equipment
+- **NFR-IP-011**: Database queries < 50ms for equipment status and trend data
+- **NFR-IP-012**: Notification delivery < 5 seconds for email/SMS alerts to operators
+#### Industrial System Scalability
+- **NFR-IP-013**: Horizontal scaling capabilities for multi-plant industrial facilities
+- **NFR-IP-014**: Auto-scaling based on equipment monitoring load and data volume
+- **NFR-IP-015**: Database scaling to 1TB+ for long-term equipment historical data
+- **NFR-IP-016**: Multi-tenant architecture supporting 100+ manufacturing organizations
+- **NFR-IP-017**: Edge deployment compatibility for factory floor installations
+- **NFR-IP-018**: Integration with existing industrial networks and protocols
 
-#### Scalability
-- **NFR-P-011**: Horizontal scaling capabilities
-- **NFR-P-012**: Auto-scaling based on load
-- **NFR-P-013**: Database scaling to 100GB+
-- **NFR-P-014**: Multi-tenant architecture support
-- **NFR-P-015**: Cloud deployment compatibility
+### Industrial Reliability Requirements
 
-### Reliability Requirements
+#### Equipment Monitoring Availability
+- **NFR-IR-001**: 99.95% uptime for critical equipment monitoring (industrial safety requirement)
+- **NFR-IR-002**: Planned maintenance windows < 2 hours monthly during scheduled plant shutdowns
+- **NFR-IR-003**: Disaster recovery within 1 hour for critical production systems
+- **NFR-IR-004**: Real-time equipment data backup with < 5 minute recovery time
+- **NFR-IR-005**: Redundant monitoring systems for critical safety equipment
+- **NFR-IR-006**: Network failure tolerance with local data buffering capabilities
 
-#### Availability
-- **NFR-R-001**: 99.9% uptime during business hours
-- **NFR-R-002**: Planned maintenance windows < 4 hours monthly
-- **NFR-R-003**: Disaster recovery within 4 hours
-- **NFR-R-004**: Data backup every 6 hours
-- **NFR-R-005**: Geographic redundancy options
+#### Industrial Data Integrity
+- **NFR-IR-007**: Zero equipment data loss guarantee for critical safety systems
+- **NFR-IR-008**: Equipment sensor data validation and corruption detection
+- **NFR-IR-009**: Time-series data consistency for accurate equipment trend analysis
+- **NFR-IR-010**: Transaction rollback capabilities for equipment configuration changes
+- **NFR-IR-011**: Data validation at all industrial data entry points (PLCs, SCADA, sensors)
+- **NFR-IR-012**: Automated equipment data integrity checks and anomaly detection
+- **NFR-IR-013**: Historical equipment data preservation for regulatory compliance (7+ years)
+- **NFR-IR-014**: Audit trail for all equipment configuration and alert changes
 
-#### Data Integrity
-- **NFR-R-006**: Zero data loss guarantee
-- **NFR-R-007**: Data consistency across all operations
-- **NFR-R-008**: Transaction rollback capabilities
-- **NFR-R-009**: Data validation at all entry points
-- **NFR-R-010**: Automated data integrity checks
-
-#### Error Handling
-- **NFR-R-011**: Graceful degradation during failures
-- **NFR-R-012**: Comprehensive error logging
-- **NFR-R-013**: User-friendly error messages
-- **NFR-R-014**: Automatic retry mechanisms
-- **NFR-R-015**: Circuit breaker patterns
+#### Industrial Error Handling
+- **NFR-IR-015**: Graceful degradation during industrial network and equipment failures
+- **NFR-IR-016**: Comprehensive industrial event logging and traceability for operators
+- **NFR-IR-017**: User-friendly error messages tailored for industrial operators and technicians
+- **NFR-IR-018**: Automatic retry mechanisms for critical equipment communications and data collection
+- **NFR-IR-019**: Circuit breaker patterns for industrial system integration failures and recovery
 
 ### Enhanced Security Requirements
 
