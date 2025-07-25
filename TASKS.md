@@ -397,158 +397,98 @@ Based on user needs analysis, this task has been **significantly simplified** to
 
 ---
 
-## Epic 3: Advanced Analytics & Detection 🤖
+## Epic 3: Essential Analytics & Detection 🎯
 
-### Sprint 3: Enhanced Analytics & Detection
+### Sprint 3: Core Analytics Implementation
 
-#### 📋 **Task 3.1: Mahalanobis Distance Anomaly Detection System**
-**Priority**: High | **Status**: Pending 
+**Strategic Focus**: Simplified, practical analytics implementation that extends the existing monitoring system rather than rebuilding it. Focused on delivering essential user value through Mahalanobis anomaly detection while avoiding over-engineering.
 
-**📋 Complete Mahalanobis Distance Anomaly Detection System**:
-- [ ] Implement Mahalanobis distance calculation for anomaly detection
-- [ ] Add adaptive threshold adjustment with sensitivity factor controls
-- [ ] Create reference dataset centroid and covariance matrix computation
-- [ ] Implement anomaly classification with statistical thresholds
-- [ ] Add anomaly percentage calculation and reporting
-- [ ] Create distance distribution visualization and analysis
+#### 📋 **Task 3.1: Mahalanobis Anomaly Detection** 
+**Priority**: High | **Status**: Pending | **Estimated Hours**: 8 hours
 
-**📋 Key Features to Implement**:
-- **Statistical Anomaly Detection**: Exact Mahalanobis distance implementation matching Streamlit dashboard functionality
-- **Adaptive Threshold System**: Dynamic threshold calculation using `threshold = mean_baseline + (sensitivity_factor × std_baseline)`
-- **5-Level Sensitivity Control**: Configurable sensitivity factors from 0.5x to 5.0x with human-readable descriptions
-- **Distance Distribution Analysis**: Complete histogram generation and statistical analysis for baseline vs monitoring datasets
-- **Sensitivity Analysis Curves**: Multi-point sensitivity analysis showing threshold impact on anomaly detection rates
-- **Dataset Compatibility Validation**: Comprehensive validation with warnings for scale differences and data quality issues
+**📋 Essential Anomaly Detection System**:
+- [ ] **Basic Mahalanobis Distance**: Implement core Mahalanobis distance calculation using baseline centroid and covariance matrix
+- [ ] **Single Detection Endpoint**: Create `POST /api/v2/anomaly/detect` for anomaly detection requests
+- [ ] **Anomaly Classification**: Simple threshold-based classification with configurable sensitivity
+- [ ] **Statistical Reporting**: Basic anomaly count, percentage, and threshold reporting
+- [ ] **Database Integration**: Use existing `DinsightData` model for baseline coordinate retrieval
 
-**📋 Core Mathematical Components**:
-- **Covariance Matrix Calculation**: Proper 2x2 covariance matrix computation with regularization (ε = 1e-6) for numerical stability
-- **Inverse Matrix Computation**: Robust inverse covariance matrix calculation with error handling for singular matrices
-- **Distance Computation**: Exact formula implementation: `sqrt((x-μ)ᵀ Σ⁻¹ (x-μ))` where Σ⁻¹ is the inverse covariance matrix
-- **Statistical Analysis**: Mean and standard deviation calculation for baseline distance distributions
-- **Threshold Calculation**: Adaptive threshold system based on baseline statistics and configurable sensitivity factors
+**📋 Core Implementation Features**:
+- **Mathematical Accuracy**: Proper Mahalanobis distance calculation: `sqrt((x-μ)ᵀ Σ⁻¹ (x-μ))`
+- **Covariance Matrix**: 2x2 covariance matrix computation with numerical stability (ε = 1e-6)
+- **Threshold Calculation**: Adaptive threshold using `threshold = mean_baseline + (sensitivity_factor × std_baseline)`
+- **Input Validation**: Basic validation for coordinate data and baseline compatibility
+- **Error Handling**: Robust error management with proper HTTP status codes
 
-**📋 REST API Endpoints**:
-- **POST /api/v2/anomaly/detect**: Single dataset anomaly detection with comprehensive results
-- **POST /api/v2/anomaly/batch-detect**: Batch processing for multiple monitoring datasets
-- **GET /api/v2/anomaly/distance-distribution/{baseline_id}/{monitoring_id}**: Distance distribution histogram generation
-- **GET /api/v2/anomaly/sensitivity-analysis/{baseline_id}/{monitoring_id}**: Sensitivity curve analysis
-- **GET /api/v2/anomaly/validate-datasets/{baseline_id}/{monitoring_id}**: Dataset compatibility validation
+**📋 API Endpoint**:
+```
+POST /api/v2/anomaly/detect
+Request: {
+  "baseline_id": "123",
+  "monitoring_coordinates": [[x1,y1], [x2,y2], ...],
+  "sensitivity_factor": 2.0
+}
+Response: {
+  "total_points": 100,
+  "anomaly_count": 5,
+  "anomaly_percentage": 5.0,
+  "threshold_used": 2.45,
+  "anomaly_indices": [12, 34, 67, 89, 95]
+}
+```
 
-**📋 Advanced Analysis Features**:
-- **Distance Distribution Visualization**: Histogram data generation for baseline and monitoring distance distributions
-- **Sensitivity Analysis**: Multi-point analysis showing how different sensitivity factors affect anomaly detection rates
-- **Dataset Validation**: Comprehensive compatibility checking with scale analysis and centroid distance evaluation
-- **Statistical Reporting**: Detailed statistics including anomaly percentages, threshold values, and sensitivity levels
-- **Error Handling**: Robust error management with proper HTTP status codes and detailed error messages
+**Strategic Benefits**: Delivers core anomaly detection functionality without unnecessary complexity, integrates seamlessly with existing infrastructure.
 
-**📊 Implementation Summary**:
-- **New Packages**: Complete anomaly detection package with detector, distribution analysis, and API integration
-- **Mathematical Accuracy**: Exact implementation matching Streamlit dashboard formulas and algorithms
-- **API Endpoints**: 5 comprehensive endpoints covering all anomaly detection operations
-- **Database Integration**: Full integration with dinsight_data table for coordinate loading and processing
-- **Performance**: Optimized matrix operations using gonum library for efficient mathematical computations
+#### 📋 **Task 3.2: Enhanced Monitoring Integration**
+**Priority**: Medium | **Status**: Pending | **Estimated Hours**: 8 hours
 
-#### 📋 **Task 3.2: Dinsight Coordinate Analysis & Processing**
-**Priority**: High | **Status**: Pending 
+**📋 Monitoring System Enhancement**:
+- [ ] **Anomaly Flags**: Add anomaly detection results to existing monitoring endpoints
+- [ ] **Threshold Integration**: Integrate configurable anomaly thresholds into monitoring workflow
+- [ ] **Alert Basics**: Simple threshold-based alerting for anomaly detection
+- [ ] **Result Storage**: Store anomaly detection results with monitoring data
+- [ ] **Backward Compatibility**: Ensure existing monitoring functionality remains unchanged
 
-**📋 Complete Coordinate Analysis & Processing System**:
-- [ ] Implement dinsight coordinate data processing and validation
-- [ ] Add dataset compatibility checking and statistical validation
-- [ ] Create data source tracking and lineage management
-- [ ] Implement baseline vs monitoring dataset comparison
-- [ ] Add data consistency checks and synchronization
-- [ ] Create coordinate-based scatter plot and distribution analysis
+**📋 Enhanced Endpoints**:
+- **Extended**: `GET /api/v1/monitor/{dinsight_id}` - Add anomaly flags to existing response
+- **Enhanced**: `POST /api/v1/monitor/{dinsight_id}` - Include anomaly detection in monitoring process
+- **New**: `GET /api/v2/monitor/{dinsight_id}/anomalies` - Retrieve anomaly detection history
 
-**📋 Key Features to Implement**:
-- **Comprehensive Statistical Analysis**: Complete coordinate dataset analysis with geometric, statistical, and quality metrics
-- **Advanced Validation Engine**: Multi-level validation (basic, standard, strict) with detailed error reporting and warnings
-- **Dataset Compatibility System**: Scale, shape, and data quality compatibility checking with comprehensive reporting
-- **Data Lineage Tracking**: Complete lineage management with processing steps, relationships, and impact analysis
-- **Baseline vs Monitoring Comparison**: Statistical tests (KS, t-test, chi-square, Mann-Whitney) with geometric and distribution analysis
-- **Visualization Data Generation**: Scatter plot and distribution plot data with customizable styling and annotations
+**📋 Integration Features**:
+- **Seamless Integration**: Extend existing monitoring system without breaking changes
+- **Optional Anomaly Detection**: Anomaly detection can be enabled/disabled per monitoring session
+- **Historical Tracking**: Track anomaly detection results over time
+- **Performance Optimization**: Efficient anomaly calculation integrated into monitoring pipeline
 
-**📋 Core Analysis Components**:
-- **Coordinate Analyzer**: Statistical analysis including centroid, bounding box, distribution, correlation, density, and outlier detection
-- **Data Validator**: Three-level validation with compatibility checking, warning systems, and recommendation generation
-- **Dataset Comparator**: Comprehensive comparison engine with statistical tests, geometric analysis, and similarity scoring
-- **Lineage Tracker**: Complete data lineage with processing history, relationships, quality tracking, and impact analysis
-- **Visualization Engine**: Scatter plot and distribution plot data generation with customizable options and annotations
+**Strategic Benefits**: Enhances existing monitoring capabilities without architectural changes, provides immediate value to current users.
 
-**📋 Statistical Analysis Features**:
-- **Distribution Analysis**: Complete axis-wise statistical analysis including mean, median, variance, skewness, kurtosis, and quartiles
-- **Outlier Detection**: Z-score and IQR methods with configurable thresholds and detailed outlier information
-- **Density Analysis**: Spatial density computation with grid-based analysis and local density calculations
-- **Correlation Analysis**: Pearson correlation with linear fit calculations and R-squared values
-- **Quality Scoring**: Multi-factor quality assessment based on point count, distribution, outliers, coverage, and density uniformity
+#### 📋 **Task 3.3: Data Validation & Quality**
+**Priority**: Low | **Status**: Pending | **Estimated Hours**: 4 hours
 
-**📋 REST API Endpoints**:
-- **POST /api/v2/coordinate/analyze**: Comprehensive dataset analysis with configurable parameters
-- **POST /api/v2/coordinate/validate**: Multi-level dataset validation with detailed error reporting
-- **POST /api/v2/coordinate/compare**: Statistical and geometric dataset comparison
-- **GET /api/v2/coordinate/compatibility/{baseline_id}/{monitoring_id}**: Dataset compatibility checking
-- **POST /api/v2/coordinate/scatter-plot**: Customizable scatter plot data generation
-- **POST /api/v2/coordinate/distribution-plot**: Histogram and distribution analysis data
-- **GET /api/v2/coordinate/lineage/{dataset_id}**: Data lineage retrieval
-- **GET /api/v2/coordinate/lineage-graph/{dataset_id}**: Lineage graph with relationships
-- **GET /api/v2/coordinate/quality-trend/{dataset_id}**: Quality trend analysis over time
-- **GET /api/v2/coordinate/impact-analysis/{dataset_id}**: Impact analysis for dataset changes
+**📋 Essential Data Quality**:
+- [ ] **Input Validation**: Validate coordinate data format and structure
+- [ ] **Dataset Compatibility**: Basic compatibility checking between baseline and monitoring datasets
+- [ ] **Error Handling**: Clear error messages for invalid data inputs
+- [ ] **Scale Validation**: Detect significant scale differences between datasets
+- [ ] **Data Consistency**: Basic checks for data consistency and completeness
 
-**📋 Advanced Validation System**:
-- **Structure Validation**: Array length consistency, null checks, coordinate validity (NaN, Inf detection)
-- **Statistical Validation**: Distribution analysis, outlier rate checking, variance validation, correlation analysis
-- **Quality Assessment**: Multi-dimensional quality scoring with completeness, accuracy, and consistency metrics
-- **Compatibility Checking**: Scale ratio analysis, centroid distance validation, shape similarity assessment
-- **Warning System**: Severity-based warnings with actionable recommendations and impact assessment
+**📋 Validation Features**:
+- **Structure Validation**: Array length consistency, null checks, coordinate validity
+- **Statistical Validation**: Basic distribution checks and outlier detection
+- **Compatibility Checks**: Scale ratio analysis and centroid distance validation
+- **Error Reporting**: User-friendly error messages with actionable recommendations
+- **Preprocessing**: Basic data cleaning and normalization where needed
 
-**📋 Data Lineage System**:
-- **Processing History**: Complete tracking of data transformations and operations
-- **Relationship Management**: Dataset relationships with strength and confidence metrics
-- **Quality Tracking**: Historical quality snapshots with trend analysis
-- **Usage Monitoring**: Access patterns and usage statistics
-- **Impact Analysis**: Downstream effect analysis for dataset changes with risk assessment
+**Strategic Benefits**: Ensures data quality without over-engineering, provides clear feedback to users for data issues.
 
-**📊 Implementation Summary**:
-- **New Packages**: Complete coordinate analysis package with 5 main components (analyzer, validator, comparator, lineage, visualization)
-- **Mathematical Accuracy**: Proper statistical implementations using gonum library for reliable calculations
-- **API Integration**: 10 comprehensive REST endpoints covering all coordinate analysis operations
-- **Database Integration**: Full integration with existing dinsight_data model and database layer
-- **Enterprise Features**: Multi-level validation, lineage tracking, impact analysis, and comprehensive error handling
+---
 
-#### 📋 **Task 3.3: Feature Data Analysis & Visualization**
-**Priority**: Medium | **Estimate**: 3 days
-- [ ] Implement feature data loading and management system
-- [ ] Add sample-based feature visualization and exploration
-- [ ] Create metadata integration and display system
-- [ ] Implement feature value plotting and distribution analysis
-- [ ] Add multi-sample feature comparison capabilities
-- [ ] Create feature data export and analysis tools
-
-#### 📋 **Task 3.4: Interactive Data Visualization Engine**
-**Priority**: High | **Estimate**: 4 days
-- [ ] Multi-chart plotting system (scatter, distribution, anomaly overlays)
-- [ ] Side-by-side dataset comparison visualizations
-- [ ] Real-time chart updates with zoom/pan/export capabilities
-- [ ] Configurable color schemes and styling options
-- [ ] Interactive plot configuration and customization
-- [ ] Chart export functionality (PNG, SVG, PDF)
-
-#### 📋 **Task 3.5: Advanced Chart Types & Analytics**  
-**Priority**: Medium | **Estimate**: 3 days
-- [ ] Density contour plotting for distribution analysis
-- [ ] Statistical visualization overlays (centroid, threshold circles)
-- [ ] Feature correlation heatmaps and scatter matrices
-- [ ] Time-series plotting for temporal analysis
-- [ ] Distribution histograms and box plots
-- [ ] Anomaly detection result visualization
-
-#### 📋 **Task 3.6: Dashboard Layout & UI Components**
-**Priority**: High | **Estimate**: 3 days  
-- [ ] Responsive dashboard grid system
-- [ ] Collapsible panels and expandable sections
-- [ ] Data source tracking and lineage indicators
-- [ ] Statistical validation notifications
-- [ ] Interactive parameter controls (sliders, dropdowns)
-- [ ] Real-time status indicators and progress bars
+**📊 Epic 3 Summary**:
+- **Total Effort**: 20 hours (2.5 days) vs original 160+ hours
+- **Scope Reduction**: 87% reduction while maintaining core functionality
+- **Focus**: Essential anomaly detection that extends existing system
+- **Strategy**: Build on existing infrastructure rather than rebuilding
+- **User Value**: Same core benefits with dramatically reduced complexity
 
 ---
 

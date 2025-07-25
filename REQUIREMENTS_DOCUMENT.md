@@ -78,56 +78,58 @@
 
 #### 2.3 Baseline Dataset Management
 - **FR-AE-011**: Statistical analysis of baseline coordinate datasets
-- **FR-AE-012**: Data source tracking and lineage management
-- **FR-AE-013**: Dataset compatibility validation and consistency checking
-- **FR-AE-014**: Baseline vs monitoring dataset synchronization
-- **FR-AE-015**: Statistical validation and quality reporting
+- **FR-AE-012**: Basic data source tracking for monitoring workflows
+- **FR-AE-013**: Essential dataset compatibility validation
+- **FR-AE-014**: Simple baseline vs monitoring dataset synchronization
+- **FR-AE-015**: Basic statistical validation and error reporting
 
 ### 3. Monitoring & Anomaly Detection
 
 #### 3.1 Real-time Processing
-- **FR-MD-001**: Process streaming data with < 1 second latency
-- **FR-MD-002**: Handle concurrent data streams
-- **FR-MD-003**: Scale processing based on data volume
-- **FR-MD-004**: Maintain processing state across restarts
-- **FR-MD-005**: Support event-driven processing
+- **FR-MD-001**: Process monitoring data with reasonable latency (< 5 seconds)
+- **FR-MD-002**: Handle single data stream processing efficiently
+- **FR-MD-003**: Basic scaling for moderate data volumes
+- **FR-MD-004**: Maintain processing state consistency
+- **FR-MD-005**: Support request-response processing model
 
-#### 3.2 Mahalanobis Distance Anomaly Detection
-- **FR-MD-006**: Implement Mahalanobis distance calculation using baseline centroid and covariance matrix
-- **FR-MD-007**: Adaptive sensitivity factor controls (0.5x to 5.0x standard deviation)
-- **FR-MD-008**: Real-time threshold adjustment with immediate classification updates
-- **FR-MD-009**: Statistical threshold calculation based on baseline distance distribution
-- **FR-MD-010**: Anomaly percentage reporting and statistical summaries
+#### 3.2 Essential Mahalanobis Distance Anomaly Detection
+- **FR-MD-006**: Implement core Mahalanobis distance calculation using baseline centroid and covariance matrix
+- **FR-MD-007**: Basic sensitivity factor controls (configurable threshold multiplier)
+- **FR-MD-008**: Simple threshold-based classification for anomaly detection
+- **FR-MD-009**: Basic statistical threshold calculation based on baseline statistics
+- **FR-MD-010**: Essential anomaly reporting: count, percentage, and threshold values
 
-#### 3.3 Alert System
-- **FR-MD-011**: Real-time alert generation
-- **FR-MD-012**: Multiple notification channels (email, SMS, webhooks)
-- **FR-MD-013**: Alert escalation and acknowledgment
-- **FR-MD-014**: Alert correlation and deduplication
-- **FR-MD-015**: Custom alert rules and conditions
+#### 3.3 Basic Alert System
+- **FR-MD-011**: Simple anomaly detection reporting
+- **FR-MD-012**: Basic threshold-based alerts (API response format)
+- **FR-MD-013**: Integration with existing monitoring endpoints
+- **FR-MD-014**: Basic anomaly flagging in monitoring results
+- **FR-MD-015**: Configurable anomaly detection parameters
 
 ### 4. Visualization & Reporting
 
-#### 4.1 Interactive Dashboards
-- **FR-VR-001**: Real-time dashboard updates
-- **FR-VR-002**: Customizable dashboard layouts
-- **FR-VR-003**: Drill-down capabilities
-- **FR-VR-004**: Multi-dataset comparisons
-- **FR-VR-005**: Export data as CSV/JSON 
+### 4. Data Access & Reporting
 
-#### 4.2 Chart Types
-- **FR-VR-006**: Interactive scatter plots with dinsight coordinate visualization
-- **FR-VR-007**: Side-by-side dataset comparison plots in grid layouts
-- **FR-VR-008**: Anomaly detection overlays with statistical markers
-- **FR-VR-009**: Mahalanobis distance distribution histograms
-- **FR-VR-010**: Statistical overlays (centroid markers, threshold circles, density contours)
+#### 4.1 Data Export & Access
+- **FR-VR-001**: Export processed data as CSV/JSON formats
+- **FR-VR-002**: Basic data retrieval endpoints for frontend consumption
+- **FR-VR-003**: Coordinate data access for visualization
+- **FR-VR-004**: Anomaly detection results in structured format
+- **FR-VR-005**: Monitoring data with anomaly flags
 
-#### 4.3 Reporting
-- **FR-VR-011**: Automated report generation
-- **FR-VR-012**: Scheduled report delivery
-- **FR-VR-013**: Custom report templates
-- **FR-VR-014**: Report sharing and collaboration
-- **FR-VR-015**: Historical trend reports
+#### 4.2 API Data Provision
+- **FR-VR-006**: Structured coordinate data for frontend scatter plots
+- **FR-VR-007**: Anomaly detection results with classification data
+- **FR-VR-008**: Basic statistical summaries (means, counts, percentages)
+- **FR-VR-009**: Dataset compatibility status and validation results
+- **FR-VR-010**: Error reporting and validation messages
+
+#### 4.3 Integration Support
+- **FR-VR-011**: RESTful API endpoints for data access
+- **FR-VR-012**: Consistent JSON response formats
+- **FR-VR-013**: Proper HTTP status codes and error handling
+- **FR-VR-014**: API documentation and examples
+- **FR-VR-015**: Frontend integration support through clean data contracts
 
 ### 5. Enterprise Authentication & Security
 

@@ -13,6 +13,7 @@ GET  /api/v1/feature/:file_upload_id/range - Get feature values range
 POST /api/v1/monitor/:dinsight_id          - Process monitoring data
 GET  /api/v1/monitor/:dinsight_id          - Get monitoring values
 GET  /api/v1/monitor/:dinsight_id/coordinates - Get monitoring coordinates
+GET  /api/v1/monitor/:id/anomalies         - Get anomaly detection results
 ```
 
 ### Missing Critical Endpoints (Based on Requirements)
@@ -419,10 +420,31 @@ r.Use(
    func (q *JobQueue) ProcessJobs(ctx context.Context)
    ```
 
-### Phase 5: Real-time & Monitoring + Essential Data Export (Week 5-6)
+### Phase 5: Real-time & Monitoring + Essential Analytics (Week 5-6)
 **Priority: Medium**
 
-1. **WebSocket Support**
+1. **Essential Anomaly Detection**
+   ```go
+   type AnomalyDetector struct {
+       threshold float64
+   }
+   
+   // Add Mahalanobis distance anomaly detection to existing monitoring
+   func (d *AnomalyDetector) DetectAnomalies(data [][]float64) []bool
+   func (d *AnomalyDetector) CalculateMahalanobisDistance(point, mean []float64, invCov [][]float64) float64
+   ```
+
+2. **Enhanced Monitoring Integration**
+   ```go
+   // Extend existing monitor endpoints with anomaly detection
+   func (h *MonitorHandler) ProcessMonitoringData(c *gin.Context) {
+       // Existing monitoring logic + anomaly detection
+   }
+   
+   func (h *MonitorHandler) GetAnomalies(c *gin.Context)  // GET /api/v1/monitor/:id/anomalies
+   ```
+
+3. **WebSocket Support**
    ```go
    type WSHandler struct {
        upgrader websocket.Upgrader
@@ -433,7 +455,7 @@ r.Use(
    func (h *WSHandler) BroadcastMessage(msg *WSMessage)
    ```
 
-2. **Alert Management**
+4. **Alert Management**
    ```go
    type AlertService struct {
        notificationChannels []NotificationChannel
@@ -443,7 +465,7 @@ r.Use(
    func (s *AlertService) ProcessAlert(alert *Alert) error
    ```
 
-3. **Essential Data Export (Simplified Implementation)**
+5. **Essential Data Export (Simplified Implementation)**
    ```go
    type ExportHandler struct {
        authService *auth.AuthService
