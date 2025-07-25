@@ -80,7 +80,7 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 
 ### 5. Interactive Data Visualization Engine
 - **Multi-chart Plotting**: Scatter plots, side-by-side comparisons, and anomaly detection overlays
-- **Real-time Chart Updates**: Dynamic visualization updates with zoom, pan, and export capabilities
+- **Real-time Chart Updates**: Dynamic visualization updates with zoom, pan, and essential data export (CSV/JSON)
 - **Distance Distribution Visualization**: Histogram generation for Mahalanobis distance analysis
 - **Statistical Overlays**: Centroid markers, threshold circles, and density contour plotting
 

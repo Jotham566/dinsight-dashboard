@@ -166,6 +166,25 @@ gorm.io/datatypes v1.2.0                 // JSONB support
 }
 ```
 
+#### Data Export API
+**Strategic Decision**: Export functionality has been simplified to focus on essential user needs rather than over-engineered features.
+
+**Core Export Endpoints**:
+```
+GET /api/v2/export/dinsight/:id/csv         - Export Dinsight coordinates as CSV
+GET /api/v2/export/dinsight/:id/json        - Export Dinsight results as JSON  
+GET /api/v2/export/feature/:id/csv          - Export feature data as CSV
+GET /api/v2/export/monitor/:id/csv          - Export monitoring results as CSV
+GET /api/v2/export/quality-report/:id/json  - Export quality reports as JSON
+```
+
+**Design Principles**:
+- **Direct HTTP responses** with proper file headers (`Content-Disposition: attachment`)
+- **CSV and JSON formats only** (covers 95% of industrial analytics use cases)
+- **Authentication integration** with existing JWT + RBAC system
+- **File naming with timestamps** for easy organization
+- **8-hour implementation** (75% scope reduction from complex multi-format system)
+
 ### Database Architecture
 
 #### Enhanced Enterprise Schema Design

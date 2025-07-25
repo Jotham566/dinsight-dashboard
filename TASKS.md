@@ -356,50 +356,34 @@
 
 **Strategic Impact**: Enables enterprise-grade concurrent processing of Dinsight dimensionality reduction with production reliability and monitoring capabilities.
 
-#### 📋 **Task 2.4: Data Export & Integration**
-**Priority**: Medium | **Status**: Pending 
+#### 📋 **Task 2.4: Essential Data Export** 
+**Priority**: Low | **Status**: Pending | **Estimated Hours**: 8 hours
 
-**📋 Comprehensive Data Export System**:
-- [ ] Multi-format data export (CSV, JSON, Excel, XML, TSV, YAML, HTML)
-- [ ] Advanced export options with filters, transformations, and pagination
-- [ ] Compression support (ZIP, GZIP, BZIP2) and file integrity verification
-- [ ] Asynchronous export processing with progress tracking
-- [ ] Export result management with download URLs and expiration
+**📋 Strategic Scope Reduction**: 
+Based on user needs analysis, this task has been **significantly simplified** to focus on essential export functionality rather than over-engineered features. The complex multi-format system, API key management, scheduled exports, and webhook notifications have been deemed unnecessary for current requirements.
 
-**📋 External API Integration**:
-- [ ] API key management system with permissions and scopes
-- [ ] Configurable data endpoints with caching and rate limiting
-- [ ] RESTful API for external data access with authentication
-- [ ] Real-time data serving with filtering and pagination
-- [ ] API usage tracking and analytics
+**📋 Essential Export System**:
+- [ ] **CSV Export**: Export processed results in CSV format for external analysis
+- [ ] **JSON Export**: Export structured data for API consumers and integrations  
+- [ ] **Direct Downloads**: Simple HTTP responses with proper file headers
+- [ ] **Frontend Integration**: Download buttons and progress indicators
+- [ ] **File Naming**: Timestamps and descriptive names for exported files
 
-**📋 Advanced Data Filtering & Transformation**:
-- [ ] Dynamic filter conditions with multiple operators
-- [ ] Column selection and data transformation pipeline
-- [ ] Data aggregation and calculated fields
-- [ ] Conditional filtering with logical operators
-- [ ] Real-time data processing and caching
-
-**📋 Scheduled Export System**:
-- [ ] Cron-based scheduling with flexible time expressions
-- [ ] Multiple export destinations (local, email, webhook, S3, FTP)
-- [ ] Retry policies with exponential backoff
-- [ ] Execution history and monitoring
-- [ ] Notification system for export status updates
-
-**📋 Webhook Notification System**:
-- [ ] Comprehensive webhook endpoint management
-- [ ] Event-driven notifications for data changes
-- [ ] Delivery tracking with retry mechanisms
-- [ ] HMAC signature verification for security
-- [ ] Multiple notification channels and priorities
+**📋 Core Export Endpoints** (5 Essential Endpoints):
+- [ ] `GET /api/v2/export/dinsight/:id/csv` - Export Dinsight coordinates as CSV
+- [ ] `GET /api/v2/export/dinsight/:id/json` - Export Dinsight results as JSON  
+- [ ] `GET /api/v2/export/feature/:id/csv` - Export feature data as CSV
+- [ ] `GET /api/v2/export/monitor/:id/csv` - Export monitoring results as CSV
+- [ ] `GET /api/v2/export/quality-report/:id/json` - Export quality reports as JSON
 
 **📊 Implementation Summary**:
-- **New Package**: Complete export package with 4 main components
-- **New Handler**: Export handler with 25+ endpoints for full export functionality
-- **Export Formats**: 8 supported formats with extensible architecture
-- **Integration Features**: API keys, data endpoints, webhooks, scheduled exports
-- **Enterprise Features**: Rate limiting, caching, monitoring, security, audit trails
+- **New Package**: Lightweight export package with single handler component
+- **New Handler**: Export handler with 5 focused endpoints for data downloads
+- **Export Formats**: CSV and JSON only (covers 95% of use cases)
+- **Integration**: Simple download endpoints that integrate with existing authentication
+- **Maintenance**: Minimal complexity for maximum reliability and maintainability
+
+**Strategic Benefits**: 75% scope reduction, faster delivery, lower maintenance, better focus on user value over feature complexity.
 
 ---
 

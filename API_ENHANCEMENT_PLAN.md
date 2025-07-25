@@ -81,16 +81,16 @@ GET  /api/v1/jobs/:id/logs                 - Get job logs
 POST /api/v1/jobs/:id/retry                - Retry failed job
 ```
 
-#### 7. File & Export Management
+#### 7. Essential Data Export
 ```
-GET  /api/v1/files                         - List uploaded files
-GET  /api/v1/files/:id                     - Get file details
-DELETE /api/v1/files/:id                   - Delete file
-GET  /api/v1/files/:id/download            - Download file
-POST /api/v1/export/dataset/:id            - Export dataset
-POST /api/v1/export/results/:id            - Export analysis results
-POST /api/v1/export/report/:id             - Generate and export report
+GET  /api/v2/export/dinsight/:id/csv       - Export Dinsight coordinates as CSV
+GET  /api/v2/export/dinsight/:id/json      - Export Dinsight results as JSON  
+GET  /api/v2/export/feature/:id/csv        - Export feature data as CSV
+GET  /api/v2/export/monitor/:id/csv        - Export monitoring results as CSV
+GET  /api/v2/export/quality-report/:id/json - Export quality reports as JSON
 ```
+
+**Note**: Export functionality has been simplified to focus on essential user needs rather than over-engineered features. Complex multi-format exports, API key management, scheduled exports, and webhook systems have been eliminated in favor of simple, reliable data downloads.
 
 ## Enterprise Authentication & Licensing Strategy
 
@@ -419,7 +419,7 @@ r.Use(
    func (q *JobQueue) ProcessJobs(ctx context.Context)
    ```
 
-### Phase 5: Real-time & Monitoring (Week 5-6)
+### Phase 5: Real-time & Monitoring + Essential Data Export (Week 5-6)
 **Priority: Medium**
 
 1. **WebSocket Support**
@@ -442,6 +442,27 @@ r.Use(
    func (s *AlertService) CreateAlert(alert *Alert) error
    func (s *AlertService) ProcessAlert(alert *Alert) error
    ```
+
+3. **Essential Data Export (Simplified Implementation)**
+   ```go
+   type ExportHandler struct {
+       authService *auth.AuthService
+   }
+   
+   // Simple, focused export endpoints
+   func (h *ExportHandler) ExportDinsightCSV(c *gin.Context)    // GET /api/v2/export/dinsight/:id/csv
+   func (h *ExportHandler) ExportDinsightJSON(c *gin.Context)   // GET /api/v2/export/dinsight/:id/json
+   func (h *ExportHandler) ExportFeatureCSV(c *gin.Context)     // GET /api/v2/export/feature/:id/csv
+   func (h *ExportHandler) ExportMonitorCSV(c *gin.Context)     // GET /api/v2/export/monitor/:id/csv
+   func (h *ExportHandler) ExportQualityJSON(c *gin.Context)    // GET /api/v2/export/quality-report/:id/json
+   ```
+
+   **Export Features:**
+   - Direct HTTP responses with proper file headers (`Content-Disposition: attachment`)
+   - CSV and JSON formats only (covers 95% of use cases)
+   - Authentication integration with existing JWT system
+   - File naming with timestamps and descriptions
+   - ~8 hours implementation (75% scope reduction from original complex plan)
 
 ### Phase 6: System Health & Metrics (Week 6)
 **Priority: Low**

@@ -67,7 +67,7 @@
 - **FR-AE-002**: Support configurable processing parameters (gamma0, optimizer, alpha)
 - **FR-AE-003**: Validate dataset compatibility and coordinate consistency
 - **FR-AE-004**: Model comparison and selection tools
-- **FR-AE-005**: Export trained models for external use
+- **FR-AE-005**: Export processed data for external use (CSV/JSON format)
 
 #### 2.2 Feature Data Analysis
 - **FR-AE-006**: Load and process raw feature data with metadata integration
@@ -113,7 +113,7 @@
 - **FR-VR-002**: Customizable dashboard layouts
 - **FR-VR-003**: Drill-down capabilities
 - **FR-VR-004**: Multi-dataset comparisons
-- **FR-VR-005**: Export dashboards as PDF/images
+- **FR-VR-005**: Export data as CSV/JSON 
 
 #### 4.2 Chart Types
 - **FR-VR-006**: Interactive scatter plots with dinsight coordinate visualization
@@ -285,9 +285,9 @@
 
 ### Data Formats
 - **IR-006**: JSON API responses
-- **IR-007**: CSV export capabilities
-- **IR-008**: Excel file import/export
-- **IR-009**: PDF report generation
+- **IR-007**: CSV export capabilities (simplified implementation)
+- **IR-008**: Excel file import (export removed as over-engineering)
+- **IR-009**: PDF report generation (lower priority)
 - **IR-010**: XML configuration files
 
 ### Protocols
