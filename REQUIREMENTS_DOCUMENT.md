@@ -24,10 +24,10 @@
 - **Technical Documentation**: Access to system specifications and procedures
 
 #### Data Scientists
-- **Model Management**: Train, deploy, and monitor ML models
-- **Feature Engineering**: Advanced data preprocessing capabilities
-- **Algorithm Selection**: Multiple anomaly detection algorithms
-- **Model Performance**: Detailed metrics and validation tools
+- **Model Management**: Configure, optimize, and monitor the proprietary Dinsight dimensionality reduction model
+- **Feature Engineering**: Advanced data preprocessing capabilities for industrial sensor data
+- **Algorithm Optimization**: Fine-tune Dinsight algorithm parameters for optimal performance
+- **Model Performance**: Detailed metrics, validation tools, and convergence analysis
 
 #### IT Administrators
 - **System Monitoring**: Infrastructure health and performance

@@ -288,7 +288,7 @@ CREATE TABLE models (
     project_id UUID REFERENCES projects(id),
     dataset_id UUID REFERENCES datasets(id),
     name VARCHAR(255) NOT NULL,
-    algorithm VARCHAR(100) NOT NULL,
+    algorithm VARCHAR(100) NOT NULL DEFAULT 'dinsight',
     hyperparameters JSONB,
     performance_metrics JSONB,
     model_path VARCHAR(500),

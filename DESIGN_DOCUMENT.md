@@ -12,11 +12,17 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 
 ## Architecture Philosophy
 
+### Core Algorithm Strategy
+- **Proprietary Focus**: Leverage the existing proprietary Dinsight dimensionality reduction algorithm as the platform's competitive advantage
+- **Algorithm Optimization**: Focus on perfecting and scaling the single specialized algorithm rather than implementing multiple generic ML algorithms
+- **Domain Specialization**: The Dinsight algorithm is specifically optimized for industrial sensor data and predictive maintenance use cases
+- **Monitoring Integration**: The monitoring system is deeply integrated with the Dinsight algorithm's output format and projection capabilities
+
 ### Microservices Architecture
 - **Backend API**: Go-based REST API with PostgreSQL database
 - **Frontend**: Modern React-based SPA with real-time capabilities
-- **Processing Engine**: Asynchronous job processing for heavy computations
-- **Monitoring Service**: Real-time anomaly detection and alerting
+- **Processing Engine**: Asynchronous job processing optimized for the Dinsight algorithm
+- **Monitoring Service**: Real-time anomaly detection leveraging Dinsight coordinate projections
 
 ### Technology Stack
 
@@ -53,10 +59,12 @@ Dinsight Platform is a comprehensive **predictive maintenance solution** designe
 - **Data Pipeline**: ETL processes with data cleaning and normalization
 
 ### 2. Dinsight Coordinate Processing
-- **Coordinate Data Processing**: Analysis of dinsight_x and dinsight_y coordinate pairs from dimensionality reduction
+- **Proprietary Algorithm**: Advanced proprietary dimensionality reduction algorithm optimized for industrial sensor data
+- **Coordinate Data Processing**: Analysis of dinsight_x and dinsight_y coordinate pairs from the Dinsight algorithm
 - **Baseline Dataset Management**: Reference dataset storage and statistical analysis for comparison
-- **Configuration Management**: Processing parameters (gamma0, optimizer, alpha) for coordinate generation
+- **Configuration Management**: Processing parameters (gamma0, optimizer, alpha) optimized for the Dinsight algorithm
 - **Dataset Compatibility Validation**: Statistical validation and consistency checking between datasets
+- **Algorithm Optimization**: Performance tuning and parameter auto-optimization for optimal convergence
 
 ### 3. Mahalanobis Anomaly Detection System
 - **Statistical Analysis**: Centroid and covariance matrix calculation from baseline datasets
@@ -231,10 +239,10 @@ viewer        -> Read-only access
 - Global CDN integration
 
 ### AI/ML Enhancements
-- AutoML capabilities
-- Custom algorithm support
-- Model explanation and interpretability
-- Federated learning support
+- AutoML parameter optimization for Dinsight algorithm
+- Advanced Dinsight algorithm optimization and tuning
+- Algorithm performance explanation and interpretability
+- Distributed processing for large-scale industrial data
 
 ## Risk Mitigation
 
