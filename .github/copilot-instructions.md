@@ -6,34 +6,76 @@ Dinsight is a **dimensionality reduction and monitoring platform** that processe
 ## Architecture & Core Components
 
 ### Current Structure
-- **Backend API**: Go/Gin framework with PostgreSQL database
+- **Backend API**: Go/Gin framework with PostgreSQL database + enterprise authentication
+- **Frontend**: Next.js 15.3 + React 19 + TypeScript (planned in `/frontend` directory)
 - **Processing Engine**: Custom dimensionality reduction algorithms in `internal/processor/`
 - **Monitoring System**: Real-time data projection in `internal/dinsightmon/`
-- **License Management**: Device-based licensing system in `pkg/license/`
+- **Authentication**: Dual-layer system (device licensing + user JWT/RBAC)
 
 ### Key Data Flow
-1. **File Upload** → CSV processing → Feature extraction → Store in `FileUpload`
-2. **Processing** → Load config from `ConfigData` → Run algorithm → Store 2D coordinates in `DinsightData`
-3. **Monitoring** → Project new data onto existing baseline → Store results in `MonitorData`
+1. **Authentication** → License validation → User JWT verification → RBAC permission check
+2. **File Upload** → CSV processing → Feature extraction → Store in `FileUpload` (with user/org context)
+3. **Processing** → Load config from `ConfigData` → Run algorithm → Store 2D coordinates in `DinsightData`
+4. **Monitoring** → Project new data onto existing baseline → Store results in `MonitorData`
 
 ## Critical Development Patterns
 
-### Database Models & Relationships
-- Use `uint` primary keys with GORM `Base` struct (includes `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`)
-- PostgreSQL arrays: `pq.Float64Array` for coordinates, `pq.StringArray` for file lists
-- Key models: `FileUpload`, `DinsightData`, `FeatureData`, `MonitorData`, `ConfigData`, `Experiment`
-- Soft deletes enabled through `gorm.DeletedAt` in base model
+### Enhanced Database Models & Multi-Tenancy
+- **Base Model**: Use `uint` primary keys with GORM `Base` struct (includes `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`)
+- **Multi-Tenant Models**: `Organization`, `User`, `Project` with UUID primary keys
+- **Core Data Models**: `FileUpload`, `DinsightData`, `FeatureData`, `MonitorData`, `ConfigData`
+- **PostgreSQL Arrays**: `pq.Float64Array` for coordinates, `pq.StringArray` for file lists
+- **Authentication Models**: `UserSession` with Redis-backed session management
 
-### API Architecture
-- **Single API version** (`/api/v1`) with license middleware on all routes
-- Response format using `pkg/response` with success/error structure
-- Swagger documentation at `/swagger/*any` endpoint
-- All routes require valid license verification
+### Dual-Layer API Architecture
+- **Layer 1**: Device-based licensing (`middleware.LicenseMiddleware`) - ALL routes require valid license
+- **Layer 2**: User authentication (`authMiddleware.OptionalAuth()` or `RequireAuth()`)
+- **Single API version** (`/api/v1`) with enterprise middleware stack
+- **Response format**: Structured JSON using `pkg/response` with success/error handling
+- **Documentation**: Swagger/OpenAPI at `/swagger/*any` endpoint
 
-### Middleware Stack
-- **CORS** → **License Validation** (device-based licensing system)
-- License middleware checks device registration and license validity
-- Caching system for license validation to avoid repeated checks
+### Enterprise Middleware Stack
+```go
+// Middleware chain in internal/routes/routes.go
+r.Use(intMiddleware.PanicRecovery())          // Panic recovery
+r.Use(RequestIDMiddleware())                  // Request tracking
+r.Use(CORSMiddleware())                       // CORS handling
+r.Use(intMiddleware.ErrorHandler())           // Error handling
+api.Use(middleware.LicenseMiddleware())       // Layer 1: Device licensing
+api.Use(authMiddleware.OptionalAuth())        // Layer 2: User auth (backward compatible)
+```
+
+## Enterprise Authentication & Security System
+
+### Dual-Layer Authentication Architecture
+- **Layer 1**: RSA-based device licensing (`pkg/license/`) - validates `license.lic` file with hardware fingerprinting
+- **Layer 2**: JWT user authentication (`internal/auth/`) with Argon2id password hashing and Redis sessions
+- **Backward Compatibility**: All existing endpoints preserved; authentication is optional but RBAC-aware
+- **Multi-Tenancy**: Organization-level data isolation with 5-tier role hierarchy
+
+### Authentication Workflow
+```go
+// Get authenticated user from context (may be nil for backward compatibility)
+user := auth.GetUserFromContext(c)
+if user != nil {
+    // Associate operations with user/organization
+    fileUpload.UserID = &user.ID
+    fileUpload.OrganizationID = user.OrganizationID
+}
+```
+
+### Role-Based Access Control (RBAC)
+- **system_admin**: Full system access across all organizations
+- **org_admin**: Organization management and all org data
+- **project_lead**: Project management within organization
+- **analyst**: Data analysis capabilities within assigned projects
+- **viewer**: Read-only access to assigned data
+
+### Session Management
+- **Redis-backed sessions** for horizontal scalability
+- **JWT tokens**: 15-minute access tokens, 7-day refresh tokens
+- **Session context**: Available via `auth.GetSessionIDFromContext(c)`
+- **Multi-device support**: Track sessions per user with device fingerprinting
 
 ## Core Processing Algorithms
 
@@ -73,11 +115,21 @@ go run cmd/api/main.go
 
 ## Security & Integration
 
-### License Management
+### Enterprise License Management
 - Device-based licensing in `pkg/license/` - validates hardware fingerprints
 - License middleware applied to ALL `/api/v1` routes (no public endpoints)
 - License validation with caching to reduce overhead
 - Device registration required with license verification on startup
+
+### User Authentication Endpoints
+```go
+// Authentication routes in internal/routes/routes.go
+auth.POST("/register", authHandler.Register)
+auth.POST("/login", authHandler.Login)
+auth.POST("/refresh", authHandler.RefreshToken)
+auth.POST("/logout", authMiddleware.RequireAuth(), authHandler.Logout)
+auth.GET("/me", authMiddleware.RequireAuth(), authHandler.GetMe)
+```
 
 ### Input Validation
 - File upload limits: 100MB max size defined in handlers
@@ -90,6 +142,22 @@ go run cmd/api/main.go
 - Standard HTTP status codes with descriptive messages
 - Database connection error handling with proper logging
 - License validation errors with clear user feedback
+
+## Frontend Architecture (Planned)
+
+### Next.js 15.3 + React 19 Stack
+- **Location**: `/frontend` directory (currently empty, ready for setup)
+- **Framework**: Next.js 15.3 with App Router and TypeScript 5.6
+- **UI Library**: Material-UI v6 or Ant Design v5 for components
+- **State Management**: Redux Toolkit or Zustand for global state
+- **Charts**: Recharts or D3.js for data visualizations
+- **Build Tool**: Turbopack for development, Next.js built-in for production
+
+### Frontend-Backend Integration
+- **API Communication**: Axios with React Query for data fetching
+- **Authentication**: JWT tokens in HTTP-only cookies or localStorage
+- **Real-time Updates**: WebSocket or Server-Sent Events for live data
+- **Development URL**: `http://localhost:3000` → `http://localhost:8080/api/v1`
 
 ## Integration Points
 
@@ -113,6 +181,10 @@ go run cmd/api/main.go
 4. **File Paths**: Ensure proper path handling for uploaded files and outputs
 5. **Database Initialization**: Migrations and default config run automatically on startup
 6. **Monitor Data**: Requires existing `DinsightData` as reference for projection
+7. **Authentication Context**: Use `auth.GetUserFromContext(c)` - may return `nil` for backward compatibility
+8. **RBAC Permissions**: Check user permissions with `authMiddleware.RequirePermission()` or `RequireRole()`
+9. **Session Management**: Redis is optional - authentication degrades gracefully without it
+10. **Multi-Tenancy**: Always filter data by `organization_id` when user context exists
 
 ## Quick Start Commands
 ```bash
@@ -129,6 +201,15 @@ open http://localhost:8080/swagger/index.html
 # Key endpoints to test
 curl -X POST localhost:8080/api/v1/analyze -F "files=@test.csv"
 curl localhost:8080/api/v1/config
+
+# Authentication endpoints
+curl -X POST localhost:8080/api/v1/auth/register -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123","first_name":"Test","last_name":"User"}'
+curl -X POST localhost:8080/api/v1/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+
+# Frontend setup (when ready)
+cd frontend && npm install && npm run dev
 ```
 
-Focus on understanding the distance-based algorithms in `processor/` and `dinsightmon/` directories - these implement the core mathematical logic that differentiates this platform from standard ML frameworks.
+Focus on understanding the distance-based algorithms in `processor/` and `dinsightmon/` directories - these implement the core mathematical logic that differentiates this platform from standard ML frameworks. The dual-layer authentication preserves existing licensing while adding enterprise user management.
