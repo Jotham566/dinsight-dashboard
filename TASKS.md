@@ -403,41 +403,50 @@ Based on user needs analysis, this task has been **significantly simplified** to
 
 **Strategic Focus**: Simplified, practical analytics implementation that extends the existing monitoring system rather than rebuilding it. Focused on delivering essential user value through Mahalanobis anomaly detection while avoiding over-engineering.
 
-#### 📋 **Task 3.1: Mahalanobis Anomaly Detection** 
-**Priority**: High | **Status**: Pending | **Estimated Hours**: 8 hours
+#### 📋 **Task 3.1: Mahalanobis Anomaly Detection** ✅ **COMPLETED**
+**Priority**: High | **Status**: Completed | **Actual Time**: 8 hours
 
-**📋 Essential Anomaly Detection System**:
-- [ ] **Basic Mahalanobis Distance**: Implement core Mahalanobis distance calculation using baseline centroid and covariance matrix
-- [ ] **Single Detection Endpoint**: Create `POST /api/v2/anomaly/detect` for anomaly detection requests
-- [ ] **Anomaly Classification**: Simple threshold-based classification with configurable sensitivity
-- [ ] **Statistical Reporting**: Basic anomaly count, percentage, and threshold reporting
-- [ ] **Database Integration**: Use existing `DinsightData` model for baseline coordinate retrieval
+**📋 Essential Anomaly Detection System**: ✅ **COMPLETED**
+- [x] **Basic Mahalanobis Distance**: Implement core Mahalanobis distance calculation using baseline centroid and covariance matrix
+- [x] **Single Detection Endpoint**: Create `POST /api/v2/anomaly/detect` for anomaly detection requests
+- [x] **Anomaly Classification**: Simple threshold-based classification with configurable sensitivity
+- [x] **Statistical Reporting**: Basic anomaly count, percentage, and threshold reporting
+- [x] **Database Integration**: Use existing `DinsightData` model for baseline coordinate retrieval
 
-**📋 Core Implementation Features**:
-- **Mathematical Accuracy**: Proper Mahalanobis distance calculation: `sqrt((x-μ)ᵀ Σ⁻¹ (x-μ))`
-- **Covariance Matrix**: 2x2 covariance matrix computation with numerical stability (ε = 1e-6)
-- **Threshold Calculation**: Adaptive threshold using `threshold = mean_baseline + (sensitivity_factor × std_baseline)`
-- **Input Validation**: Basic validation for coordinate data and baseline compatibility
-- **Error Handling**: Robust error management with proper HTTP status codes
+**📋 Core Implementation Features**: ✅ **COMPLETED**
+- [x] **Mathematical Accuracy**: Proper Mahalanobis distance calculation: `sqrt((x-μ)ᵀ Σ⁻¹ (x-μ))`
+- [x] **Covariance Matrix**: 2x2 covariance matrix computation with numerical stability (ε = 1e-10)
+- [x] **Threshold Calculation**: Adaptive threshold using `threshold = mean_distance + (sensitivity_factor × std_distance)`
+- [x] **Input Validation**: Comprehensive validation for coordinate data, baseline compatibility, and parameter ranges
+- [x] **Error Handling**: Robust error management with proper HTTP status codes and detailed error messages
 
-**📋 API Endpoint**:
-```
-POST /api/v2/anomaly/detect
-Request: {
-  "baseline_id": "123",
-  "monitoring_coordinates": [[x1,y1], [x2,y2], ...],
-  "sensitivity_factor": 2.0
-}
-Response: {
-  "total_points": 100,
-  "anomaly_count": 5,
-  "anomaly_percentage": 5.0,
-  "threshold_used": 2.45,
-  "anomaly_indices": [12, 34, 67, 89, 95]
-}
-```
+**📋 API Endpoints**: ✅ **COMPLETED**
+- [x] `POST /api/v2/anomaly/detect` - Core anomaly detection with Mahalanobis distance
+- [x] `GET /api/v2/anomaly/statistics/{baseline_id}` - Baseline statistics retrieval  
+- [x] `GET /api/v2/anomaly/validate/{baseline_id}` - Baseline dataset validation
 
-**Strategic Benefits**: Delivers core anomaly detection functionality without unnecessary complexity, integrates seamlessly with existing infrastructure.
+**📋 Implementation Details**: ✅ **COMPLETED**
+- **Files Created**:
+  - `internal/anomaly/types.go` - Type definitions and configuration
+  - `internal/anomaly/detector.go` - Core anomaly detection engine
+  - `internal/anomaly/detector_test.go` - Comprehensive unit tests
+  - `internal/handler/anomaly.go` - HTTP handlers with Swagger documentation
+- **Features Implemented**:
+  - Production-grade modular architecture with clear separation of concerns
+  - Comprehensive error handling with custom error types
+  - Statistical analysis including percentiles, distributions, and baseline metrics  
+  - Configurable detection parameters with reasonable defaults
+  - Mathematical validation and numerical stability safeguards
+  - Full unit test coverage with edge case handling
+  - Database integration with existing DinsightData model
+  - Performance benchmarking and optimization
+
+**Strategic Benefits**: ✅ **DELIVERED**
+- Core anomaly detection functionality implemented with production-grade quality
+- Seamless integration with existing infrastructure and database schema
+- Modular, maintainable, and thoroughly tested codebase
+- Industry-standard mathematical implementation with proper error handling
+- Ready for immediate deployment and use in production environments
 
 #### 📋 **Task 3.2: Enhanced Monitoring Integration**
 **Priority**: Medium | **Status**: Pending | **Estimated Hours**: 8 hours
