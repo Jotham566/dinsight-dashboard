@@ -25,17 +25,22 @@
 
 ### 🟢 Phase 2: Backend Enhancements
 #### Authentication & User Management
-- [ ] Design JWT-based authentication system
-- [ ] Implement user registration endpoint
-- [ ] Implement login endpoint
+- [x] Design JWT-based authentication system
+- [x] Implement user registration endpoint
+- [x] Implement login endpoint
+- [x] Add refresh token mechanism
+- [x] Design and implement database schema for users, organizations, etc.
+- [x] Create default admin user and organization
+- [x] Add JWT middleware for route protection
+- [x] Test authentication system with real requests
 - [ ] Add password reset functionality
 - [ ] Create user profile management endpoints
-- [ ] Add refresh token mechanism
 
 #### Organization & Machine Management
-- [ ] Design organization data model
+- [x] Design organization data model
+- [x] Design machine/equipment data model  
+- [x] Design user-organization relationships
 - [ ] Create organization CRUD endpoints
-- [ ] Design machine/equipment data model
 - [ ] Create machine CRUD endpoints
 - [ ] Implement organization-machine relationships
 - [ ] Add user-organization permissions
