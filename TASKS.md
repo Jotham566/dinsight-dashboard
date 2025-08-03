@@ -42,7 +42,7 @@
 - [x] Design user-organization relationships
 - [x] Create organization CRUD endpoints
 - [x] Create machine CRUD endpoints
-- [ ] Implement organization-machine relationships
+- [x] Implement organization-machine relationships
 - [ ] Add user-organization permissions
 
 #### Enhanced Analytics
