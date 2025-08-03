@@ -43,7 +43,7 @@
 - [x] Create organization CRUD endpoints
 - [x] Create machine CRUD endpoints
 - [x] Implement organization-machine relationships
-- [ ] Add user-organization permissions
+- [x] Add user-organization permissions
 
 #### Enhanced Analytics
 - [ ] Implement Mahalanobis Distance calculation
