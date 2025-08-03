@@ -33,7 +33,7 @@
 - [x] Create default admin user and organization
 - [x] Add JWT middleware for route protection
 - [x] Test authentication system with real requests
-- [ ] Add password reset functionality
+- [x] Add password reset functionality
 - [x] Create user profile management endpoints
 
 #### Organization & Machine Management
