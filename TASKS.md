@@ -34,7 +34,7 @@
 - [x] Add JWT middleware for route protection
 - [x] Test authentication system with real requests
 - [ ] Add password reset functionality
-- [ ] Create user profile management endpoints
+- [x] Create user profile management endpoints
 
 #### Organization & Machine Management
 - [x] Design organization data model
