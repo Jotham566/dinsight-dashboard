@@ -46,10 +46,10 @@
 - [x] Add user-organization permissions
 
 #### Enhanced Analytics
-- [ ] Implement Mahalanobis Distance calculation
-- [ ] Add configurable anomaly thresholds
-- [ ] Create anomaly detection endpoints
-- [ ] Add sensitivity control parameters
+- [x] Implement Mahalanobis Distance calculation
+- [x] Add configurable anomaly thresholds
+- [x] Create anomaly detection endpoints
+- [x] Add sensitivity control parameters
 - [ ] Implement real-time alert system
 - [ ] Add classification results storage
 
