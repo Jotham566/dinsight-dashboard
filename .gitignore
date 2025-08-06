@@ -15,6 +15,11 @@ yarn-error.log*
 # Production builds
 dist/
 build/
+.next/
+out/
+
+# TypeScript
+*.tsbuildinfo
 
 # Environment variables
 .env
