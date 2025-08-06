@@ -1,6 +1,10 @@
 # Temporarily ignore API while refactoring
 Dinsight_API/
 Old_Streamlit_files/
+screenshots/
+
+# Data files
+test-data/
 
 # Dependencies
 node_modules/
