@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -30,12 +30,12 @@ import { cn } from '@/utils/cn';
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 // Types
-interface Dataset {
-  id: number;
+interface DinsightDataset {
+  dinsight_id: number;
   name: string;
-  type: 'baseline' | 'monitoring';
-  records: number;
-  created_at: string;
+  type: 'dinsight';
+  records?: number;
+  created_at?: string;
 }
 
 interface AnomalyResult {
@@ -52,103 +52,173 @@ interface FeatureImportance {
   percentage: number;
 }
 
-// Mock data
-const mockDatasets: Dataset[] = [
-  {
-    id: 1,
-    name: 'Baseline Week 1',
-    type: 'baseline',
-    records: 1000,
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 2,
-    name: 'Monitoring Day 1',
-    type: 'monitoring',
-    records: 500,
-    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 3,
-    name: 'Monitoring Day 2',
-    type: 'monitoring',
-    records: 350,
-    created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-  },
-];
-
-const mockAnomalyResults: AnomalyResult[] = [
-  {
-    sample_id: 'sample_001',
-    anomaly_score: 0.95,
-    mahalanobis_distance: 3.2,
-    is_anomaly: true,
-    contributing_features: ['f_245', 'f_156', 'f_789'],
-  },
-  {
-    sample_id: 'sample_042',
-    anomaly_score: 0.78,
-    mahalanobis_distance: 2.8,
-    is_anomaly: true,
-    contributing_features: ['f_245', 'f_023'],
-  },
-  {
-    sample_id: 'sample_089',
-    anomaly_score: 0.23,
-    mahalanobis_distance: 1.1,
-    is_anomaly: false,
-    contributing_features: [],
-  },
-];
-
-const mockFeatureImportance: FeatureImportance[] = [
-  { feature_name: 'f_245', importance_score: 0.873, percentage: 87.3 },
-  { feature_name: 'f_156', importance_score: 0.731, percentage: 73.1 },
-  { feature_name: 'f_789', importance_score: 0.658, percentage: 65.8 },
-  { feature_name: 'f_023', importance_score: 0.582, percentage: 58.2 },
-  { feature_name: 'f_512', importance_score: 0.479, percentage: 47.9 },
-];
+interface AnomalyDetectionResponse {
+  total_points: number;
+  anomaly_count: number;
+  anomaly_percentage: number;
+  sensitivity_level: string;
+  centroid_distance: number;
+  classification_data: {
+    sample_id: string;
+    anomaly_score: number;
+    mahalanobis_distance: number;
+    is_anomaly: boolean;
+    contributing_features: string[];
+  }[];
+  statistics: {
+    mean_distance: number;
+    std_distance: number;
+    max_distance: number;
+  };
+}
 
 type DetectionMethod = 'mahalanobis' | 'isolation_forest';
 
 export default function AdvancedAnalysisPage() {
   // State management
-  const [baselineDataset, setBaselineDataset] = useState<number>(1);
-  const [monitoringDataset, setMonitoringDataset] = useState<number>(2);
+  const [baselineDataset, setBaselineDataset] = useState<number | null>(null);
+  const [monitoringDataset, setMonitoringDataset] = useState<number | null>(null);
   const [detectionMethod, setDetectionMethod] = useState<DetectionMethod>('mahalanobis');
   const [sensitivity, setSensitivity] = useState<number>(80);
   const [threshold, setThreshold] = useState<number>(2.5);
   const [autoAdjustThreshold, setAutoAdjustThreshold] = useState<boolean>(false);
   const [realTimeMonitoring, setRealTimeMonitoring] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisResults, setAnalysisResults] = useState<AnomalyResult[]>([]);
+  const [featureImportance, setFeatureImportance] = useState<FeatureImportance[]>([]);
 
-  // Queries
-  const {
-    data: analysisResults,
-    isLoading: analysisLoading,
-    refetch: refetchAnalysis,
-  } = useQuery({
-    queryKey: ['anomaly-analysis', baselineDataset, monitoringDataset, detectionMethod],
-    queryFn: async () => {
-      // In real app: await api.analysis.detectAnomalies({...})
-      return mockAnomalyResults;
+  // Query for available dinsight datasets
+  const { data: availableDinsightIds, isLoading: datasetsLoading, refetch: refetchDatasets } = useQuery<DinsightDataset[]>({
+    queryKey: ['available-dinsight-ids'],
+    queryFn: async (): Promise<DinsightDataset[]> => {
+      try {
+        const validDatasets: DinsightDataset[] = [];
+
+        // Start checking from ID 1 and continue until we find no more data
+        for (let id = 1; id <= 100; id++) {
+          try {
+            const response = await api.analysis.getDinsight(id);
+
+            // Validate this is a proper dinsight record with coordinates
+            if (
+              response.data.success &&
+              response.data.data &&
+              response.data.data.dinsight_x &&
+              response.data.data.dinsight_y &&
+              Array.isArray(response.data.data.dinsight_x) &&
+              Array.isArray(response.data.data.dinsight_y) &&
+              response.data.data.dinsight_x.length > 0 &&
+              response.data.data.dinsight_y.length > 0
+            ) {
+              validDatasets.push({
+                dinsight_id: id,
+                name: `Dataset ID ${id}`,
+                type: 'dinsight' as const,
+                records: response.data.data.dinsight_x.length,
+              });
+            }
+          } catch (error: any) {
+            // If we get a 404, this ID doesn't exist
+            if (error?.response?.status === 404) {
+              // If we haven't found any datasets yet, continue checking a few more IDs
+              // in case there are gaps in the sequence
+              if (validDatasets.length === 0 && id <= 10) {
+                continue;
+              }
+              // If we already have datasets and hit consecutive 404s, stop checking
+              break;
+            }
+            // For other errors, log and continue
+            console.warn(`Error checking dinsight ID ${id}:`, error);
+          }
+        }
+
+        console.log(
+          `Found ${validDatasets.length} valid dinsight datasets:`,
+          validDatasets.map((d) => d.dinsight_id)
+        );
+        return validDatasets;
+      } catch (error) {
+        console.warn('Failed to fetch available dinsight IDs:', error);
+        return [];
+      }
     },
   });
 
-  const { data: featureImportance, isLoading: featureLoading } = useQuery({
-    queryKey: ['feature-importance', baselineDataset, monitoringDataset],
-    queryFn: async () => {
-      // In real app: await api.analysis.getFeatureImportance({...})
-      return mockFeatureImportance;
-    },
-  });
+  // Auto-select first available datasets when data loads
+  useEffect(() => {
+    if (availableDinsightIds && availableDinsightIds.length > 0) {
+      if (baselineDataset === null && availableDinsightIds.length >= 1) {
+        setBaselineDataset(availableDinsightIds[0].dinsight_id);
+      }
+      if (monitoringDataset === null && availableDinsightIds.length >= 2) {
+        setMonitoringDataset(availableDinsightIds[1].dinsight_id);
+      } else if (monitoringDataset === null && availableDinsightIds.length >= 1) {
+        // If only one dataset, use it for both baseline and monitoring
+        setMonitoringDataset(availableDinsightIds[0].dinsight_id);
+      }
+    }
+  }, [availableDinsightIds, baselineDataset, monitoringDataset]);
 
   const handleRunAnalysis = async () => {
+    if (!baselineDataset || !monitoringDataset) {
+      console.warn('Please select both baseline and monitoring datasets');
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
-      await refetchAnalysis();
-      // Simulate analysis time
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Run anomaly detection
+      const response = await api.anomaly.detect({
+        baseline_dataset_id: baselineDataset,
+        comparison_dataset_id: monitoringDataset,
+        sensitivity_factor: sensitivity / 100, // Convert percentage to decimal
+        anomaly_threshold: threshold,
+      });
+
+      if (response.data.success) {
+        const data: AnomalyDetectionResponse = response.data.data;
+        
+        // Transform API response to match our component interface
+        const transformedResults: AnomalyResult[] = data.classification_data.map((item, index) => ({
+          sample_id: item.sample_id || `sample_${index.toString().padStart(3, '0')}`,
+          anomaly_score: item.anomaly_score,
+          mahalanobis_distance: item.mahalanobis_distance,
+          is_anomaly: item.is_anomaly,
+          contributing_features: item.contributing_features || [],
+        }));
+
+        setAnalysisResults(transformedResults);
+
+        // Generate mock feature importance based on contributing features
+        // In a real implementation, this would come from a separate API endpoint
+        const featureMap = new Map<string, number>();
+        transformedResults.forEach(result => {
+          if (result.is_anomaly) {
+            result.contributing_features.forEach(feature => {
+              const current = featureMap.get(feature) || 0;
+              featureMap.set(feature, current + result.anomaly_score);
+            });
+          }
+        });
+
+        const totalImportance = Array.from(featureMap.values()).reduce((sum, val) => sum + val, 0);
+        const featureImportanceData: FeatureImportance[] = Array.from(featureMap.entries())
+          .map(([feature, importance]) => ({
+            feature_name: feature,
+            importance_score: importance / totalImportance,
+            percentage: Number(((importance / totalImportance) * 100).toFixed(1)),
+          }))
+          .sort((a, b) => b.importance_score - a.importance_score)
+          .slice(0, 10); // Top 10 features
+
+        setFeatureImportance(featureImportanceData);
+      }
+    } catch (error) {
+      console.error('Error running anomaly detection:', error);
+      // Set empty results on error
+      setAnalysisResults([]);
+      setFeatureImportance([]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -175,10 +245,10 @@ export default function AdvancedAnalysisPage() {
   };
 
   // Calculate analysis statistics
-  const totalSamples = analysisResults?.length || 0;
-  const anomalyCount = analysisResults?.filter((r) => r.is_anomaly).length || 0;
+  const totalSamples = analysisResults.length || 0;
+  const anomalyCount = analysisResults.filter((r) => r.is_anomaly).length || 0;
   const criticalCount =
-    analysisResults?.filter((r) => r.is_anomaly && r.anomaly_score > 0.8).length || 0;
+    analysisResults.filter((r) => r.is_anomaly && r.anomaly_score > 0.8).length || 0;
   const anomalyRate = totalSamples > 0 ? ((anomalyCount / totalSamples) * 100).toFixed(1) : '0';
 
   return (
@@ -203,7 +273,7 @@ export default function AdvancedAnalysisPage() {
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                onClick={() => refetchAnalysis()}
+                onClick={() => refetchDatasets()}
                 className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -236,17 +306,24 @@ export default function AdvancedAnalysisPage() {
                     Baseline Dataset
                   </label>
                   <select
-                    value={baselineDataset}
+                    value={baselineDataset || ''}
                     onChange={(e) => setBaselineDataset(Number(e.target.value))}
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    disabled={datasetsLoading}
                   >
-                    {mockDatasets
-                      .filter((d) => d.type === 'baseline')
-                      .map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name}
+                    {baselineDataset === null && <option value="">Select baseline dataset...</option>}
+                    {datasetsLoading ? (
+                      <option>Loading datasets...</option>
+                    ) : (
+                      availableDinsightIds?.map((dataset) => (
+                        <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                          {dataset.name} ({dataset.records} records)
                         </option>
-                      ))}
+                      ))
+                    )}
+                    {!datasetsLoading && availableDinsightIds?.length === 0 && (
+                      <option disabled>No datasets available</option>
+                    )}
                   </select>
                 </div>
                 <div>
@@ -254,18 +331,32 @@ export default function AdvancedAnalysisPage() {
                     Monitoring Dataset
                   </label>
                   <select
-                    value={monitoringDataset}
+                    value={monitoringDataset || ''}
                     onChange={(e) => setMonitoringDataset(Number(e.target.value))}
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    disabled={datasetsLoading}
                   >
-                    {mockDatasets
-                      .filter((d) => d.type === 'monitoring')
-                      .map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name}
+                    {monitoringDataset === null && <option value="">Select monitoring dataset...</option>}
+                    {datasetsLoading ? (
+                      <option>Loading datasets...</option>
+                    ) : (
+                      availableDinsightIds?.map((dataset) => (
+                        <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                          {dataset.name} ({dataset.records} records)
                         </option>
-                      ))}
+                      ))
+                    )}
+                    {!datasetsLoading && availableDinsightIds?.length === 0 && (
+                      <option disabled>No datasets available</option>
+                    )}
                   </select>
+                  <div className="px-4 py-3 mt-3 bg-blue-50 border border-blue-100 rounded-xl">
+                    <p className="text-xs text-blue-700 leading-relaxed">
+                      {availableDinsightIds && availableDinsightIds.length > 0
+                        ? 'Select datasets for baseline and monitoring comparison'
+                        : 'Upload baseline data to begin anomaly detection'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -495,7 +586,7 @@ export default function AdvancedAnalysisPage() {
                 </Button>
               </CardHeader>
               <CardContent className="p-6">
-                {analysisLoading ? (
+                {isAnalyzing ? (
                   <div className="flex items-center justify-center h-48">
                     <div className="text-center">
                       <div className="relative">
@@ -510,9 +601,23 @@ export default function AdvancedAnalysisPage() {
                       <p className="text-sm text-gray-600">Running anomaly detection algorithms...</p>
                     </div>
                   </div>
+                ) : analysisResults.length === 0 ? (
+                  <div className="flex items-center justify-center h-48">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Activity className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        No Analysis Results
+                      </h3>
+                      <p className="text-gray-600 mb-6 max-w-sm">
+                        Run anomaly detection analysis to see detailed results and feature importance.
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {analysisResults?.map((result, index) => (
+                    {analysisResults.map((result, index) => (
                       <div
                         key={result.sample_id}
                         className={cn(
@@ -586,7 +691,7 @@ export default function AdvancedAnalysisPage() {
                 </Button>
               </CardHeader>
               <CardContent className="p-6">
-                {featureLoading ? (
+                {isAnalyzing ? (
                   <div className="flex items-center justify-center h-32">
                     <div className="text-center">
                       <div className="relative">
@@ -598,9 +703,19 @@ export default function AdvancedAnalysisPage() {
                       <p className="text-sm text-gray-600">Calculating feature importance...</p>
                     </div>
                   </div>
+                ) : featureImportance.length === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <TrendingUp className="w-6 h-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-600">No feature importance data available</p>
+                      <p className="text-xs text-gray-500 mt-1">Run analysis to see contributing features</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-6">
-                    {featureImportance?.map((feature, index) => (
+                    {featureImportance.map((feature, index) => (
                       <div key={feature.feature_name} className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-gray-900">{feature.feature_name}</span>
