@@ -11,28 +11,16 @@ import {
   RefreshCw,
   Maximize,
   Palette,
-  Eye,
   BarChart3,
-  LineChart,
-  Zap,
   Camera,
   ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-client';
-import { cn } from '@/utils/cn';
 
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
-
-// Types for the plot data
-interface DinsightData {
-  dinsight_x: number[];
-  dinsight_y: number[];
-  labels?: string[];
-  anomaly_scores?: number[];
-}
 
 interface Dataset {
   dinsight_id: number;
@@ -42,14 +30,9 @@ interface Dataset {
 
 // Real data now comes from API endpoints
 
-type PlotType = 'scatter' | 'line' | 'density' | 'heatmap';
-type ColorScheme = 'default' | 'viridis' | 'plasma' | 'cividis';
-
 export default function VisualizationPage() {
   // State management - single dinsight_id for both baseline and monitoring
   const [selectedDinsightId, setSelectedDinsightId] = useState<number | null>(null);
-  const [plotType, setPlotType] = useState<PlotType>('scatter');
-  const [colorScheme, setColorScheme] = useState<ColorScheme>('default');
   const [pointSize, setPointSize] = useState<number>(6);
   const [showContours, setShowContours] = useState<boolean>(false);
   const [sideBySide, setSideBySide] = useState<boolean>(false);
@@ -112,10 +95,14 @@ export default function VisualizationPage() {
     },
   });
 
-  // Auto-select first available dinsight ID when data loads
+  // Auto-select latest (highest ID) available dinsight ID when data loads
   useEffect(() => {
     if (availableDinsightIds && availableDinsightIds.length > 0 && selectedDinsightId === null) {
-      setSelectedDinsightId(availableDinsightIds[0].dinsight_id);
+      // Find the dataset with the highest dinsight_id (latest data)
+      const latestDataset = availableDinsightIds.reduce((latest, current) =>
+        current.dinsight_id > latest.dinsight_id ? current : latest
+      );
+      setSelectedDinsightId(latestDataset.dinsight_id);
     }
   }, [availableDinsightIds, selectedDinsightId]);
 
@@ -178,19 +165,6 @@ export default function VisualizationPage() {
     refetchData();
   };
 
-  const getColorScale = (scheme: ColorScheme) => {
-    switch (scheme) {
-      case 'viridis':
-        return 'Viridis';
-      case 'plasma':
-        return 'Plasma';
-      case 'cividis':
-        return 'Cividis';
-      default:
-        return 'Blues';
-    }
-  };
-
   const createPlotData = useCallback(() => {
     const data: any[] = [];
 
@@ -204,8 +178,8 @@ export default function VisualizationPage() {
       const baselineTrace = {
         x: dinsightData.baseline.dinsight_x,
         y: dinsightData.baseline.dinsight_y,
-        mode: plotType === 'scatter' ? 'markers' : 'lines+markers',
-        type: plotType === 'heatmap' ? 'heatmap' : 'scatter',
+        mode: 'markers',
+        type: 'scatter',
         name: `Baseline (ID: ${selectedDinsightId})`,
         marker: {
           color: '#3B82F6', // Blue for baseline
@@ -262,8 +236,8 @@ export default function VisualizationPage() {
       const monitoringTrace = {
         x: dinsightData.monitoring.dinsight_x,
         y: dinsightData.monitoring.dinsight_y,
-        mode: plotType === 'scatter' ? 'markers' : 'lines+markers',
-        type: plotType === 'heatmap' ? 'heatmap' : 'scatter',
+        mode: 'markers',
+        type: 'scatter',
         name: `Monitoring (ID: ${selectedDinsightId})`,
         marker: {
           color: markerColor,
@@ -305,7 +279,7 @@ export default function VisualizationPage() {
     }
 
     return data;
-  }, [dinsightData, plotType, selectedDinsightId, pointSize, showContours, sideBySide]);
+  }, [dinsightData, selectedDinsightId, pointSize, showContours, sideBySide]);
 
   const plotLayout = useMemo(() => {
     const baseLayout = {
@@ -469,11 +443,13 @@ export default function VisualizationPage() {
                   {datasetsLoading ? (
                     <option>Loading dinsight IDs...</option>
                   ) : (
-                    availableDinsightIds?.map((dataset) => (
-                      <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                        {dataset.name}
-                      </option>
-                    ))
+                    availableDinsightIds
+                      ?.sort((a, b) => b.dinsight_id - a.dinsight_id) // Sort in descending order (latest first)
+                      ?.map((dataset) => (
+                        <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                          {dataset.name}
+                        </option>
+                      ))
                   )}
                   {!datasetsLoading && availableDinsightIds?.length === 0 && (
                     <option disabled>
@@ -493,44 +469,6 @@ export default function VisualizationPage() {
 
             {/* Plot Configuration */}
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Plot Type</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { value: 'scatter', label: 'Scatter', icon: BarChart3 },
-                    { value: 'line', label: 'Line', icon: LineChart },
-                    { value: 'density', label: 'Density', icon: Zap },
-                    { value: 'heatmap', label: 'Heatmap', icon: Palette },
-                  ].map(({ value, label, icon: Icon }) => (
-                    <button
-                      key={value}
-                      onClick={() => setPlotType(value as PlotType)}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors',
-                        plotType === value
-                          ? 'bg-primary-100 border-primary-500 text-primary-700'
-                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                      )}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Color Scheme</label>
-                <select
-                  value={colorScheme}
-                  onChange={(e) => setColorScheme(e.target.value as ColorScheme)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="default">Default</option>
-                  <option value="viridis">Viridis</option>
-                  <option value="plasma">Plasma</option>
-                  <option value="cividis">Cividis</option>
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Point Size: {pointSize}
