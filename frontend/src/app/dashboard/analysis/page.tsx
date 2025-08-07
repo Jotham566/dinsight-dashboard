@@ -253,14 +253,14 @@ export default function AdvancedAnalysisPage() {
 
       console.log('Running anomaly detection with params:', {
         baseline_dataset_id: baselineDataset,
-        comparison_dataset_id: monitoringDataset,
+        comparison_dataset_id: baselineDataset, // Backend now uses baseline ID to find monitoring data
         sensitivity_factor: sensitivity,
       });
 
       // Run anomaly detection with proper backend integration
       const response = await api.anomaly.detect({
         baseline_dataset_id: baselineDataset,
-        comparison_dataset_id: monitoringDataset,
+        comparison_dataset_id: baselineDataset, // Backend now uses baseline ID to find monitoring data
         sensitivity_factor: sensitivity, // Use sensitivity directly (0.5-5.0 range)
       });
 
