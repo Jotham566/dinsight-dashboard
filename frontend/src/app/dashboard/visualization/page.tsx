@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -25,7 +25,6 @@ import { cn } from '@/utils/cn';
 
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
-
 
 // Types for the plot data
 interface DinsightData {
@@ -62,12 +61,12 @@ export default function VisualizationPage() {
     queryFn: async (): Promise<Dataset[]> => {
       try {
         const validDatasets: Dataset[] = [];
-        
+
         // Start checking from ID 1 and continue until we find no more data
         for (let id = 1; id <= 100; id++) {
           try {
             const response = await api.analysis.getDinsight(id);
-            
+
             // Validate this is a proper dinsight record with coordinates
             if (
               response.data.success &&
@@ -101,8 +100,10 @@ export default function VisualizationPage() {
           }
         }
 
-        console.log(`Found ${validDatasets.length} valid dinsight datasets:`, 
-          validDatasets.map((d) => d.dinsight_id));
+        console.log(
+          `Found ${validDatasets.length} valid dinsight datasets:`,
+          validDatasets.map((d) => d.dinsight_id)
+        );
         return validDatasets;
       } catch (error) {
         console.warn('Failed to fetch available dinsight IDs:', error);
@@ -200,7 +201,7 @@ export default function VisualizationPage() {
       dinsightData.baseline.dinsight_x.length > 0 &&
       Array.isArray(dinsightData.baseline.dinsight_y)
     ) {
-      data.push({
+      const baselineTrace = {
         x: dinsightData.baseline.dinsight_x,
         y: dinsightData.baseline.dinsight_y,
         mode: plotType === 'scatter' ? 'markers' : 'lines+markers',
@@ -218,7 +219,31 @@ export default function VisualizationPage() {
         text: dinsightData.baseline.labels,
         hovertemplate:
           '<b>%{text}</b><br>' + 'X: %{x:.3f}<br>' + 'Y: %{y:.3f}<br>' + '<extra></extra>',
-      });
+        // For side-by-side mode, use subplot positioning
+        ...(sideBySide && { xaxis: 'x', yaxis: 'y' }),
+      };
+
+      data.push(baselineTrace);
+
+      // Add contour plot for baseline if enabled
+      if (showContours && dinsightData.baseline.dinsight_x.length > 10) {
+        data.push({
+          x: dinsightData.baseline.dinsight_x,
+          y: dinsightData.baseline.dinsight_y,
+          type: 'histogram2dcontour',
+          name: 'Baseline Density',
+          showlegend: false,
+          colorscale: [
+            [0, 'rgba(59, 130, 246, 0)'],
+            [1, 'rgba(59, 130, 246, 0.3)'],
+          ],
+          contours: {
+            showlines: false,
+          },
+          hoverinfo: 'skip',
+          ...(sideBySide && { xaxis: 'x', yaxis: 'y' }),
+        });
+      }
     }
 
     // Monitoring data
@@ -234,7 +259,7 @@ export default function VisualizationPage() {
           )
         : '#EF4444';
 
-      data.push({
+      const monitoringTrace = {
         x: dinsightData.monitoring.dinsight_x,
         y: dinsightData.monitoring.dinsight_y,
         mode: plotType === 'scatter' ? 'markers' : 'lines+markers',
@@ -252,56 +277,154 @@ export default function VisualizationPage() {
         text: dinsightData.monitoring.labels,
         hovertemplate:
           '<b>%{text}</b><br>' + 'X: %{x:.3f}<br>' + 'Y: %{y:.3f}<br>' + '<extra></extra>',
-      });
+        // For side-by-side mode, use second subplot
+        ...(sideBySide && { xaxis: 'x2', yaxis: 'y2' }),
+      };
+
+      data.push(monitoringTrace);
+
+      // Add contour plot for monitoring if enabled
+      if (showContours && dinsightData.monitoring.dinsight_x.length > 10) {
+        data.push({
+          x: dinsightData.monitoring.dinsight_x,
+          y: dinsightData.monitoring.dinsight_y,
+          type: 'histogram2dcontour',
+          name: 'Monitoring Density',
+          showlegend: false,
+          colorscale: [
+            [0, 'rgba(239, 68, 68, 0)'],
+            [1, 'rgba(239, 68, 68, 0.3)'],
+          ],
+          contours: {
+            showlines: false,
+          },
+          hoverinfo: 'skip',
+          ...(sideBySide && { xaxis: 'x2', yaxis: 'y2' }),
+        });
+      }
     }
 
     return data;
-  }, [dinsightData, plotType, selectedDinsightId, pointSize]);
+  }, [dinsightData, plotType, selectedDinsightId, pointSize, showContours, sideBySide]);
 
-  const plotLayout = {
-    title: { text: "D'insight Visualization" },
-    xaxis: { 
-      title: { text: "D'insight X" },
-      fixedrange: true, // Completely disable zoom interactions to prevent wheel events
-    },
-    yaxis: { 
-      title: { text: "D'insight Y" },
-      fixedrange: true, // Completely disable zoom interactions to prevent wheel events
-    },
-    showlegend: true,
-    hovermode: 'closest' as const,
-    plot_bgcolor: 'rgba(0,0,0,0)',
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    font: { family: 'Inter, sans-serif' },
-    dragmode: false as const, // Disable all drag interactions
-  };
+  const plotLayout = useMemo(() => {
+    const baseLayout = {
+      title: { text: "D'insight Visualization" },
+      showlegend: true,
+      hovermode: 'closest' as const,
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: 'Inter, sans-serif' },
+      dragmode: false as const, // Disable all drag interactions
+    };
 
-  const plotConfig = {
-    displayModeBar: true,
-    modeBarButtonsToRemove: [
-      'zoom2d' as const,
-      'pan2d' as const, 
-      'select2d' as const,
-      'lasso2d' as const,
-      'zoomIn2d' as const,
-      'zoomOut2d' as const,
-      'autoScale2d' as const,
-      'resetScale2d' as const,
-    ],
-    displaylogo: false,
-    responsive: true,
-    scrollZoom: false,
-    doubleClick: false as const, // Disable double-click zoom
-    showTips: false,
-    staticPlot: false, // Keep interactive for hover but disable zoom/pan
-    toImageButtonOptions: {
-      format: 'png' as const,
-      filename: 'dinsight-plot',
-      height: 600,
-      width: 900,
-      scale: 2,
-    },
-  };
+    if (sideBySide) {
+      // Side-by-side subplot configuration
+      return {
+        ...baseLayout,
+        title: { text: "D'insight Visualization - Side by Side Comparison" },
+        // Define subplot grid (remove for manual domain setup)
+        // grid: {
+        //   rows: 1,
+        //   columns: 2,
+        //   pattern: 'independent',
+        // },
+        // Left subplot (Baseline)
+        xaxis: {
+          title: { text: 'Baseline X' },
+          domain: [0, 0.48],
+          fixedrange: !syncZoom,
+          ...(showContours && {
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.3)',
+          }),
+        },
+        yaxis: {
+          title: { text: 'Baseline Y' },
+          fixedrange: !syncZoom,
+          ...(showContours && {
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.3)',
+          }),
+        },
+        // Right subplot (Monitoring)
+        xaxis2: {
+          title: { text: 'Monitoring X' },
+          domain: [0.52, 1],
+          fixedrange: !syncZoom,
+          ...(showContours && {
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.3)',
+          }),
+        },
+        yaxis2: {
+          title: { text: 'Monitoring Y' },
+          anchor: 'x2' as const,
+          fixedrange: !syncZoom,
+          ...(showContours && {
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.3)',
+          }),
+        },
+      };
+    } else {
+      // Single plot configuration (overlay mode)
+      return {
+        ...baseLayout,
+        xaxis: {
+          title: { text: "D'insight X" },
+          fixedrange: !syncZoom, // Allow zoom when sync zoom is enabled
+          ...(showContours && {
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.3)',
+          }),
+        },
+        yaxis: {
+          title: { text: "D'insight Y" },
+          fixedrange: !syncZoom, // Allow zoom when sync zoom is enabled
+          ...(showContours && {
+            showgrid: true,
+            gridcolor: 'rgba(128,128,128,0.3)',
+          }),
+        },
+      };
+    }
+  }, [showContours, sideBySide, syncZoom]);
+
+  const plotConfig = useMemo(
+    () => ({
+      displayModeBar: true,
+      modeBarButtonsToRemove: [
+        // Conditionally remove zoom/pan buttons based on sync zoom setting
+        ...(syncZoom
+          ? []
+          : [
+              'zoom2d' as const,
+              'pan2d' as const,
+              'zoomIn2d' as const,
+              'zoomOut2d' as const,
+              'autoScale2d' as const,
+              'resetScale2d' as const,
+            ]),
+        'select2d' as const,
+        'lasso2d' as const,
+      ],
+      displaylogo: false,
+      responsive: true,
+      scrollZoom: syncZoom, // Enable scroll zoom only when sync zoom is enabled
+      doubleClick: syncZoom ? ('reset' as const) : (false as const), // Enable double-click reset when sync zoom is on
+      showTips: false,
+      staticPlot: false, // Keep interactive for hover
+      toImageButtonOptions: {
+        format: 'png' as const,
+        filename: 'dinsight-plot',
+        height: 600,
+        width: 900,
+        scale: 2,
+      },
+    }),
+    [syncZoom]
+  );
 
   return (
     <div className="space-y-6">
@@ -485,7 +608,8 @@ export default function VisualizationPage() {
           <div>
             <CardTitle>Interactive Plot</CardTitle>
             <CardDescription>
-              D'insight coordinate visualization with anomaly highlighting. Hover over points for details.
+              D'insight coordinate visualization with anomaly highlighting. Hover over points for
+              details.
             </CardDescription>
           </div>
           <Button variant="outline" size="sm">
