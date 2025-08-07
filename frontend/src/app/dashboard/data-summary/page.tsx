@@ -18,6 +18,8 @@ import {
   Upload,
   Save,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,6 +102,10 @@ export default function DataSummaryPage() {
   const [editedConfig, setEditedConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
+  // Pagination state for Dataset Library
+  const [currentPage, setCurrentPage] = useState(1);
+  const datasetsPerPage = 2;
+
   // Query for processing configuration
   const {
     data: config,
@@ -153,6 +159,98 @@ export default function DataSummaryPage() {
     },
     enabled: !!processingState.dinsightId && processingState.status === 'completed',
   });
+
+  // Query for available datasets (dinsight records)
+  const {
+    data: availableDatasets,
+    isLoading: datasetsLoading,
+    refetch: refetchDatasets,
+  } = useQuery({
+    queryKey: ['available-datasets'],
+    queryFn: async () => {
+      try {
+        // Check a smaller range of IDs since we're now paginating
+        const potentialIds = Array.from({ length: 15 }, (_, i) => i + 1); // Check IDs 1-15
+        
+        const promises = potentialIds.map(async (testId) => {
+          try {
+            const response = await apiClient.get(`/dinsight/${testId}`);
+            
+            if (response.data.success && response.data.data) {
+              const data = response.data.data;
+              const totalRecords = data.dinsight_x?.length || 0;
+              const features = data.feature_names?.length || data.features_count || 1024;
+              
+              return {
+                id: data.dinsight_id || testId,
+                name: data.filename || `dinsight_${data.dinsight_id || testId}.csv`,
+                records: totalRecords,
+                features: features,
+                status: totalRecords > 0 ? 'processed' : 'processing',
+                type: data.type || 'baseline',
+                tags: [data.type || 'baseline', 'processed'],
+                quality_score: totalRecords > 0 ? 98.5 : 0,
+                created_at: data.created_at || new Date().toISOString(),
+                size: totalRecords * features * 4, // Estimate: 4 bytes per float
+              };
+            }
+            return null;
+          } catch (error) {
+            return null;
+          }
+        });
+
+        const results = await Promise.all(promises);
+        const validDatasets = results.filter((dataset) => dataset !== null);
+        
+        // Sort by created_at descending (newest first)
+        return validDatasets.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      } catch (error) {
+        console.warn('Failed to fetch available datasets:', error);
+        return [];
+      }
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Reset pagination when datasets change
+  useEffect(() => {
+    if (availableDatasets) {
+      setCurrentPage(1);
+    }
+  }, [availableDatasets?.length]);
+
+  // Handle scroll navigation for pagination
+  const handleScroll = (event: React.WheelEvent) => {
+    if (!availableDatasets || availableDatasets.length <= datasetsPerPage) return;
+
+    const totalPages = Math.ceil(availableDatasets.length / datasetsPerPage);
+    
+    if (event.deltaY > 0) {
+      // Scrolling down - next page
+      setCurrentPage(prev => Math.min(totalPages, prev + 1));
+    } else if (event.deltaY < 0) {
+      // Scrolling up - previous page
+      setCurrentPage(prev => Math.max(1, prev - 1));
+    }
+  };
+
+  // Handle keyboard navigation for pagination
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (!availableDatasets || availableDatasets.length <= datasetsPerPage) return;
+
+    const totalPages = Math.ceil(availableDatasets.length / datasetsPerPage);
+
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      setCurrentPage(prev => Math.max(1, prev - 1));
+    } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      setCurrentPage(prev => Math.min(totalPages, prev + 1));
+    }
+  };
 
   // Polling effect to check processing status
   useEffect(() => {
@@ -734,16 +832,44 @@ export default function DataSummaryPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Dataset Library</CardTitle>
-                <CardDescription>Previously uploaded and processed datasets</CardDescription>
+                <CardDescription>
+                  {datasetsLoading 
+                    ? 'Loading datasets...' 
+                    : availableDatasets && availableDatasets.length > 0
+                      ? availableDatasets.length > datasetsPerPage
+                        ? `${availableDatasets.length} datasets (showing ${datasetsPerPage} per page • scroll or use buttons to navigate)`
+                        : `${availableDatasets.length} datasets`
+                      : 'No datasets found'}
+                </CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear All
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => refetchDatasets()}
+                disabled={datasetsLoading}
+              >
+                <RefreshCw className={cn("w-4 h-4 mr-2", datasetsLoading && "animate-spin")} />
+                Refresh
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {mockDatasets.map((dataset) => (
+              {datasetsLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                  <span className="ml-2 text-gray-600">Loading datasets...</span>
+                </div>
+              ) : availableDatasets && availableDatasets.length > 0 ? (
+                <div 
+                  className="space-y-4 focus:outline-none" 
+                  onWheel={handleScroll}
+                  onKeyDown={handleKeyDown}
+                  tabIndex={0}
+                >
+                  {/* Dataset List */}
+                  <div className="space-y-3">
+                    {availableDatasets
+                      .slice((currentPage - 1) * datasetsPerPage, currentPage * datasetsPerPage)
+                      .map((dataset) => (
                   <div
                     key={dataset.id}
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -801,9 +927,51 @@ export default function DataSummaryPage() {
                         Export
                       </Button>
                     </div>
+                    </div>
+                  ))}
                   </div>
-                ))}
-              </div>
+
+                  {/* Pagination Controls */}
+                  {availableDatasets.length > datasetsPerPage && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="text-sm text-gray-500">
+                        Showing {((currentPage - 1) * datasetsPerPage) + 1} to{' '}
+                        {Math.min(currentPage * datasetsPerPage, availableDatasets.length)} of{' '}
+                        {availableDatasets.length} datasets
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                          Previous
+                        </Button>
+                        <span className="text-sm text-gray-600">
+                          Page {currentPage} of {Math.ceil(availableDatasets.length / datasetsPerPage)}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(Math.ceil(availableDatasets.length / datasetsPerPage), prev + 1))}
+                          disabled={currentPage >= Math.ceil(availableDatasets.length / datasetsPerPage)}
+                        >
+                          Next
+                          <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm font-medium">No datasets found</p>
+                  <p className="text-xs mt-1">Upload data to see it appear here</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
