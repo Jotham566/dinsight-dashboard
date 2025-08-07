@@ -44,7 +44,11 @@ export default function VisualizationPage() {
   const [showContours, setShowContours] = useState<boolean>(false);
   const [sideBySide, setSideBySide] = useState<boolean>(false);
   const [syncZoom, setSyncZoom] = useState<boolean>(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [plotElement, setPlotElement] = useState<any>(null);
 
   // Query for available dinsight datasets
   const { data: availableDinsightIds, isLoading: datasetsLoading } = useQuery<Dataset[]>({
@@ -165,12 +169,9 @@ export default function VisualizationPage() {
   }, [notification]);
 
   const handleExportPNG = () => {
-    // Get the Plotly plot element
-    const plotElement = document.querySelector('.js-plotly-plot') as any;
-    
     if (plotElement && window.Plotly) {
       setNotification({ type: 'success', message: 'Exporting PNG...' });
-      
+
       window.Plotly.downloadImage(plotElement, {
         format: 'png',
         filename: `dinsight-visualization-${selectedDinsightId || 'export'}-${new Date().toISOString().split('T')[0]}`,
@@ -178,43 +179,39 @@ export default function VisualizationPage() {
         height: 800,
         scale: 2,
       })
-      .then(() => {
-        setNotification({ type: 'success', message: 'PNG exported successfully!' });
-      })
-      .catch((error: any) => {
-        console.error('Error exporting PNG:', error);
-        setNotification({ type: 'error', message: 'Failed to export PNG. Please try again.' });
-      });
+        .then(() => {
+          setNotification({ type: 'success', message: 'PNG exported successfully!' });
+        })
+        .catch((error: any) => {
+          console.error('Error exporting PNG:', error);
+          setNotification({ type: 'error', message: 'Failed to export PNG. Please try again.' });
+        });
     } else {
       setNotification({ type: 'error', message: 'Please select a dataset first.' });
     }
   };
 
   const handleExportSVG = () => {
-    // Get the Plotly plot element
-    const plotElement = document.querySelector('.js-plotly-plot') as any;
-    
     if (plotElement && window.Plotly) {
       setNotification({ type: 'success', message: 'Exporting SVG...' });
-      
+
       window.Plotly.downloadImage(plotElement, {
         format: 'svg',
         filename: `dinsight-visualization-${selectedDinsightId || 'export'}-${new Date().toISOString().split('T')[0]}`,
         width: 1200,
         height: 800,
       })
-      .then(() => {
-        setNotification({ type: 'success', message: 'SVG exported successfully!' });
-      })
-      .catch((error: any) => {
-        console.error('Error exporting SVG:', error);
-        setNotification({ type: 'error', message: 'Failed to export SVG. Please try again.' });
-      });
+        .then(() => {
+          setNotification({ type: 'success', message: 'SVG exported successfully!' });
+        })
+        .catch((error: any) => {
+          console.error('Error exporting SVG:', error);
+          setNotification({ type: 'error', message: 'Failed to export SVG. Please try again.' });
+        });
     } else {
       setNotification({ type: 'error', message: 'Please select a dataset first.' });
     }
   };
-
 
   const refreshData = () => {
     refetchData();
@@ -445,6 +442,9 @@ export default function VisualizationPage() {
       doubleClick: syncZoom ? ('reset' as const) : (false as const), // Enable double-click reset when sync zoom is on
       showTips: false,
       staticPlot: false, // Keep interactive for hover
+      // Improve wheel event performance
+      editable: false,
+      autosizable: true,
       toImageButtonOptions: {
         format: 'png' as const,
         filename: 'dinsight-plot',
@@ -462,19 +462,27 @@ export default function VisualizationPage() {
       {notification && (
         <div
           className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform ${
-            notification.type === 'success'
-              ? 'bg-green-500 text-white'
-              : 'bg-red-500 text-white'
+            notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
           }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === 'success' ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             ) : (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             )}
             <span className="font-medium">{notification.message}</span>
@@ -779,6 +787,14 @@ export default function VisualizationPage() {
                             config={plotConfig}
                             style={{ width: '100%', height: '100%' }}
                             useResizeHandler={true}
+                            onInitialized={(figure, graphDiv) => {
+                              // Store reference for export functionality
+                              setPlotElement(graphDiv);
+                            }}
+                            onUpdate={(figure, graphDiv) => {
+                              // Store reference for export functionality
+                              setPlotElement(graphDiv);
+                            }}
                           />
                         </div>
                       );
