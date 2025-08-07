@@ -199,6 +199,8 @@ export const api = {
     },
     get: (dinsightId: number) => apiClient.get(`/monitor/${dinsightId}`),
     getCoordinates: (dinsightId: number) => apiClient.get(`/monitor/${dinsightId}/coordinates`),
+    getAvailable: () => apiClient.get('/monitor/available'),
+    getForBaseline: (baselineId: number) => apiClient.get(`/monitor/baseline/${baselineId}`),
   },
 
   // Anomaly detection endpoints

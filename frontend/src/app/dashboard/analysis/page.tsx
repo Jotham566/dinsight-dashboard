@@ -28,6 +28,11 @@ interface DinsightDataset {
   created_at?: string;
 }
 
+interface AvailableMonitoringDataset {
+  dinsight_data_id: number;
+  monitor_count: number;
+}
+
 interface DinsightData {
   dinsight_x: number[];
   dinsight_y: number[];
@@ -76,7 +81,30 @@ export default function AdvancedAnalysisPage() {
   const [baselineData, setBaselineData] = useState<DinsightData | null>(null);
   const [monitoringData, setMonitoringData] = useState<DinsightData | null>(null);
 
-  // Query for available dinsight datasets
+  // Query for available monitoring datasets (baseline IDs that have monitoring data)
+  const {
+    data: availableMonitoringDatasets,
+    isLoading: monitoringLoading,
+  } = useQuery<AvailableMonitoringDataset[]>({
+    queryKey: ['available-monitoring-datasets'],
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<AvailableMonitoringDataset[]> => {
+      try {
+        const response = await api.monitoring.getAvailable();
+        if (response.data.success && response.data.data) {
+          return response.data.data;
+        }
+        return [];
+      } catch (error) {
+        console.warn('Failed to fetch available monitoring datasets:', error);
+        return [];
+      }
+    },
+  });
+
+  // Query for available dinsight datasets (all baseline datasets)
   const {
     data: availableDinsightIds,
     isLoading: datasetsLoading,
@@ -150,20 +178,28 @@ export default function AdvancedAnalysisPage() {
     },
   });
 
+  // Filter baseline datasets to only those with monitoring data
+  const baselinesWithMonitoring = availableDinsightIds?.filter(dataset =>
+    availableMonitoringDatasets?.some(monitoring => monitoring.dinsight_data_id === dataset.dinsight_id)
+  ) || [];
+
   // Auto-select first available datasets when data loads
   useEffect(() => {
-    if (availableDinsightIds && availableDinsightIds.length > 0) {
-      if (baselineDataset === null && availableDinsightIds.length >= 1) {
-        setBaselineDataset(availableDinsightIds[0].dinsight_id);
-      }
-      if (monitoringDataset === null && availableDinsightIds.length >= 2) {
-        setMonitoringDataset(availableDinsightIds[1].dinsight_id);
-      } else if (monitoringDataset === null && availableDinsightIds.length >= 1) {
-        // If only one dataset, use it for both baseline and monitoring
-        setMonitoringDataset(availableDinsightIds[0].dinsight_id);
+    if (baselinesWithMonitoring && baselinesWithMonitoring.length > 0) {
+      if (baselineDataset === null) {
+        setBaselineDataset(baselinesWithMonitoring[0].dinsight_id);
       }
     }
-  }, [availableDinsightIds, baselineDataset, monitoringDataset]);
+  }, [baselinesWithMonitoring, baselineDataset]);
+
+  // Auto-select monitoring dataset when baseline changes
+  useEffect(() => {
+    if (baselineDataset && availableMonitoringDatasets?.some(m => m.dinsight_data_id === baselineDataset)) {
+      // For the current design, monitoring dataset ID = baseline dataset ID
+      // because monitoring data is linked to baseline via dinsight_data_id
+      setMonitoringDataset(baselineDataset);
+    }
+  }, [baselineDataset, availableMonitoringDatasets]);
 
   // Re-run analysis when parameters change (for real-time updates)
   useEffect(() => {
@@ -186,15 +222,20 @@ export default function AdvancedAnalysisPage() {
 
     setIsAnalyzing(true);
     try {
-      // First, fetch the baseline and monitoring dataset coordinates
-      console.log('Fetching dataset coordinates...');
+      // First, fetch the baseline coordinates and monitoring coordinates
+      console.log('Fetching baseline and monitoring coordinates...');
       const [baselineResponse, monitoringResponse] = await Promise.all([
         api.analysis.getDinsight(baselineDataset),
-        api.analysis.getDinsight(monitoringDataset),
+        api.monitoring.getCoordinates(baselineDataset), // Use monitoring coordinates for the baseline ID
       ]);
 
-      if (!baselineResponse.data.success || !monitoringResponse.data.success) {
-        throw new Error('Failed to fetch dataset coordinates');
+      if (!baselineResponse.data.success) {
+        throw new Error('Failed to fetch baseline dataset coordinates');
+      }
+
+      // Check monitoring response structure
+      if (!monitoringResponse.data || (!monitoringResponse.data.success && !monitoringResponse.data.dinsight_x)) {
+        throw new Error('No monitoring data available for selected baseline dataset');
       }
 
       const baselineCoords: DinsightData = {
@@ -203,8 +244,8 @@ export default function AdvancedAnalysisPage() {
       };
 
       const monitoringCoords: DinsightData = {
-        dinsight_x: monitoringResponse.data.data.dinsight_x,
-        dinsight_y: monitoringResponse.data.data.dinsight_y,
+        dinsight_x: monitoringResponse.data.dinsight_x || [],
+        dinsight_y: monitoringResponse.data.dinsight_y || [],
       };
 
       setBaselineData(baselineCoords);
@@ -425,22 +466,25 @@ export default function AdvancedAnalysisPage() {
                       value={baselineDataset || ''}
                       onChange={(e) => setBaselineDataset(Number(e.target.value))}
                       className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      disabled={datasetsLoading}
+                      disabled={datasetsLoading || monitoringLoading}
                     >
                       {baselineDataset === null && (
                         <option value="">Select baseline dataset...</option>
                       )}
-                      {datasetsLoading ? (
+                      {(datasetsLoading || monitoringLoading) ? (
                         <option>Loading datasets...</option>
                       ) : (
-                        availableDinsightIds?.map((dataset) => (
-                          <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                            {dataset.name} ({dataset.records} records)
-                          </option>
-                        ))
+                        baselinesWithMonitoring?.map((dataset) => {
+                          const monitoringInfo = availableMonitoringDatasets?.find(m => m.dinsight_data_id === dataset.dinsight_id);
+                          return (
+                            <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                              {dataset.name} ({dataset.records} baseline, {monitoringInfo?.monitor_count || 0} monitoring)
+                            </option>
+                          );
+                        })
                       )}
-                      {!datasetsLoading && availableDinsightIds?.length === 0 && (
-                        <option disabled>No datasets available</option>
+                      {!datasetsLoading && !monitoringLoading && baselinesWithMonitoring?.length === 0 && (
+                        <option disabled>No datasets with monitoring data available</option>
                       )}
                     </select>
                   </div>
@@ -448,33 +492,25 @@ export default function AdvancedAnalysisPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Monitoring Dataset
                     </label>
-                    <select
-                      value={monitoringDataset || ''}
-                      onChange={(e) => setMonitoringDataset(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      disabled={datasetsLoading}
-                    >
-                      {monitoringDataset === null && (
-                        <option value="">Select monitoring dataset...</option>
-                      )}
-                      {datasetsLoading ? (
-                        <option>Loading datasets...</option>
+                    <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      {baselineDataset ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-700">
+                            Monitoring data for Dataset ID {baselineDataset}
+                          </span>
+                          <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-md">
+                            Auto-linked
+                          </span>
+                        </div>
                       ) : (
-                        availableDinsightIds?.map((dataset) => (
-                          <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                            {dataset.name} ({dataset.records} records)
-                          </option>
-                        ))
+                        <span className="text-gray-500">Select baseline dataset first</span>
                       )}
-                      {!datasetsLoading && availableDinsightIds?.length === 0 && (
-                        <option disabled>No datasets available</option>
-                      )}
-                    </select>
+                    </div>
                     <div className="px-4 py-3 mt-3 bg-blue-50 border border-blue-100 rounded-xl">
                       <p className="text-xs text-blue-700 leading-relaxed">
-                        {availableDinsightIds && availableDinsightIds.length > 0
-                          ? 'Select datasets for baseline and monitoring comparison'
-                          : 'Upload baseline data to begin anomaly detection'}
+                        {baselinesWithMonitoring && baselinesWithMonitoring.length > 0
+                          ? 'Monitoring data is automatically linked to the selected baseline dataset'
+                          : 'Upload baseline and monitoring data to begin anomaly detection'}
                       </p>
                     </div>
                   </div>
