@@ -6,25 +6,15 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Settings2,
   Play,
-  Download,
   TrendingUp,
-  Search,
-  Settings,
-  Eye,
   AlertTriangle,
   Activity,
-  BarChart3,
-  FileText,
   RefreshCw,
-  CheckCircle,
   XCircle,
-  AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { api } from '@/lib/api-client';
-import { cn } from '@/utils/cn';
 
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -38,37 +28,37 @@ interface DinsightDataset {
   created_at?: string;
 }
 
-interface AnomalyResult {
-  sample_id: string;
-  anomaly_score: number;
+interface DinsightData {
+  dinsight_x: number[];
+  dinsight_y: number[];
+}
+
+interface AnomalyPoint {
+  index: number;
+  x: number;
+  y: number;
   mahalanobis_distance: number;
   is_anomaly: boolean;
-  contributing_features: string[];
 }
 
-interface FeatureImportance {
-  feature_name: string;
-  importance_score: number;
-  percentage: number;
-}
-
-interface AnomalyDetectionResponse {
+interface AnomalyDetectionResult {
+  anomalous_points: AnomalyPoint[];
   total_points: number;
   anomaly_count: number;
   anomaly_percentage: number;
+  anomaly_threshold: number;
+  sensitivity_factor: number;
   sensitivity_level: string;
+  baseline_centroid: { x: number; y: number };
+  comparison_centroid: { x: number; y: number };
   centroid_distance: number;
-  classification_data: {
-    sample_id: string;
-    anomaly_score: number;
-    mahalanobis_distance: number;
-    is_anomaly: boolean;
-    contributing_features: string[];
-  }[];
   statistics: {
-    mean_distance: number;
-    std_distance: number;
-    max_distance: number;
+    baseline_mean: number;
+    baseline_std_dev: number;
+    comparison_mean: number;
+    comparison_std_dev: number;
+    max_mahalanobis_distance: number;
+    mean_mahalanobis_distance: number;
   };
 }
 
@@ -79,13 +69,12 @@ export default function AdvancedAnalysisPage() {
   const [baselineDataset, setBaselineDataset] = useState<number | null>(null);
   const [monitoringDataset, setMonitoringDataset] = useState<number | null>(null);
   const [detectionMethod, setDetectionMethod] = useState<DetectionMethod>('mahalanobis');
-  const [sensitivity, setSensitivity] = useState<number>(80);
+  const [sensitivity, setSensitivity] = useState<number>(3.0); // Changed to match backend sensitivity_factor (0.5-5.0)
   const [threshold, setThreshold] = useState<number>(2.5);
-  const [autoAdjustThreshold, setAutoAdjustThreshold] = useState<boolean>(false);
-  const [realTimeMonitoring, setRealTimeMonitoring] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [analysisResults, setAnalysisResults] = useState<AnomalyResult[]>([]);
-  const [featureImportance, setFeatureImportance] = useState<FeatureImportance[]>([]);
+  const [anomalyResults, setAnomalyResults] = useState<AnomalyDetectionResult | null>(null);
+  const [baselineData, setBaselineData] = useState<DinsightData | null>(null);
+  const [monitoringData, setMonitoringData] = useState<DinsightData | null>(null);
 
   // Query for available dinsight datasets
   const {
@@ -176,6 +165,19 @@ export default function AdvancedAnalysisPage() {
     }
   }, [availableDinsightIds, baselineDataset, monitoringDataset]);
 
+  // Re-run analysis when parameters change (for real-time updates)
+  useEffect(() => {
+    // Only re-run if we have existing results and parameters changed
+    if (anomalyResults && baselineDataset && monitoringDataset && !isAnalyzing) {
+      // Debounce the analysis to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        handleRunAnalysis();
+      }, 500); // 500ms debounce
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [sensitivity]); // Re-run when sensitivity changes
+
   const handleRunAnalysis = async () => {
     if (!baselineDataset || !monitoringDataset) {
       console.warn('Please select both baseline and monitoring datasets');
@@ -184,197 +186,186 @@ export default function AdvancedAnalysisPage() {
 
     setIsAnalyzing(true);
     try {
+      // First, fetch the baseline and monitoring dataset coordinates
+      console.log('Fetching dataset coordinates...');
+      const [baselineResponse, monitoringResponse] = await Promise.all([
+        api.analysis.getDinsight(baselineDataset),
+        api.analysis.getDinsight(monitoringDataset),
+      ]);
+
+      if (!baselineResponse.data.success || !monitoringResponse.data.success) {
+        throw new Error('Failed to fetch dataset coordinates');
+      }
+
+      const baselineCoords: DinsightData = {
+        dinsight_x: baselineResponse.data.data.dinsight_x,
+        dinsight_y: baselineResponse.data.data.dinsight_y,
+      };
+
+      const monitoringCoords: DinsightData = {
+        dinsight_x: monitoringResponse.data.data.dinsight_x,
+        dinsight_y: monitoringResponse.data.data.dinsight_y,
+      };
+
+      setBaselineData(baselineCoords);
+      setMonitoringData(monitoringCoords);
+
       console.log('Running anomaly detection with params:', {
         baseline_dataset_id: baselineDataset,
         comparison_dataset_id: monitoringDataset,
-        sensitivity_factor: sensitivity / 100,
-        anomaly_threshold: threshold,
+        sensitivity_factor: sensitivity,
       });
 
-      // Run anomaly detection
+      // Run anomaly detection with proper backend integration
       const response = await api.anomaly.detect({
         baseline_dataset_id: baselineDataset,
         comparison_dataset_id: monitoringDataset,
-        sensitivity_factor: sensitivity / 100, // Convert percentage to decimal
-        anomaly_threshold: threshold,
+        sensitivity_factor: sensitivity, // Use sensitivity directly (0.5-5.0 range)
       });
 
       console.log('Full API response:', response);
-      console.log('Response data:', response.data);
 
-      // Check if response exists and has data
-      if (response?.data) {
-        const responseData = response.data;
-
-        // Handle both success and data structure variations
-        const data = responseData.success ? responseData.data : responseData;
-
-        console.log('Extracted data:', data);
-
-        // Check if classification_data exists and is an array
-        if (data && data.classification_data && Array.isArray(data.classification_data)) {
-          // Transform API response to match our component interface
-          const transformedResults: AnomalyResult[] = data.classification_data.map(
-            (item: any, index: number) => ({
-              sample_id: item.sample_id || `sample_${index.toString().padStart(3, '0')}`,
-              anomaly_score: typeof item.anomaly_score === 'number' ? item.anomaly_score : 0,
-              mahalanobis_distance:
-                typeof item.mahalanobis_distance === 'number' ? item.mahalanobis_distance : 0,
-              is_anomaly: Boolean(item.is_anomaly),
-              contributing_features: Array.isArray(item.contributing_features)
-                ? item.contributing_features
-                : [],
-            })
-          );
-
-          setAnalysisResults(transformedResults);
-
-          // Generate feature importance based on contributing features
-          const featureMap = new Map<string, number>();
-          transformedResults.forEach((result) => {
-            if (result.is_anomaly && result.contributing_features.length > 0) {
-              result.contributing_features.forEach((feature) => {
-                const current = featureMap.get(feature) || 0;
-                featureMap.set(feature, current + result.anomaly_score);
-              });
-            }
-          });
-
-          if (featureMap.size > 0) {
-            const totalImportance = Array.from(featureMap.values()).reduce(
-              (sum, val) => sum + val,
-              0
-            );
-            const featureImportanceData: FeatureImportance[] = Array.from(featureMap.entries())
-              .map(([feature, importance]) => ({
-                feature_name: feature,
-                importance_score: importance / totalImportance,
-                percentage: Number(((importance / totalImportance) * 100).toFixed(1)),
-              }))
-              .sort((a, b) => b.importance_score - a.importance_score)
-              .slice(0, 10); // Top 10 features
-
-            setFeatureImportance(featureImportanceData);
-          } else {
-            // Generate mock feature importance if no contributing features
-            const mockFeatures: FeatureImportance[] = [
-              { feature_name: 'f_245', importance_score: 0.87, percentage: 87.0 },
-              { feature_name: 'f_156', importance_score: 0.73, percentage: 73.0 },
-              { feature_name: 'f_789', importance_score: 0.66, percentage: 66.0 },
-              { feature_name: 'f_023', importance_score: 0.58, percentage: 58.0 },
-              { feature_name: 'f_512', importance_score: 0.48, percentage: 48.0 },
-            ];
-            setFeatureImportance(mockFeatures);
-          }
-        } else {
-          // If no classification_data, create mock results
-          console.warn('No classification_data in response, creating mock results');
-          const mockResults: AnomalyResult[] = [
-            {
-              sample_id: 'sample_001',
-              anomaly_score: 0.95,
-              mahalanobis_distance: 3.2,
-              is_anomaly: true,
-              contributing_features: ['f_245', 'f_156', 'f_789'],
-            },
-            {
-              sample_id: 'sample_002',
-              anomaly_score: 0.78,
-              mahalanobis_distance: 2.8,
-              is_anomaly: true,
-              contributing_features: ['f_245', 'f_023'],
-            },
-            {
-              sample_id: 'sample_003',
-              anomaly_score: 0.23,
-              mahalanobis_distance: 1.1,
-              is_anomaly: false,
-              contributing_features: [],
-            },
-          ];
-          setAnalysisResults(mockResults);
-
-          const mockFeatures: FeatureImportance[] = [
-            { feature_name: 'f_245', importance_score: 0.87, percentage: 87.0 },
-            { feature_name: 'f_156', importance_score: 0.73, percentage: 73.0 },
-            { feature_name: 'f_789', importance_score: 0.66, percentage: 66.0 },
-            { feature_name: 'f_023', importance_score: 0.58, percentage: 58.0 },
-            { feature_name: 'f_512', importance_score: 0.48, percentage: 48.0 },
-          ];
-          setFeatureImportance(mockFeatures);
-        }
+      if (response?.data?.success && response.data.data) {
+        const result: AnomalyDetectionResult = response.data.data;
+        setAnomalyResults(result);
+        console.log('Anomaly detection completed successfully:', result);
       } else {
         throw new Error('Invalid API response structure');
       }
     } catch (error) {
       console.error('Error running anomaly detection:', error);
-
-      // Create fallback mock data on error
-      const fallbackResults: AnomalyResult[] = [
-        {
-          sample_id: 'sample_001',
-          anomaly_score: 0.95,
-          mahalanobis_distance: 3.2,
-          is_anomaly: true,
-          contributing_features: ['f_245', 'f_156', 'f_789'],
-        },
-        {
-          sample_id: 'sample_002',
-          anomaly_score: 0.78,
-          mahalanobis_distance: 2.8,
-          is_anomaly: true,
-          contributing_features: ['f_245', 'f_023'],
-        },
-        {
-          sample_id: 'sample_003',
-          anomaly_score: 0.23,
-          mahalanobis_distance: 1.1,
-          is_anomaly: false,
-          contributing_features: [],
-        },
-      ];
-
-      const fallbackFeatures: FeatureImportance[] = [
-        { feature_name: 'f_245', importance_score: 0.87, percentage: 87.0 },
-        { feature_name: 'f_156', importance_score: 0.73, percentage: 73.0 },
-        { feature_name: 'f_789', importance_score: 0.66, percentage: 66.0 },
-        { feature_name: 'f_023', importance_score: 0.58, percentage: 58.0 },
-        { feature_name: 'f_512', importance_score: 0.48, percentage: 48.0 },
-      ];
-
-      setAnalysisResults(fallbackResults);
-      setFeatureImportance(fallbackFeatures);
+      // Reset states on error
+      setAnomalyResults(null);
+      setBaselineData(null);
+      setMonitoringData(null);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const getStatusIcon = (isAnomaly: boolean, score: number) => {
-    if (isAnomaly) {
-      return score > 0.8 ? (
-        <XCircle className="h-5 w-5 text-red-500" />
-      ) : (
-        <AlertTriangle className="h-5 w-5 text-yellow-500" />
-      );
+  // Create the scatter plot visualization
+  const createAnomalyVisualization = () => {
+    if (!baselineData || !monitoringData || !anomalyResults) {
+      return null;
     }
-    return <CheckCircle className="h-5 w-5 text-green-500" />;
+
+    const data = [];
+
+    // Add baseline points
+    data.push({
+      x: baselineData.dinsight_x,
+      y: baselineData.dinsight_y,
+      mode: 'markers' as const,
+      type: 'scattergl' as const,
+      name: 'Baseline Dataset',
+      marker: {
+        color: '#1A73E8',
+        size: 6,
+        opacity: 0.5,
+        line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+      },
+      hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+    });
+
+    // Separate normal and anomalous monitoring points
+    const normalPoints = anomalyResults.anomalous_points.filter(p => !p.is_anomaly);
+    const anomalyPoints = anomalyResults.anomalous_points.filter(p => p.is_anomaly);
+
+    // Add normal monitoring points
+    if (normalPoints.length > 0) {
+      data.push({
+        x: normalPoints.map(p => p.x),
+        y: normalPoints.map(p => p.y),
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Normal Points',
+        marker: {
+          color: '#34A853',
+          size: 6,
+          opacity: 0.7,
+          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+        },
+        hovertemplate: '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+        customdata: normalPoints.map(p => p.mahalanobis_distance),
+      });
+    }
+
+    // Add anomalous monitoring points
+    if (anomalyPoints.length > 0) {
+      data.push({
+        x: anomalyPoints.map(p => p.x),
+        y: anomalyPoints.map(p => p.y),
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Anomalies',
+        marker: {
+          color: '#EA4335',
+          size: 8,
+          opacity: 0.9,
+          symbol: 'circle',
+          line: { width: 2, color: '#c62828' },
+        },
+        hovertemplate: '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+        customdata: anomalyPoints.map(p => p.mahalanobis_distance),
+      });
+    }
+
+    // Add baseline centroid marker
+    data.push({
+      x: [anomalyResults.baseline_centroid.x],
+      y: [anomalyResults.baseline_centroid.y],
+      mode: 'markers' as const,
+      type: 'scattergl' as const,
+      name: 'Baseline Centroid',
+      marker: {
+        color: '#1A73E8',
+        size: 12,
+        symbol: 'star',
+        opacity: 1.0,
+        line: { width: 2, color: 'white' },
+      },
+      hovertemplate: `<b>Baseline Centroid</b><br>X: ${anomalyResults.baseline_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.baseline_centroid.y.toFixed(4)}<extra></extra>`,
+    });
+
+    // Add monitoring centroid marker
+    data.push({
+      x: [anomalyResults.comparison_centroid.x],
+      y: [anomalyResults.comparison_centroid.y],
+      mode: 'markers' as const,
+      type: 'scattergl' as const,
+      name: 'Monitor Centroid',
+      marker: {
+        color: '#FBBC04',
+        size: 12,
+        symbol: 'star',
+        opacity: 1.0,
+        line: { width: 2, color: 'white' },
+      },
+      hovertemplate: `<b>Monitor Centroid</b><br>X: ${anomalyResults.comparison_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.comparison_centroid.y.toFixed(4)}<extra></extra>`,
+    });
+
+    return {
+      data,
+      layout: {
+        title: { text: 'Anomaly Detection Analysis - Baseline vs Monitor' },
+        xaxis: { title: { text: 'Dinsight X' } },
+        yaxis: { title: { text: 'Dinsight Y' } },
+        height: 700,
+        template: 'plotly_white' as any,
+        legend: { orientation: 'h' as any, yanchor: 'bottom' as any, y: 1.02, xanchor: 'right' as any, x: 1 },
+        plot_bgcolor: 'rgba(240, 242, 246, 0.3)',
+        showlegend: true,
+        hovermode: 'closest' as any,
+      },
+      config: { displayModeBar: true, responsive: true },
+    };
   };
 
-  const getStatusColor = (isAnomaly: boolean, score: number) => {
-    if (isAnomaly) {
-      return score > 0.8
-        ? 'text-red-600 bg-red-50 border-red-200'
-        : 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    }
-    return 'text-green-600 bg-green-50 border-green-200';
-  };
-
-  // Calculate analysis statistics
-  const totalSamples = analysisResults.length || 0;
-  const anomalyCount = analysisResults.filter((r) => r.is_anomaly).length || 0;
-  const criticalCount =
-    analysisResults.filter((r) => r.is_anomaly && r.anomaly_score > 0.8).length || 0;
-  const anomalyRate = totalSamples > 0 ? ((anomalyCount / totalSamples) * 100).toFixed(1) : '0';
+  // Calculate analysis statistics from backend results
+  const totalSamples = anomalyResults?.total_points || 0;
+  const anomalyCount = anomalyResults?.anomaly_count || 0;
+  const criticalCount = anomalyResults?.anomalous_points?.filter(p => p.is_anomaly && p.mahalanobis_distance > anomalyResults.anomaly_threshold * 1.5).length || 0;
+  const detectionRate = anomalyResults?.anomaly_percentage || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
@@ -536,23 +527,27 @@ export default function AdvancedAnalysisPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Sensitivity: {sensitivity}%
+                    Sensitivity Factor: {sensitivity.toFixed(1)}
                   </label>
                   <input
                     type="range"
-                    min="1"
-                    max="100"
+                    min="0.5"
+                    max="5.0"
+                    step="0.1"
                     value={sensitivity}
                     onChange={(e) => setSensitivity(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     style={{
-                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${sensitivity}%, rgb(229 231 235) ${sensitivity}%, rgb(229 231 235) 100%)`,
+                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${((sensitivity - 0.5) / 4.5) * 100}%, rgb(229 231 235) ${((sensitivity - 0.5) / 4.5) * 100}%, rgb(229 231 235) 100%)`,
                     }}
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>Low</span>
-                    <span>High</span>
+                    <span>0.5 (High Sensitivity)</span>
+                    <span>5.0 (Low Sensitivity)</span>
                   </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Lower values detect more anomalies
+                  </p>
                 </div>
 
                 <div>
@@ -575,78 +570,33 @@ export default function AdvancedAnalysisPage() {
                     <span>1.0</span>
                     <span>5.0</span>
                   </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Auto-calculated based on sensitivity (for reference)
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Options Card */}
+            {/* Run Analysis Button */}
             <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                    <Eye className="w-4 h-4 text-white" />
-                  </div>
-                  Options
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-150">
-                    <div className="flex items-center h-5">
-                      <input
-                        type="checkbox"
-                        checked={autoAdjustThreshold}
-                        onChange={(e) => setAutoAdjustThreshold(e.target.checked)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-700 cursor-pointer">
-                        Auto-adjust threshold
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Dynamically optimize detection threshold
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-150">
-                    <div className="flex items-center h-5">
-                      <input
-                        type="checkbox"
-                        checked={realTimeMonitoring}
-                        onChange={(e) => setRealTimeMonitoring(e.target.checked)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-700 cursor-pointer">
-                        Real-time monitoring
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">Continuous anomaly detection</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Run Analysis Button */}
-                <div className="pt-4 border-t">
-                  <Button
-                    onClick={handleRunAnalysis}
-                    disabled={isAnalyzing}
-                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 mr-2" />
-                        Run Analysis
-                      </>
-                    )}
-                  </Button>
-                </div>
+              <CardContent className="p-6">
+                <Button
+                  onClick={handleRunAnalysis}
+                  disabled={isAnalyzing || !baselineDataset || !monitoringDataset}
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Run Analysis
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -687,40 +637,32 @@ export default function AdvancedAnalysisPage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-purple-900 mb-1">{anomalyRate}%</div>
+                  <div className="text-2xl font-bold text-purple-900 mb-1">{detectionRate.toFixed(1)}%</div>
                   <div className="text-sm font-medium text-purple-700">Detection Rate</div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Results Table */}
+            {/* Visualization Card */}
             <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm flex flex-row items-center justify-between">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <BarChart3 className="w-5 h-5 text-white" />
+                    <Activity className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <CardTitle className="text-xl font-semibold text-gray-900">
-                      Anomaly Detection Results
+                      Anomaly Detection Visualization
                     </CardTitle>
                     <CardDescription className="text-sm text-gray-600">
-                      Detailed analysis results for each sample
+                      Baseline vs Monitor data comparison with anomaly overlay
                     </CardDescription>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export CSV
-                </Button>
               </CardHeader>
               <CardContent className="p-6">
                 {isAnalyzing ? (
-                  <div className="flex items-center justify-center h-48">
+                  <div className="flex items-center justify-center h-96">
                     <div className="text-center">
                       <div className="relative">
                         <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
@@ -734,8 +676,8 @@ export default function AdvancedAnalysisPage() {
                       </p>
                     </div>
                   </div>
-                ) : analysisResults.length === 0 ? (
-                  <div className="flex items-center justify-center h-48">
+                ) : !anomalyResults || !baselineData || !monitoringData ? (
+                  <div className="flex items-center justify-center h-96">
                     <div className="text-center">
                       <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
                         <Activity className="w-8 h-8 text-gray-400" />
@@ -744,172 +686,61 @@ export default function AdvancedAnalysisPage() {
                         No Analysis Results
                       </h3>
                       <p className="text-gray-600 mb-6 max-w-sm">
-                        Run anomaly detection analysis to see detailed results and feature
-                        importance.
+                        Select datasets and run anomaly detection to visualize baseline vs monitor data comparison.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {analysisResults.map((result, index) => (
-                      <div
-                        key={result.sample_id}
-                        className={cn(
-                          'flex items-center justify-between p-5 rounded-2xl border-l-4 shadow-sm hover:shadow-md transition-shadow duration-200',
-                          getStatusColor(result.is_anomaly, result.anomaly_score)
-                        )}
-                      >
-                        <div className="flex items-center space-x-4">
-                          {getStatusIcon(result.is_anomaly, result.anomaly_score)}
-                          <div>
-                            <div className="font-semibold text-gray-900 mb-1">
-                              {result.sample_id}
-                            </div>
-                            <div className="text-sm text-gray-600 mb-1">
-                              Anomaly Score:{' '}
-                              <span className="font-medium">{result.anomaly_score.toFixed(3)}</span>{' '}
-                              | Distance:{' '}
-                              <span className="font-medium">
-                                {result.mahalanobis_distance.toFixed(2)}
-                              </span>
-                            </div>
-                            {result.contributing_features.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                <span className="text-xs text-gray-500 mr-2">
-                                  Contributing features:
-                                </span>
-                                {result.contributing_features.map((feature, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium"
-                                  >
-                                    {feature}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Details
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="w-full">
+                    <Plot
+                      data={createAnomalyVisualization()?.data || []}
+                      layout={createAnomalyVisualization()?.layout || {}}
+                      config={createAnomalyVisualization()?.config || {}}
+                      className="w-full"
+                    />
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Feature Importance Card */}
-            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm flex flex-row items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-semibold text-gray-900">
-                      Feature Importance
-                    </CardTitle>
-                    <CardDescription className="text-sm text-gray-600">
-                      Top contributing features to anomaly detection
-                    </CardDescription>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Export
-                </Button>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isAnalyzing ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="text-center">
-                      <div className="relative">
-                        <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600">Calculating feature importance...</p>
+            {/* Analysis Statistics */}
+            {anomalyResults && (
+              <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+                <CardHeader className="border-b border-gray-100">
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    Analysis Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Sensitivity Level</p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.sensitivity_level}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Threshold</p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.anomaly_threshold.toFixed(3)}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Centroid Distance</p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.centroid_distance.toFixed(3)}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Max Mahalanobis Distance</p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.max_mahalanobis_distance.toFixed(3)}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Mean Mahalanobis Distance</p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.mean_mahalanobis_distance.toFixed(3)}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Baseline Std Dev</p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.baseline_std_dev.toFixed(3)}</p>
                     </div>
                   </div>
-                ) : featureImportance.length === 0 ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <TrendingUp className="w-6 h-6 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600">No feature importance data available</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Run analysis to see contributing features
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {featureImportance.map((feature, index) => (
-                      <div key={feature.feature_name} className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-gray-900">
-                            {feature.feature_name}
-                          </span>
-                          <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
-                            {feature.percentage}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
-                          <div
-                            className="bg-gradient-to-r from-green-500 to-emerald-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
-                            style={{ width: `${feature.percentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className="pt-6 border-t border-gray-100">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                        >
-                          <TrendingUp className="w-4 h-4 mr-2" />
-                          Trend Analysis
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                        >
-                          <Search className="w-4 h-4 mr-2" />
-                          Deep Dive
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Adjust Weights
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
