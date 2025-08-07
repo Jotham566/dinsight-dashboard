@@ -182,384 +182,474 @@ export default function AdvancedAnalysisPage() {
   const anomalyRate = totalSamples > 0 ? ((anomalyCount / totalSamples) * 100).toFixed(1) : '0';
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Advanced Analysis</h1>
-          <p className="text-gray-500">Anomaly detection and feature importance analysis</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetchAnalysis()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+      {/* Modern Header with Glass Effect */}
+      <div className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-slate-200/50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Activity className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Advanced Analysis
+                </h1>
+                <p className="text-sm text-slate-600">
+                  AI-powered anomaly detection and feature importance analysis
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => refetchAnalysis()}
+                className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Main Analysis Area */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Anomaly Detection Control Panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings2 className="w-5 h-5" />
-                Anomaly Detection Settings
-              </CardTitle>
-              <CardDescription>Configure datasets and detection parameters</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Dataset Selection */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Baseline Dataset
-                    </label>
-                    <select
-                      value={baselineDataset}
-                      onChange={(e) => setBaselineDataset(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      {mockDatasets
-                        .filter((d) => d.type === 'baseline')
-                        .map((dataset) => (
-                          <option key={dataset.id} value={dataset.id}>
-                            {dataset.name}
-                          </option>
-                        ))}
-                    </select>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Modern Layout: Sidebar + Main Content */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Control Sidebar */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Analysis Configuration Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                    <Settings2 className="w-4 h-4 text-white" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Monitoring Dataset
-                    </label>
-                    <select
-                      value={monitoringDataset}
-                      onChange={(e) => setMonitoringDataset(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      {mockDatasets
-                        .filter((d) => d.type === 'monitoring')
-                        .map((dataset) => (
-                          <option key={dataset.id} value={dataset.id}>
-                            {dataset.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Detection Parameters */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Detection Method
-                    </label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          value="mahalanobis"
-                          checked={detectionMethod === 'mahalanobis'}
-                          onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
-                          className="mr-2"
-                        />
-                        <span className="text-sm">Mahalanobis</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          value="isolation_forest"
-                          checked={detectionMethod === 'isolation_forest'}
-                          onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
-                          className="mr-2"
-                        />
-                        <span className="text-sm">Isolation Forest</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Sensitivity: {sensitivity}%
-                    </label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={sensitivity}
-                      onChange={(e) => setSensitivity(Number(e.target.value))}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Low</span>
-                      <span>High</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Threshold: {threshold}
-                    </label>
-                    <input
-                      type="range"
-                      min="1.0"
-                      max="5.0"
-                      step="0.1"
-                      value={threshold}
-                      onChange={(e) => setThreshold(Number(e.target.value))}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>1.0</span>
-                      <span>5.0</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Options */}
-              <div className="mt-6 pt-6 border-t">
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={autoAdjustThreshold}
-                      onChange={(e) => setAutoAdjustThreshold(e.target.checked)}
-                      className="mr-2 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Auto-adjust threshold</span>
+                  Configuration
+                </CardTitle>
+              </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Baseline Dataset
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={realTimeMonitoring}
-                      onChange={(e) => setRealTimeMonitoring(e.target.checked)}
-                      className="mr-2 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Real-time monitoring</span>
+                  <select
+                    value={baselineDataset}
+                    onChange={(e) => setBaselineDataset(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    {mockDatasets
+                      .filter((d) => d.type === 'baseline')
+                      .map((dataset) => (
+                        <option key={dataset.id} value={dataset.id}>
+                          {dataset.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Monitoring Dataset
                   </label>
+                  <select
+                    value={monitoringDataset}
+                    onChange={(e) => setMonitoringDataset(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    {mockDatasets
+                      .filter((d) => d.type === 'monitoring')
+                      .map((dataset) => (
+                        <option key={dataset.id} value={dataset.id}>
+                          {dataset.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
               </div>
 
-              {/* Run Analysis Button */}
-              <div className="mt-6">
-                <Button
-                  onClick={handleRunAnalysis}
-                  disabled={isAnalyzing}
-                  className="w-full md:w-auto"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 mr-2" />
-                      Run Analysis
-                    </>
-                  )}
-                </Button>
-              </div>
             </CardContent>
-          </Card>
+            </Card>
 
-          {/* Results Table */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Anomaly Detection Results</CardTitle>
-                <CardDescription>Detailed analysis results for each sample</CardDescription>
-              </div>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {analysisLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-pulse text-center">
-                    <div className="h-8 w-8 bg-primary-200 rounded-full mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-500">Loading results...</p>
+            {/* Detection Parameters Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-white" />
+                  </div>
+                  Parameters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Detection Method
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input
+                        type="radio"
+                        value="mahalanobis"
+                        checked={detectionMethod === 'mahalanobis'}
+                        onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700">Mahalanobis Distance</span>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input
+                        type="radio"
+                        value="isolation_forest"
+                        checked={detectionMethod === 'isolation_forest'}
+                        onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700">Isolation Forest</span>
+                    </label>
                   </div>
                 </div>
-              ) : (
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Sensitivity: {sensitivity}%
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={sensitivity}
+                    onChange={(e) => setSensitivity(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${sensitivity}%, rgb(229 231 235) ${sensitivity}%, rgb(229 231 235) 100%)`,
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>Low</span>
+                    <span>High</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Threshold: {threshold}
+                  </label>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="5.0"
+                    step="0.1"
+                    value={threshold}
+                    onChange={(e) => setThreshold(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${((threshold - 1) / 4) * 100}%, rgb(229 231 235) ${((threshold - 1) / 4) * 100}%, rgb(229 231 235) 100%)`,
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>1.0</span>
+                    <span>5.0</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Options Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-white" />
+                  </div>
+                  Options
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  {analysisResults?.map((result, index) => (
-                    <div
-                      key={result.sample_id}
-                      className={cn(
-                        'flex items-center justify-between p-4 rounded-lg border',
-                        getStatusColor(result.is_anomaly, result.anomaly_score)
-                      )}
-                    >
-                      <div className="flex items-center space-x-4">
-                        {getStatusIcon(result.is_anomaly, result.anomaly_score)}
-                        <div>
-                          <div className="font-medium">{result.sample_id}</div>
-                          <div className="text-sm text-gray-600">
-                            Score: {result.anomaly_score.toFixed(3)} | Distance:{' '}
-                            {result.mahalanobis_distance.toFixed(2)}
-                          </div>
-                          {result.contributing_features.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Contributing features: {result.contributing_features.join(', ')}
-                            </div>
-                          )}
+                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-150">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="checkbox"
+                        checked={autoAdjustThreshold}
+                        onChange={(e) => setAutoAdjustThreshold(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Auto-adjust threshold
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">Dynamically optimize detection threshold</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-150">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="checkbox"
+                        checked={realTimeMonitoring}
+                        onChange={(e) => setRealTimeMonitoring(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Real-time monitoring
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">Continuous anomaly detection</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Run Analysis Button */}
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={handleRunAnalysis}
+                    disabled={isAnalyzing}
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Run Analysis
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Analysis Area */}
+          <div className="xl:col-span-3 space-y-6">
+
+            {/* Analysis Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100/50 backdrop-blur-sm">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-blue-900 mb-1">{totalSamples}</div>
+                  <div className="text-sm font-medium text-blue-700">Total Samples</div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100/50 backdrop-blur-sm">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                    <AlertTriangle className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-red-900 mb-1">{anomalyCount}</div>
+                  <div className="text-sm font-medium text-red-700">Anomalies</div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100/50 backdrop-blur-sm">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                    <XCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-orange-900 mb-1">{criticalCount}</div>
+                  <div className="text-sm font-medium text-orange-700">Critical</div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50 backdrop-blur-sm">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-purple-900 mb-1">{anomalyRate}%</div>
+                  <div className="text-sm font-medium text-purple-700">Detection Rate</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Results Table */}
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm flex flex-row items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-gray-900">
+                      Anomaly Detection Results
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600">
+                      Detailed analysis results for each sample
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+              </CardHeader>
+              <CardContent className="p-6">
+                {analysisLoading ? (
+                  <div className="flex items-center justify-center h-48">
+                    <div className="text-center">
+                      <div className="relative">
+                        <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Activity className="w-6 h-6 text-purple-600" />
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4 mr-1" />
-                          Details
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Analyzing Data
+                      </h3>
+                      <p className="text-sm text-gray-600">Running anomaly detection algorithms...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {analysisResults?.map((result, index) => (
+                      <div
+                        key={result.sample_id}
+                        className={cn(
+                          'flex items-center justify-between p-5 rounded-2xl border-l-4 shadow-sm hover:shadow-md transition-shadow duration-200',
+                          getStatusColor(result.is_anomaly, result.anomaly_score)
+                        )}
+                      >
+                        <div className="flex items-center space-x-4">
+                          {getStatusIcon(result.is_anomaly, result.anomaly_score)}
+                          <div>
+                            <div className="font-semibold text-gray-900 mb-1">{result.sample_id}</div>
+                            <div className="text-sm text-gray-600 mb-1">
+                              Anomaly Score: <span className="font-medium">{result.anomaly_score.toFixed(3)}</span> | 
+                              Distance: <span className="font-medium">{result.mahalanobis_distance.toFixed(2)}</span>
+                            </div>
+                            {result.contributing_features.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                <span className="text-xs text-gray-500 mr-2">Contributing features:</span>
+                                {result.contributing_features.map((feature, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium"
+                                  >
+                                    {feature}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Feature Importance Card */}
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm flex flex-row items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-gray-900">
+                      Feature Importance
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600">
+                      Top contributing features to anomaly detection
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Export
+                </Button>
+              </CardHeader>
+              <CardContent className="p-6">
+                {featureLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-center">
+                      <div className="relative">
+                        <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600">Calculating feature importance...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {featureImportance?.map((feature, index) => (
+                      <div key={feature.feature_name} className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-gray-900">{feature.feature_name}</span>
+                          <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                            {feature.percentage}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                          <div
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                            style={{ width: `${feature.percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="pt-6 border-t border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                        >
+                          <TrendingUp className="w-4 h-4 mr-2" />
+                          Trend Analysis
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                        >
+                          <Search className="w-4 h-4 mr-2" />
+                          Deep Dive
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Adjust Weights
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Analysis Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Analysis Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-900">{totalSamples}</div>
-                    <div className="text-xs text-blue-700">Total Samples</div>
                   </div>
-                  <div className="text-center p-3 bg-red-50 rounded-lg">
-                    <div className="text-2xl font-bold text-red-900">{anomalyCount}</div>
-                    <div className="text-xs text-red-700">Anomalies</div>
-                  </div>
-                  <div className="text-center p-3 bg-orange-50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-900">{criticalCount}</div>
-                    <div className="text-xs text-orange-700">Critical</div>
-                  </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-900">{anomalyRate}%</div>
-                    <div className="text-xs text-purple-700">Anomaly Rate</div>
-                  </div>
-                </div>
-
-                {/* Anomaly Rate Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-700">Anomaly Detection Rate</span>
-                    <span className="font-medium text-gray-900">{anomalyRate}%</span>
-                  </div>
-                  <Progress value={parseFloat(anomalyRate)} className="h-2" />
-                </div>
-
-                {/* Sensitivity Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-700">Current Sensitivity</span>
-                    <span className="font-medium text-gray-900">{sensitivity}%</span>
-                  </div>
-                  <Progress value={sensitivity} className="h-2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Feature Importance */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Feature Importance</CardTitle>
-                <CardDescription>Top contributing features</CardDescription>
-              </div>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-1" />
-                Export
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {featureLoading ? (
-                <div className="space-y-3">
-                  <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {featureImportance?.map((feature, index) => (
-                    <div key={feature.feature_name} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium text-gray-900">{feature.feature_name}</span>
-                        <span className="text-gray-600">{feature.percentage}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${feature.percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="pt-4 border-t space-y-2">
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Trend Analysis
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <Search className="w-4 h-4 mr-2" />
-                      Deep Dive
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Adjust Weights
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                <Button variant="outline" className="justify-start">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Generate Report
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  Configure Alerts
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export Analysis
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Save Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

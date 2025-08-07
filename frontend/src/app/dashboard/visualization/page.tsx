@@ -7,13 +7,13 @@ import Link from 'next/link';
 import {
   Settings2,
   Download,
-  Save,
   RefreshCw,
   Maximize,
   Palette,
   BarChart3,
   Camera,
   ArrowRight,
+  Eye,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,13 @@ import { api } from '@/lib/api-client';
 
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+
+// Declare Plotly global for export functionality
+declare global {
+  interface Window {
+    Plotly: any;
+  }
+}
 
 interface Dataset {
   dinsight_id: number;
@@ -37,6 +44,7 @@ export default function VisualizationPage() {
   const [showContours, setShowContours] = useState<boolean>(false);
   const [sideBySide, setSideBySide] = useState<boolean>(false);
   const [syncZoom, setSyncZoom] = useState<boolean>(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Query for available dinsight datasets
   const { data: availableDinsightIds, isLoading: datasetsLoading } = useQuery<Dataset[]>({
@@ -146,20 +154,67 @@ export default function VisualizationPage() {
     enabled: !!selectedDinsightId,
   });
 
+  // Auto-hide notification after 3 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   const handleExportPNG = () => {
-    console.log('Exporting as PNG...');
-    // Implementation would use Plotly.js export functionality
+    // Get the Plotly plot element
+    const plotElement = document.querySelector('.js-plotly-plot') as any;
+    
+    if (plotElement && window.Plotly) {
+      setNotification({ type: 'success', message: 'Exporting PNG...' });
+      
+      window.Plotly.downloadImage(plotElement, {
+        format: 'png',
+        filename: `dinsight-visualization-${selectedDinsightId || 'export'}-${new Date().toISOString().split('T')[0]}`,
+        width: 1200,
+        height: 800,
+        scale: 2,
+      })
+      .then(() => {
+        setNotification({ type: 'success', message: 'PNG exported successfully!' });
+      })
+      .catch((error: any) => {
+        console.error('Error exporting PNG:', error);
+        setNotification({ type: 'error', message: 'Failed to export PNG. Please try again.' });
+      });
+    } else {
+      setNotification({ type: 'error', message: 'Please select a dataset first.' });
+    }
   };
 
   const handleExportSVG = () => {
-    console.log('Exporting as SVG...');
-    // Implementation would use Plotly.js export functionality
+    // Get the Plotly plot element
+    const plotElement = document.querySelector('.js-plotly-plot') as any;
+    
+    if (plotElement && window.Plotly) {
+      setNotification({ type: 'success', message: 'Exporting SVG...' });
+      
+      window.Plotly.downloadImage(plotElement, {
+        format: 'svg',
+        filename: `dinsight-visualization-${selectedDinsightId || 'export'}-${new Date().toISOString().split('T')[0]}`,
+        width: 1200,
+        height: 800,
+      })
+      .then(() => {
+        setNotification({ type: 'success', message: 'SVG exported successfully!' });
+      })
+      .catch((error: any) => {
+        console.error('Error exporting SVG:', error);
+        setNotification({ type: 'error', message: 'Failed to export SVG. Please try again.' });
+      });
+    } else {
+      setNotification({ type: 'error', message: 'Please select a dataset first.' });
+    }
   };
 
-  const handleSave = () => {
-    console.log('Saving visualization...');
-    // Implementation would save the current configuration
-  };
 
   const refreshData = () => {
     refetchData();
@@ -283,20 +338,21 @@ export default function VisualizationPage() {
 
   const plotLayout = useMemo(() => {
     const baseLayout = {
-      title: { text: "D'insight Visualization" },
+      title: { text: '' }, // Remove title since we have it in the card header
       showlegend: true,
       hovermode: 'closest' as const,
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { family: 'Inter, sans-serif' },
-      dragmode: false as const, // Disable all drag interactions
+      dragmode: false as const,
+      margin: { l: 60, r: 30, t: 30, b: 60 }, // Optimize margins for cleaner look
     };
 
     if (sideBySide) {
       // Side-by-side subplot configuration
       return {
         ...baseLayout,
-        title: { text: "D'insight Visualization - Side by Side Comparison" },
+        title: { text: '' },
         // Define subplot grid (remove for manual domain setup)
         // grid: {
         //   rows: 1,
@@ -401,282 +457,451 @@ export default function VisualizationPage() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Visualization</h1>
-          <p className="text-gray-500">Interactive plots and data exploration</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+      {/* Notification Toast */}
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform ${
+            notification.type === 'success'
+              ? 'bg-green-500 text-white'
+              : 'bg-red-500 text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {notification.type === 'success' ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="font-medium">{notification.message}</span>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={refreshData}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+      )}
+
+      {/* Modern Header with Glass Effect */}
+      <div className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-slate-200/50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <BarChart3 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  D'insight Visualization
+                </h1>
+                <p className="text-sm text-slate-600">
+                  Interactive coordinate analysis and anomaly detection
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={refreshData}
+                className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Control Panel */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings2 className="w-5 h-5" />
-            Visualization Controls
-          </CardTitle>
-          <CardDescription>
-            Select a dinsight ID to visualize baseline and monitoring coordinates
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {/* Dinsight ID Selection */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dinsight ID</label>
-                <select
-                  value={selectedDinsightId || ''}
-                  onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  disabled={datasetsLoading}
-                >
-                  {selectedDinsightId === null && <option value="">Select a Dinsight ID...</option>}
-                  {datasetsLoading ? (
-                    <option>Loading dinsight IDs...</option>
-                  ) : (
-                    availableDinsightIds
-                      ?.sort((a, b) => b.dinsight_id - a.dinsight_id) // Sort in descending order (latest first)
-                      ?.map((dataset) => (
-                        <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                          {dataset.name}
-                        </option>
-                      ))
-                  )}
-                  {!datasetsLoading && availableDinsightIds?.length === 0 && (
-                    <option disabled>
-                      No dinsight data available - upload baseline data first
-                    </option>
-                  )}
-                </select>
-              </div>
-              <div className="text-sm text-gray-500">
-                {availableDinsightIds && availableDinsightIds.length > 0 ? (
-                  <p>Shows both baseline and monitoring coordinates for the selected Dinsight ID</p>
-                ) : (
-                  <p>Dinsight IDs will appear here after you upload and process baseline data</p>
-                )}
-              </div>
-            </div>
-
-            {/* Plot Configuration */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Point Size: {pointSize}
-                </label>
-                <input
-                  type="range"
-                  min="3"
-                  max="12"
-                  value={pointSize}
-                  onChange={(e) => setPointSize(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            {/* Options and Export */}
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Display Options</label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={showContours}
-                      onChange={(e) => setShowContours(e.target.checked)}
-                      className="mr-2 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Show Contours</span>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Modern Layout: Sidebar + Main Content */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Control Sidebar */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Dataset Selection Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                    <Settings2 className="w-4 h-4 text-white" />
+                  </div>
+                  Dataset
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Dinsight ID
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={sideBySide}
-                      onChange={(e) => setSideBySide(e.target.checked)}
-                      className="mr-2 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Side-by-Side</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={syncZoom}
-                      onChange={(e) => setSyncZoom(e.target.checked)}
-                      className="mr-2 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Sync Zoom</span>
-                  </label>
+                  <select
+                    value={selectedDinsightId || ''}
+                    onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    disabled={datasetsLoading}
+                  >
+                    {selectedDinsightId === null && <option value="">Select Dataset...</option>}
+                    {datasetsLoading ? (
+                      <option>Loading datasets...</option>
+                    ) : (
+                      availableDinsightIds
+                        ?.sort((a, b) => b.dinsight_id - a.dinsight_id)
+                        ?.map((dataset) => (
+                          <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                            {dataset.name}
+                          </option>
+                        ))
+                    )}
+                    {!datasetsLoading && availableDinsightIds?.length === 0 && (
+                      <option disabled>No data available</option>
+                    )}
+                  </select>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Export Options</label>
-                <div className="grid grid-cols-1 gap-2">
-                  <Button variant="outline" size="sm" onClick={handleExportPNG}>
-                    <Camera className="w-4 h-4 mr-2" />
-                    Export PNG
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportSVG}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export SVG
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleSave}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Config
-                  </Button>
+                <div className="px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl">
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    {availableDinsightIds && availableDinsightIds.length > 0
+                      ? 'Comparing baseline and monitoring coordinates for anomaly detection'
+                      : 'Upload baseline data to begin visualization'}
+                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
 
-      {/* Main Visualization Area */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Interactive Plot</CardTitle>
-            <CardDescription>
-              D'insight coordinate visualization with anomaly highlighting. Hover over points for
-              details.
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm">
-            <Maximize className="w-4 h-4 mr-2" />
-            Fullscreen
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {dataLoading ? (
-            <div className="flex items-center justify-center h-96">
-              <div className="text-center">
-                <div className="animate-pulse">
-                  <div className="h-8 w-8 bg-primary-200 rounded-full mx-auto mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-32 mx-auto mb-2">Loading data...</div>
-                  <div className="h-3 bg-gray-200 rounded w-24 mx-auto"></div>
+            {/* Plot Configuration Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                    <Palette className="w-4 h-4 text-white" />
+                  </div>
+                  Appearance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Point Size: {pointSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min="3"
+                    max="12"
+                    value={pointSize}
+                    onChange={(e) => setPointSize(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${((pointSize - 3) / 9) * 100}%, rgb(229 231 235) ${((pointSize - 3) / 9) * 100}%, rgb(229 231 235) 100%)`,
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>Small</span>
+                    <span>Large</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="h-96 w-full">
-              {(() => {
-                const plotData = createPlotData();
-                if (plotData.length === 0) {
-                  return (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-gray-500">
-                        <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg font-medium">No data to visualize</p>
-                        <p className="text-sm mb-4">Upload baseline data to get started.</p>
-                        <Link href="/dashboard/data-summary">
-                          <Button
-                            variant="outline"
-                            className="text-primary-600 border-primary-200 hover:bg-primary-50"
-                          >
-                            Go to Data Summary
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        </Link>
+              </CardContent>
+            </Card>
+
+            {/* Display Options Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-white" />
+                  </div>
+                  Display
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {[
+                    {
+                      key: 'showContours',
+                      label: 'Density Contours',
+                      checked: showContours,
+                      setter: setShowContours,
+                      desc: 'Show data density overlays',
+                    },
+                    {
+                      key: 'sideBySide',
+                      label: 'Side-by-Side View',
+                      checked: sideBySide,
+                      setter: setSideBySide,
+                      desc: 'Separate baseline & monitoring',
+                    },
+                    {
+                      key: 'syncZoom',
+                      label: 'Enable Zoom',
+                      checked: syncZoom,
+                      setter: setSyncZoom,
+                      desc: 'Allow plot interaction',
+                    },
+                  ].map((option) => (
+                    <div
+                      key={option.key}
+                      className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-150"
+                    >
+                      <div className="flex items-center h-5">
+                        <input
+                          type="checkbox"
+                          checked={option.checked}
+                          onChange={(e) => option.setter(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                          {option.label}
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">{option.desc}</p>
                       </div>
                     </div>
-                  );
-                }
-                return (
-                  <div className="relative">
-                    <Plot
-                      data={plotData}
-                      layout={plotLayout}
-                      config={plotConfig}
-                      style={{ width: '100%', height: '100%' }}
-                      useResizeHandler={true}
-                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Export Options Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <Download className="w-4 h-4 text-white" />
                   </div>
-                );
-              })()}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Anomaly Plot */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Anomaly Visualization</CardTitle>
-            <CardDescription>Color-coded points based on anomaly scores</CardDescription>
+                  Export
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportPNG}
+                  className="w-full justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Export as PNG
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportSVG}
+                  className="w-full justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export as SVG
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-          <Button variant="outline" size="sm">
-            <Palette className="w-4 h-4 mr-2" />
-            View Options
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-sm text-gray-600">Normal (0.0 - 0.5)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <span className="text-sm text-gray-600">Warning (0.5 - 0.7)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-sm text-gray-600">Critical (0.7 - 1.0)</span>
-              </div>
-            </div>
 
-            {/* Anomaly Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-900">
-                  {(() => {
-                    if (!dinsightData?.monitoring?.anomaly_scores) return 0;
-                    return dinsightData.monitoring.anomaly_scores.filter(
-                      (score: any) => typeof score === 'number' && !isNaN(score) && score <= 0.5
-                    ).length;
-                  })()}
+          {/* Main Visualization Area */}
+          <div className="xl:col-span-3">
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm min-h-[700px]">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-gray-900">
+                      Interactive Visualization
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600">
+                      {sideBySide
+                        ? 'Side-by-side baseline vs monitoring comparison'
+                        : 'Overlay comparison with anomaly highlighting'}
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="text-sm text-green-700">Normal Points</div>
-              </div>
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-900">
-                  {(() => {
-                    if (!dinsightData?.monitoring?.anomaly_scores) return 0;
-                    return dinsightData.monitoring.anomaly_scores.filter(
-                      (score: any) =>
-                        typeof score === 'number' && !isNaN(score) && score > 0.5 && score <= 0.7
-                    ).length;
-                  })()}
+                <div className="flex items-center gap-2">
+                  {selectedDinsightId && (
+                    <div className="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                      Dataset ID: {selectedDinsightId}
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                  >
+                    <Maximize className="w-4 h-4 mr-2" />
+                    Fullscreen
+                  </Button>
                 </div>
-                <div className="text-sm text-yellow-700">Warning Points</div>
-              </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <div className="text-2xl font-bold text-red-900">
-                  {(() => {
-                    if (!dinsightData?.monitoring?.anomaly_scores) return 0;
-                    return dinsightData.monitoring.anomaly_scores.filter(
-                      (score: any) => typeof score === 'number' && !isNaN(score) && score > 0.7
-                    ).length;
-                  })()}
-                </div>
-                <div className="text-sm text-red-700">Critical Points</div>
-              </div>
-            </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {dataLoading ? (
+                  <div className="flex items-center justify-center h-[600px]">
+                    <div className="text-center">
+                      <div className="relative">
+                        <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <BarChart3 className="w-6 h-6 text-blue-600" />
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Loading Visualization
+                      </h3>
+                      <p className="text-sm text-gray-600">Processing coordinate data...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative h-[600px] w-full">
+                    {(() => {
+                      const plotData = createPlotData();
+                      if (plotData.length === 0) {
+                        return (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                                <BarChart3 className="w-8 h-8 text-gray-400" />
+                              </div>
+                              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                No Data Available
+                              </h3>
+                              <p className="text-gray-600 mb-6 max-w-sm">
+                                Upload baseline data to begin visualizing coordinate patterns and
+                                anomalies.
+                              </p>
+                              <Link href="/dashboard/data-summary">
+                                <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+                                  Upload Data
+                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="relative h-full w-full">
+                          <Plot
+                            data={plotData}
+                            layout={plotLayout}
+                            config={plotConfig}
+                            style={{ width: '100%', height: '100%' }}
+                            useResizeHandler={true}
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Modern Anomaly Summary */}
+            {selectedDinsightId && dinsightData?.monitoring?.anomaly_scores && (
+              <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm mt-8">
+                <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Palette className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-semibold text-gray-900">
+                        Anomaly Analysis
+                      </CardTitle>
+                      <CardDescription className="text-sm text-gray-600">
+                        Statistical breakdown of monitoring point classifications
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    {/* Legend */}
+                    <div className="flex flex-wrap items-center justify-center gap-6 p-4 bg-gradient-to-r from-gray-50/50 to-blue-50/50 rounded-2xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-sm"></div>
+                        <span className="text-sm font-medium text-gray-700">
+                          Normal (0.0 - 0.5)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-sm"></div>
+                        <span className="text-sm font-medium text-gray-700">
+                          Warning (0.5 - 0.7)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-400 to-red-600 shadow-sm"></div>
+                        <span className="text-sm font-medium text-gray-700">
+                          Critical (0.7 - 1.0)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Enhanced Anomaly Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200/50 shadow-lg">
+                        <div className="p-6 text-center relative z-10">
+                          <div className="text-3xl font-bold text-emerald-800 mb-2">
+                            {(() => {
+                              if (!dinsightData?.monitoring?.anomaly_scores) return 0;
+                              return dinsightData.monitoring.anomaly_scores.filter(
+                                (score: any) =>
+                                  typeof score === 'number' && !isNaN(score) && score <= 0.5
+                              ).length;
+                            })()}
+                          </div>
+                          <div className="text-sm font-medium text-emerald-700 mb-1">
+                            Normal Points
+                          </div>
+                          <div className="text-xs text-emerald-600">Within expected range</div>
+                        </div>
+                        <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-emerald-200/30 rounded-full"></div>
+                        <div className="absolute -top-2 -left-2 w-8 h-8 bg-emerald-300/40 rounded-full"></div>
+                      </div>
+
+                      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100/50 border border-amber-200/50 shadow-lg">
+                        <div className="p-6 text-center relative z-10">
+                          <div className="text-3xl font-bold text-amber-800 mb-2">
+                            {(() => {
+                              if (!dinsightData?.monitoring?.anomaly_scores) return 0;
+                              return dinsightData.monitoring.anomaly_scores.filter(
+                                (score: any) =>
+                                  typeof score === 'number' &&
+                                  !isNaN(score) &&
+                                  score > 0.5 &&
+                                  score <= 0.7
+                              ).length;
+                            })()}
+                          </div>
+                          <div className="text-sm font-medium text-amber-700 mb-1">
+                            Warning Points
+                          </div>
+                          <div className="text-xs text-amber-600">Moderate deviation</div>
+                        </div>
+                        <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-amber-200/30 rounded-full"></div>
+                        <div className="absolute -top-2 -left-2 w-8 h-8 bg-orange-300/40 rounded-full"></div>
+                      </div>
+
+                      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200/50 shadow-lg">
+                        <div className="p-6 text-center relative z-10">
+                          <div className="text-3xl font-bold text-red-800 mb-2">
+                            {(() => {
+                              if (!dinsightData?.monitoring?.anomaly_scores) return 0;
+                              return dinsightData.monitoring.anomaly_scores.filter(
+                                (score: any) =>
+                                  typeof score === 'number' && !isNaN(score) && score > 0.7
+                              ).length;
+                            })()}
+                          </div>
+                          <div className="text-sm font-medium text-red-700 mb-1">
+                            Critical Points
+                          </div>
+                          <div className="text-xs text-red-600">Requires attention</div>
+                        </div>
+                        <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-red-200/30 rounded-full"></div>
+                        <div className="absolute -top-2 -left-2 w-8 h-8 bg-red-300/40 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
