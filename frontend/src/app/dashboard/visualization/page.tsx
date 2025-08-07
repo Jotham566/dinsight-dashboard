@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import {
   Settings2,
   Download,
@@ -15,6 +16,7 @@ import {
   LineChart,
   Zap,
   Camera,
+  ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,7 @@ import { cn } from '@/utils/cn';
 
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+
 
 // Types for the plot data
 interface DinsightData {
@@ -54,18 +57,18 @@ export default function VisualizationPage() {
   const [syncZoom, setSyncZoom] = useState<boolean>(false);
 
   // Query for available dinsight datasets
-  const { data: availableDinsightIds, isLoading: datasetsLoading } = useQuery({
+  const { data: availableDinsightIds, isLoading: datasetsLoading } = useQuery<Dataset[]>({
     queryKey: ['available-dinsight-ids'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Dataset[]> => {
       try {
-        // Check a broader range but be more specific about what constitutes a valid dinsight record
-        const potentialIds = Array.from({ length: 50 }, (_, i) => i + 1); // Check IDs 1-50
-
-        const promises = potentialIds.map(async (testId) => {
+        const validDatasets: Dataset[] = [];
+        
+        // Start checking from ID 1 and continue until we find no more data
+        for (let id = 1; id <= 100; id++) {
           try {
-            const response = await api.analysis.getDinsight(testId);
-
-            // Ensure this is a real dinsight_data record with valid coordinates
+            const response = await api.analysis.getDinsight(id);
+            
+            // Validate this is a proper dinsight record with coordinates
             if (
               response.data.success &&
               response.data.data &&
@@ -74,37 +77,33 @@ export default function VisualizationPage() {
               Array.isArray(response.data.data.dinsight_x) &&
               Array.isArray(response.data.data.dinsight_y) &&
               response.data.data.dinsight_x.length > 0 &&
-              response.data.data.dinsight_y.length > 0 &&
-              // Additional check: ensure it has dinsight_id field (confirms it's from dinsight_data table)
-              response.data.data.dinsight_id
+              response.data.data.dinsight_y.length > 0
             ) {
-              return {
-                dinsight_id: response.data.data.dinsight_id, // Use the actual dinsight_id from the record
-                name: `Dinsight ID ${response.data.data.dinsight_id}`,
+              validDatasets.push({
+                dinsight_id: id,
+                name: `Dinsight ID ${id}`,
                 type: 'dinsight' as const,
-              };
+              });
             }
-          } catch (error) {
-            // Skip IDs that don't exist or fail validation
-            return null;
+          } catch (error: any) {
+            // If we get a 404, this ID doesn't exist
+            if (error?.response?.status === 404) {
+              // If we haven't found any datasets yet, continue checking a few more IDs
+              // in case there are gaps in the sequence
+              if (validDatasets.length === 0 && id <= 10) {
+                continue;
+              }
+              // If we already have datasets and hit consecutive 404s, stop checking
+              break;
+            }
+            // For other errors, log and continue
+            console.warn(`Error checking dinsight ID ${id}:`, error);
           }
-          return null;
-        });
+        }
 
-        const results = await Promise.all(promises);
-        const validDatasets = results.filter((dataset): dataset is Dataset => dataset !== null);
-
-        // Remove duplicates based on dinsight_id (in case multiple test IDs map to same dinsight record)
-        const uniqueDatasets = validDatasets.filter(
-          (dataset, index, self) =>
-            index === self.findIndex((d) => d.dinsight_id === dataset.dinsight_id)
-        );
-
-        console.log(
-          `Found ${uniqueDatasets.length} valid dinsight datasets:`,
-          uniqueDatasets.map((d) => d.dinsight_id)
-        );
-        return uniqueDatasets;
+        console.log(`Found ${validDatasets.length} valid dinsight datasets:`, 
+          validDatasets.map((d) => d.dinsight_id));
+        return validDatasets;
       } catch (error) {
         console.warn('Failed to fetch available dinsight IDs:', error);
         return [];
@@ -191,7 +190,7 @@ export default function VisualizationPage() {
     }
   };
 
-  const createPlotData = () => {
+  const createPlotData = useCallback(() => {
     const data: any[] = [];
 
     // Baseline data
@@ -257,24 +256,44 @@ export default function VisualizationPage() {
     }
 
     return data;
-  };
+  }, [dinsightData, plotType, selectedDinsightId, pointSize]);
 
   const plotLayout = {
     title: { text: "D'insight Visualization" },
-    xaxis: { title: { text: "D'insight X" } },
-    yaxis: { title: { text: "D'insight Y" } },
+    xaxis: { 
+      title: { text: "D'insight X" },
+      fixedrange: true, // Completely disable zoom interactions to prevent wheel events
+    },
+    yaxis: { 
+      title: { text: "D'insight Y" },
+      fixedrange: true, // Completely disable zoom interactions to prevent wheel events
+    },
     showlegend: true,
     hovermode: 'closest' as const,
     plot_bgcolor: 'rgba(0,0,0,0)',
     paper_bgcolor: 'rgba(0,0,0,0)',
     font: { family: 'Inter, sans-serif' },
+    dragmode: false as const, // Disable all drag interactions
   };
 
   const plotConfig = {
     displayModeBar: true,
-    modeBarButtonsToRemove: ['pan2d' as const, 'lasso2d' as const],
+    modeBarButtonsToRemove: [
+      'zoom2d' as const,
+      'pan2d' as const, 
+      'select2d' as const,
+      'lasso2d' as const,
+      'zoomIn2d' as const,
+      'zoomOut2d' as const,
+      'autoScale2d' as const,
+      'resetScale2d' as const,
+    ],
     displaylogo: false,
     responsive: true,
+    scrollZoom: false,
+    doubleClick: false as const, // Disable double-click zoom
+    showTips: false,
+    staticPlot: false, // Keep interactive for hover but disable zoom/pan
     toImageButtonOptions: {
       format: 'png' as const,
       filename: 'dinsight-plot',
@@ -334,12 +353,18 @@ export default function VisualizationPage() {
                     ))
                   )}
                   {!datasetsLoading && availableDinsightIds?.length === 0 && (
-                    <option disabled>No dinsight data available</option>
+                    <option disabled>
+                      No dinsight data available - upload baseline data first
+                    </option>
                   )}
                 </select>
               </div>
               <div className="text-sm text-gray-500">
-                <p>Shows both baseline and monitoring coordinates for the selected Dinsight ID</p>
+                {availableDinsightIds && availableDinsightIds.length > 0 ? (
+                  <p>Shows both baseline and monitoring coordinates for the selected Dinsight ID</p>
+                ) : (
+                  <p>Dinsight IDs will appear here after you upload and process baseline data</p>
+                )}
               </div>
             </div>
 
@@ -460,7 +485,7 @@ export default function VisualizationPage() {
           <div>
             <CardTitle>Interactive Plot</CardTitle>
             <CardDescription>
-              D'insight coordinate visualization with anomaly highlighting
+              D'insight coordinate visualization with anomaly highlighting. Hover over points for details.
             </CardDescription>
           </div>
           <Button variant="outline" size="sm">
@@ -487,20 +512,32 @@ export default function VisualizationPage() {
                   return (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center text-gray-500">
-                        <p className="text-lg font-medium">No valid data to display</p>
-                        <p className="text-sm">Please select datasets with valid data points.</p>
+                        <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-lg font-medium">No data to visualize</p>
+                        <p className="text-sm mb-4">Upload baseline data to get started.</p>
+                        <Link href="/dashboard/data-summary">
+                          <Button
+                            variant="outline"
+                            className="text-primary-600 border-primary-200 hover:bg-primary-50"
+                          >
+                            Go to Data Summary
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   );
                 }
                 return (
-                  <Plot
-                    data={plotData}
-                    layout={plotLayout}
-                    config={plotConfig}
-                    style={{ width: '100%', height: '100%' }}
-                    useResizeHandler={true}
-                  />
+                  <div className="relative">
+                    <Plot
+                      data={plotData}
+                      layout={plotLayout}
+                      config={plotConfig}
+                      style={{ width: '100%', height: '100%' }}
+                      useResizeHandler={true}
+                    />
+                  </div>
                 );
               })()}
             </div>

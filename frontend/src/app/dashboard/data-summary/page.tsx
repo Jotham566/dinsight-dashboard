@@ -183,7 +183,7 @@ export default function DataSummaryPage() {
     if (availableDatasets) {
       setCurrentPage(1);
     }
-  }, [availableDatasets?.length]);
+  }, [availableDatasets]);
 
   // Handle scroll navigation for pagination
   const handleScroll = (event: React.WheelEvent) => {
