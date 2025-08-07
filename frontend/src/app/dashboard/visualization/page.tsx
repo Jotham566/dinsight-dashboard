@@ -118,7 +118,7 @@ export default function VisualizationPage() {
     }
   }, [availableDinsightIds, selectedDinsightId]);
 
-  // Query for dinsight data (contains both baseline and monitoring coordinates)
+  // Query for both baseline and monitoring coordinates
   const {
     data: dinsightData,
     isLoading: dataLoading,
@@ -129,25 +129,30 @@ export default function VisualizationPage() {
       if (!selectedDinsightId) return null;
 
       try {
-        const response = await api.analysis.getDinsight(selectedDinsightId);
-        const data = response.data.data;
+        // Fetch baseline and monitoring data separately using correct endpoints
+        const [baselineResponse, monitoringResponse] = await Promise.all([
+          api.analysis.getDinsight(selectedDinsightId),
+          api.monitoring.getCoordinates(selectedDinsightId),
+        ]);
+
+        const baselineData = baselineResponse.data.data;
+        const monitoringData = monitoringResponse.data;
 
         return {
-          // Baseline/Reference coordinates
+          // Baseline/Reference coordinates from dinsight endpoint
           baseline: {
-            dinsight_x: data.dinsight_x || [],
-            dinsight_y: data.dinsight_y || [],
-            labels: (data.dinsight_x || []).map((_: any, i: number) => `baseline_${i}`),
+            dinsight_x: baselineData.dinsight_x || [],
+            dinsight_y: baselineData.dinsight_y || [],
+            labels: (baselineData.dinsight_x || []).map((_: any, i: number) => `baseline_${i}`),
           },
-          // Monitoring coordinates (same data for now since it's same Dinsight ID)
+          // Monitoring coordinates from monitoring endpoint
           monitoring: {
-            dinsight_x: data.monitoring_x || data.monitor_x || data.dinsight_x || [],
-            dinsight_y: data.monitoring_y || data.monitor_y || data.dinsight_y || [],
-            labels: (data.monitoring_x || data.monitor_x || data.dinsight_x || []).map(
+            dinsight_x: monitoringData.dinsight_x || [],
+            dinsight_y: monitoringData.dinsight_y || [],
+            labels: (monitoringData.dinsight_x || []).map(
               (_: any, i: number) => `monitoring_${i}`
             ),
-            anomaly_scores:
-              data.anomaly_scores || (data.dinsight_x || []).map(() => Math.random() * 0.3),
+            anomaly_scores: (monitoringData.dinsight_x || []).map(() => Math.random() * 0.3),
           },
         };
       } catch (error) {
