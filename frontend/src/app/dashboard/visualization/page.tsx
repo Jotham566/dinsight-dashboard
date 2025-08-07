@@ -64,7 +64,7 @@ export default function VisualizationPage() {
         const promises = potentialIds.map(async (testId) => {
           try {
             const response = await api.analysis.getDinsight(testId);
-            
+
             // Ensure this is a real dinsight_data record with valid coordinates
             if (
               response.data.success &&
@@ -93,7 +93,7 @@ export default function VisualizationPage() {
 
         const results = await Promise.all(promises);
         const validDatasets = results.filter((dataset): dataset is Dataset => dataset !== null);
-        
+
         // Remove duplicates based on dinsight_id (in case multiple test IDs map to same dinsight record)
         const uniqueDatasets = validDatasets.filter(
           (dataset, index, self) =>
