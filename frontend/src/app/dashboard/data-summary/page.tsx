@@ -160,7 +160,7 @@ export default function DataSummaryPage() {
     enabled: !!processingState.dinsightId && processingState.status === 'completed',
   });
 
-  // Query for available datasets (dinsight records)
+  // Query for available datasets - simplified approach for empty database state
   const {
     data: availableDatasets,
     isLoading: datasetsLoading,
@@ -168,49 +168,12 @@ export default function DataSummaryPage() {
   } = useQuery({
     queryKey: ['available-datasets'],
     queryFn: async () => {
-      try {
-        // Check a smaller range of IDs since we're now paginating
-        const potentialIds = Array.from({ length: 15 }, (_, i) => i + 1); // Check IDs 1-15
-
-        const promises = potentialIds.map(async (testId) => {
-          try {
-            const response = await apiClient.get(`/dinsight/${testId}`);
-
-            if (response.data.success && response.data.data) {
-              const data = response.data.data;
-              const totalRecords = data.dinsight_x?.length || 0;
-              const features = data.feature_names?.length || data.features_count || 1024;
-
-              return {
-                id: data.dinsight_id || testId,
-                name: data.filename || `dinsight_${data.dinsight_id || testId}.csv`,
-                records: totalRecords,
-                features: features,
-                status: totalRecords > 0 ? 'processed' : 'processing',
-                type: data.type || 'baseline',
-                tags: [data.type || 'baseline', 'processed'],
-                quality_score: totalRecords > 0 ? 98.5 : 0,
-                created_at: data.created_at || new Date().toISOString(),
-                size: totalRecords * features * 4, // Estimate: 4 bytes per float
-              };
-            }
-            return null;
-          } catch (error) {
-            return null;
-          }
-        });
-
-        const results = await Promise.all(promises);
-        const validDatasets = results.filter((dataset) => dataset !== null);
-
-        // Sort by created_at descending (newest first)
-        return validDatasets.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      } catch (error) {
-        console.warn('Failed to fetch available datasets:', error);
-        return [];
-      }
+      // TODO: When data exists, this should be updated to:
+      // 1. Either use a proper list endpoint (GET /dinsight) if backend implements it
+      // 2. Or track dinsight IDs from successful uploads and query those specific IDs
+      //
+      // For now, with empty database, return empty array to avoid API errors
+      return [];
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -944,7 +907,7 @@ export default function DataSummaryPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     {availableDatasets
                       .slice((currentPage - 1) * datasetsPerPage, currentPage * datasetsPerPage)
-                      .map((dataset) => (
+                      .map((dataset: any) => (
                         <Card
                           key={dataset.id}
                           className="hover:shadow-md transition-shadow border border-gray-200"
@@ -995,7 +958,7 @@ export default function DataSummaryPage() {
                               </div>
 
                               <div className="flex flex-wrap gap-1">
-                                {dataset.tags.slice(0, 2).map((tag) => (
+                                {dataset.tags.slice(0, 2).map((tag: any) => (
                                   <span
                                     key={tag}
                                     className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
