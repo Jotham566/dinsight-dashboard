@@ -405,7 +405,22 @@ export default function AdvancedAnalysisPage() {
   // Calculate analysis statistics from backend results
   const totalSamples = anomalyResults?.total_points || 0;
   const anomalyCount = anomalyResults?.anomaly_count || 0;
-  const criticalCount = anomalyResults?.anomalous_points?.filter(p => p.is_anomaly && p.mahalanobis_distance > anomalyResults.anomaly_threshold * 1.5).length || 0;
+  
+  // Calculate "Critical" as anomalies in top 25% of Mahalanobis distances among all anomalous points
+  const criticalCount = (() => {
+    if (!anomalyResults?.anomalous_points) return 0;
+    
+    const anomalousPoints = anomalyResults.anomalous_points.filter(p => p.is_anomaly);
+    if (anomalousPoints.length === 0) return 0;
+    
+    // Sort anomalous points by Mahalanobis distance (highest first)
+    const sortedAnomalies = anomalousPoints.sort((a, b) => b.mahalanobis_distance - a.mahalanobis_distance);
+    
+    // Get top 25% as "critical"
+    const criticalThresholdIndex = Math.max(1, Math.ceil(sortedAnomalies.length * 0.25));
+    return criticalThresholdIndex;
+  })();
+  
   const detectionRate = anomalyResults?.anomaly_percentage || 0;
 
   return (
