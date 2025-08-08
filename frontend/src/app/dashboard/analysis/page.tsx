@@ -278,13 +278,6 @@ export default function AdvancedAnalysisPage() {
     } catch (error: any) {
       console.error('Error running anomaly detection:', error);
       
-      // Show user-friendly message for Isolation Forest not implemented
-      if (error?.response?.status === 501 && detectionMethod === 'isolation_forest') {
-        alert('Isolation Forest method is not yet implemented. Please use Mahalanobis Distance method.');
-        // Auto-switch back to Mahalanobis
-        setDetectionMethod('mahalanobis');
-      }
-      
       // Reset states on error
       setAnomalyResults(null);
       setBaselineData(null);
@@ -581,9 +574,6 @@ export default function AdvancedAnalysisPage() {
                       />
                       <span className="ml-3 text-sm font-medium text-gray-700">
                         Isolation Forest
-                        <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                          Coming Soon
-                        </span>
                       </span>
                     </label>
                   </div>
@@ -606,11 +596,11 @@ export default function AdvancedAnalysisPage() {
                     }}
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>0.5 (High Sensitivity)</span>
-                    <span>5.0 (Low Sensitivity)</span>
+                    <span>0.5 (Low Sensitivity)</span>
+                    <span>5.0 (High Sensitivity)</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-2">
-                    Lower values detect more anomalies
+                    Higher values detect more anomalies
                   </p>
                 </div>
 
