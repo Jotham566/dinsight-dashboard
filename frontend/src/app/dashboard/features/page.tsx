@@ -162,15 +162,22 @@ export default function FeatureAnalysisPage() {
   // **PERFORMANCE FIX**: Removed pagination - Streamlit approach limits samples at selection level instead
 
   // Query for available file upload IDs - performance optimized discovery
-  const { data: availableDatasets, isLoading: datasetsLoading } = useQuery<Dataset[]>({
+  const {
+    data: availableDatasets,
+    isLoading: datasetsLoading,
+    error: datasetsError,
+  } = useQuery<Dataset[]>({
     queryKey: ['available-feature-datasets'],
     queryFn: async (): Promise<Dataset[]> => {
       try {
         const validDatasets: Dataset[] = [];
         let consecutiveFailures = 0;
+        let totalAttempts = 0;
 
-        // **PERFORMANCE FIX**: More aggressive early termination - scan only first 6 IDs
-        for (let id = 1; id <= 6; id++) {
+        // **PERFORMANCE FIX**: More aggressive early termination - scan only first 8 IDs with better error handling
+        for (let id = 1; id <= 8; id++) {
+          totalAttempts++;
+
           try {
             const response = await api.analysis.getFeatures(id);
 
@@ -188,52 +195,73 @@ export default function FeatureAnalysisPage() {
                 type: 'features' as const,
               });
               consecutiveFailures = 0; // Reset counter on success
+              console.log(`✅ Found valid feature dataset at ID ${id}`);
             } else {
               consecutiveFailures++;
-              // Stop after 2 consecutive failures for features
-              if (consecutiveFailures >= 2) {
+              console.log(`⚠️ ID ${id}: Invalid response structure or empty data`);
+
+              // **IMPROVED**: Be less aggressive - allow up to 3 consecutive failures
+              if (consecutiveFailures >= 3) {
                 console.log(
-                  `Stopping feature scan at ID ${id} after ${consecutiveFailures} consecutive failures`
+                  `🛑 Stopping feature scan at ID ${id} after ${consecutiveFailures} consecutive failures`
                 );
                 break;
               }
             }
           } catch (error: any) {
             consecutiveFailures++;
-            // If we get a 404 or any error, count as failure
+
             if (error?.response?.status === 404) {
-              console.log(`Feature ID ${id} not found (404)`);
+              console.log(`❌ Feature ID ${id} not found (404)`);
+            } else if (error?.response?.status === 500) {
+              console.log(`💥 Server error for Feature ID ${id} (500)`);
+            } else if (error?.code === 'ECONNREFUSED' || error?.code === 'NETWORK_ERROR') {
+              console.error(`🔌 Network error scanning Feature ID ${id}:`, error.message);
+              // Network errors shouldn't stop the scan immediately
+              if (totalAttempts <= 3) {
+                consecutiveFailures = Math.max(0, consecutiveFailures - 1); // Be more forgiving for network errors
+              }
             } else {
-              console.warn(`Error checking feature upload ID ${id}:`, error);
+              console.warn(`❓ Unexpected error checking feature upload ID ${id}:`, error.message);
             }
 
-            // Stop scanning after 2 consecutive failures to avoid unnecessary requests
-            if (consecutiveFailures >= 2) {
+            // **IMPROVED**: Allow more failures and differentiate error types
+            if (consecutiveFailures >= 3) {
               console.log(
-                `Stopping feature scan at ID ${id} after ${consecutiveFailures} consecutive failures`
+                `🛑 Stopping feature scan at ID ${id} after ${consecutiveFailures} consecutive failures`
               );
               break;
             }
           }
+
+          // Small delay to prevent overwhelming the server
+          if (id < 8) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
         }
 
         console.log(
-          `Found ${validDatasets.length} valid feature datasets:`,
-          validDatasets.map((d) => d.file_upload_id)
+          `📊 Feature dataset discovery complete: Found ${validDatasets.length} valid datasets from ${totalAttempts} attempts`
         );
 
-        // Auto-select first dataset if none selected
+        // **IMPROVED**: Auto-select logic with better state handling
         if (validDatasets.length > 0 && !selectedFileUploadId) {
-          setSelectedFileUploadId(validDatasets[0].file_upload_id);
+          // Use requestIdleCallback to prevent state update during render
+          requestIdleCallback(() => {
+            setSelectedFileUploadId(validDatasets[0].file_upload_id);
+          });
         }
 
         return validDatasets;
       } catch (error) {
-        console.error('Error fetching available feature datasets:', error);
-        throw error;
+        console.error('💥 Critical error in feature dataset discovery:', error);
+        // Don't throw to prevent the entire component from erroring out
+        return [];
       }
     },
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to prevent repeated scans
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent repeated scans
+    retry: 2, // Retry failed discovery attempts
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
 
   const {
@@ -299,15 +327,33 @@ export default function FeatureAnalysisPage() {
     if (!rawFeatureData) return null;
 
     try {
-      console.log('Transforming feature data:', rawFeatureData);
-      const transformed = transformApiDataToFeatureData(rawFeatureData);
-      console.log('Transformed feature data:', {
-        count: transformed.length,
-        sample: transformed[0],
+      console.log('🔄 Transforming feature data:', {
+        hasData: !!rawFeatureData.data,
+        featureValuesCount: rawFeatureData.data?.feature_values?.length,
+        metadataCount: rawFeatureData.data?.metadata?.length,
       });
+
+      const startTime = performance.now();
+      const transformed = transformApiDataToFeatureData(rawFeatureData);
+      const transformTime = performance.now() - startTime;
+
+      // **PERFORMANCE WARNING**: Alert if transformation takes too long
+      if (transformTime > 1000) {
+        console.warn(
+          `⚠️ Slow transformation detected: ${transformTime.toFixed(2)}ms for ${transformed.length} samples`
+        );
+      }
+
+      console.log('✅ Feature data transformed:', {
+        count: transformed.length,
+        transformTime: `${transformTime.toFixed(2)}ms`,
+        samplePreview: transformed[0]?.sample_id,
+        featuresPerSample: transformed[0]?.features?.length,
+      });
+
       return transformed;
     } catch (error) {
-      console.error('Error transforming feature data:', error);
+      console.error('💥 Error transforming feature data:', error);
       return null;
     }
   }, [rawFeatureData]);
@@ -326,29 +372,53 @@ export default function FeatureAnalysisPage() {
   const handleLoadFeatureData = useCallback(async () => {
     setIsLoadingFeatures(true);
     setNotification(null);
+
     try {
-      await refetchFeatureData();
+      const result = await refetchFeatureData();
+
       // **PERFORMANCE FIX**: Auto-select fewer samples and add delay for UI responsiveness
-      if (featureData && featureData.length > 0) {
+      if (result.data && result.data.data && result.data.data.feature_values) {
+        const sampleCount = result.data.data.feature_values.length;
+        const featureCount = result.data.data.feature_values[0]?.length || 0;
+
         // Use requestIdleCallback for better performance - **MATCH STREAMLIT**: Default to 1 sample only
         requestIdleCallback(() => {
-          setSelectedSamples(featureData.slice(0, 1).map((data) => data.sample_id)); // Default to 1 sample like Streamlit
+          // Only auto-select if we have valid transformed data
+          if (featureData && featureData.length > 0) {
+            setSelectedSamples([featureData[0].sample_id]); // Default to 1 sample like Streamlit
+          }
+
           setNotification({
             type: 'success',
-            message: `Successfully loaded ${Math.min(featureData.length, 50)} samples with ${featureData[0]?.features.length || 1024} features each`,
+            message: `Successfully loaded ${sampleCount.toLocaleString()} samples with ${featureCount} features each`,
           });
         });
+      } else {
+        throw new Error('Invalid data structure received from API');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load feature data:', error);
+
+      let errorMessage = 'Failed to load feature data. Please try again.';
+
+      if (error?.response?.status === 404) {
+        errorMessage = `No feature data found for upload ID ${selectedFileUploadId}. Try a different ID.`;
+      } else if (error?.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please contact support if this persists.';
+      } else if (error?.code === 'ECONNREFUSED' || error?.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network connection failed. Please check your internet connection.';
+      } else if (error?.message?.includes('Invalid data structure')) {
+        errorMessage = 'Received invalid data from server. The dataset may be corrupted.';
+      }
+
       setNotification({
         type: 'error',
-        message: 'Failed to load feature data. Please try again or check your connection.',
+        message: errorMessage,
       });
     } finally {
       setIsLoadingFeatures(false);
     }
-  }, [refetchFeatureData, featureData]);
+  }, [refetchFeatureData, featureData, selectedFileUploadId]);
 
   const handleSampleSelection = (sampleId: string, isSelected: boolean) => {
     if (isSelected && selectedSamples.length < maxSamples) {
@@ -358,7 +428,8 @@ export default function FeatureAnalysisPage() {
     }
   };
 
-  const createFeaturePlotData = () => {
+  // **FIX: Memoize plot data to prevent infinite loop**
+  const plotData = useMemo(() => {
     console.log('🔄 Creating feature plot data...', {
       hasFeatureData: !!featureData,
       featureDataLength: featureData?.length,
@@ -372,14 +443,17 @@ export default function FeatureAnalysisPage() {
 
     const colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'];
 
-    // **EMERGENCY FIX**: Try with only 20 features and lines-only (no markers)
-    const MAX_FEATURES_TO_PLOT = 20;
-    console.log(`📊 Using MAX_FEATURES_TO_PLOT: ${MAX_FEATURES_TO_PLOT}`);
+    // **PERFORMANCE FIX**: Limit features and samples to match Streamlit performance
+    const MAX_FEATURES_TO_PLOT = 100; // Increased from 20 for better resolution
+    const MAX_SAMPLES_TO_PLOT = 3; // Limit concurrent samples
+    console.log(
+      `📊 Using MAX_FEATURES_TO_PLOT: ${MAX_FEATURES_TO_PLOT}, MAX_SAMPLES: ${MAX_SAMPLES_TO_PLOT}`
+    );
 
     const startTime = performance.now();
 
     const result = selectedSamples
-      .slice(0, 1) // **EMERGENCY**: Only process 1 sample at a time
+      .slice(0, MAX_SAMPLES_TO_PLOT) // Process up to 3 samples
       .map((sampleId, index) => {
         console.log(`📈 Processing sample ${index + 1}: ${sampleId}`);
 
@@ -392,7 +466,7 @@ export default function FeatureAnalysisPage() {
         const totalFeatures = sampleData.features.length;
         console.log(`📊 Sample ${sampleId} has ${totalFeatures} features`);
 
-        // Take every N-th feature to get 20 representative points
+        // Take every N-th feature to get representative points
         const step = Math.max(1, Math.floor(totalFeatures / MAX_FEATURES_TO_PLOT));
         const limitedFeatures = [];
         const featureIndices = [];
@@ -411,7 +485,7 @@ export default function FeatureAnalysisPage() {
         const trace = {
           x: featureIndices,
           y: limitedFeatures,
-          mode: 'lines' as const, // **EMERGENCY**: Only lines, no markers
+          mode: 'lines' as const,
           type: 'scatter' as const,
           name: sampleData.metadata?.segID || sampleId,
           line: {
@@ -435,7 +509,7 @@ export default function FeatureAnalysisPage() {
     console.log('🎯 Final result:', { tracesCount: result.length });
 
     return result;
-  };
+  }, [featureData, selectedSamples]); // **CRITICAL: Dependencies to prevent infinite loop**
 
   const plotLayout = useMemo(
     () => ({
@@ -471,7 +545,14 @@ export default function FeatureAnalysisPage() {
   const plotConfig = useMemo(
     () => ({
       displayModeBar: true,
-      modeBarButtonsToRemove: ['pan2d' as const, 'lasso2d' as const, 'select2d' as const],
+      modeBarButtonsToRemove: [
+        'pan2d' as const,
+        'lasso2d' as const,
+        'select2d' as const,
+        'autoScale2d' as const,
+        'hoverClosestCartesian' as const,
+        'hoverCompareCartesian' as const,
+      ],
       displaylogo: false,
       toImageButtonOptions: {
         format: 'png' as const,
@@ -481,8 +562,17 @@ export default function FeatureAnalysisPage() {
         scale: 2,
       },
       responsive: true,
-      // **PERFORMANCE**: Enable WebGL for better rendering performance
-      plotGlPixelRatio: 2,
+      // **PERFORMANCE**: Optimize for better rendering performance
+      plotGlPixelRatio: 1, // Reduced from 2 for better performance
+      doubleClick: 'reset+autosize' as const,
+      scrollZoom: true,
+      // **PERFORMANCE**: Disable expensive features for large datasets
+      showTips: false,
+      staticPlot: false,
+      // **PERFORMANCE**: Optimize interaction performance
+      editable: false,
+      // **PERFORMANCE**: Reduce animation frames for smoother interaction
+      frameMargins: 0,
     }),
     [selectedFileUploadId]
   );
@@ -595,469 +685,421 @@ export default function FeatureAnalysisPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* Main Content Area */}
-        <div className="xl:col-span-3 space-y-6">
-          {/* Feature Data Loading Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left Sidebar - Compact Data Selection */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Dataset Selection */}
           <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg text-white">
-                  <Database className="w-4 h-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg text-white">
+                  <Database className="w-3 h-3" />
                 </div>
-                Feature Analysis: Live Database Integration
+                Dataset
               </CardTitle>
-              <CardDescription>
-                Load and analyze raw feature data from uploaded datasets with live API integration
-              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Auto-Detection Status */}
-                {datasetsLoading ? (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
-                      <span className="font-medium text-blue-900">
-                        Scanning for Available Datasets...
-                      </span>
-                    </div>
-                    <p className="text-sm text-blue-700">
-                      Checking file upload IDs for feature data availability.
-                    </p>
-                  </div>
-                ) : availableDatasets && availableDatasets.length > 0 ? (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="font-medium text-green-900">
-                        Auto-Detected Feature Datasets
-                      </span>
-                    </div>
-                    <p className="text-sm text-green-700">
-                      Found {availableDatasets.length} datasets with feature data available for
-                      analysis.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <span className="font-medium text-yellow-900">No Feature Datasets Found</span>
-                    </div>
-                    <p className="text-sm text-yellow-700">
-                      No feature data found. You can try manual ID entry or upload new datasets.
-                    </p>
-                  </div>
-                )}
-
-                {/* ID Selection Method */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    ID Selection Method:
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        value="auto"
-                        checked={idSelectionMethod === 'auto'}
-                        onChange={(e) => setIdSelectionMethod(e.target.value as 'auto')}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Use Auto-Detected ID</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        value="manual"
-                        checked={idSelectionMethod === 'manual'}
-                        onChange={(e) => setIdSelectionMethod(e.target.value as 'manual')}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Enter Manual ID</span>
-                    </label>
-                  </div>
+            <CardContent className="space-y-4">
+              {/* Compact Status */}
+              {datasetsLoading ? (
+                <div className="text-center py-2">
+                  <RefreshCw className="w-4 h-4 mx-auto mb-1 text-blue-600 animate-spin" />
+                  <p className="text-xs text-blue-600">Scanning...</p>
                 </div>
+              ) : datasetsError ? (
+                <div className="text-center py-2">
+                  <AlertCircle className="w-4 h-4 mx-auto mb-1 text-red-500" />
+                  <p className="text-xs text-red-600">Discovery failed</p>
+                </div>
+              ) : availableDatasets && availableDatasets.length > 0 ? (
+                <div className="text-center py-2">
+                  <CheckCircle className="w-4 h-4 mx-auto mb-1 text-green-600" />
+                  <p className="text-xs text-green-600">
+                    {availableDatasets.length} datasets found
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <AlertCircle className="w-4 h-4 mx-auto mb-1 text-yellow-500" />
+                  <p className="text-xs text-yellow-600">None found</p>
+                </div>
+              )}
 
-                {/* Dataset Selection or Manual Entry */}
-                {idSelectionMethod === 'auto' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Auto-Detected Feature Dataset:
-                    </label>
-                    <select
-                      value={selectedFileUploadId || ''}
-                      onChange={(e) => setSelectedFileUploadId(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      disabled={!availableDatasets || availableDatasets.length === 0}
-                    >
-                      <option value="">Select a dataset...</option>
-                      {availableDatasets?.map((dataset) => (
-                        <option key={dataset.file_upload_id} value={dataset.file_upload_id}>
-                          {dataset.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Enter Manual File Upload ID:
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={manualId}
-                        onChange={(e) => setManualId(e.target.value)}
-                        placeholder="Enter file upload ID"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <Button
-                        onClick={() => {
-                          // **PERFORMANCE FIX**: Use requestIdleCallback for better performance
-                          requestIdleCallback(() => {
-                            const id = parseInt(manualId);
-                            if (!isNaN(id)) {
-                              setSelectedFileUploadId(id);
-                            }
-                          });
-                        }}
-                        disabled={!manualId || isNaN(parseInt(manualId))}
-                      >
-                        Load
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Dataset Info */}
-                {selectedDataset && selectedFileUploadId && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-blue-900">File Upload ID:</span>
-                        <p className="text-blue-700">{selectedFileUploadId}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-blue-900">Samples:</span>
-                        <p className="text-blue-700">{totalSamples.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-blue-900">Features per Sample:</span>
-                        <p className="text-blue-700">{totalFeatures}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-blue-900">Metadata:</span>
-                        <p className="text-blue-700">{hasMetadata ? '✅ Yes' : '❌ No'}</p>
-                      </div>
-                    </div>
-                    {featureDataError && (
-                      <div className="mt-2 text-sm text-red-600">
-                        Error loading data: {featureDataError.message}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Load Data Button */}
-                <div className="text-center">
-                  <Button onClick={handleLoadFeatureData} disabled={isLoadingFeatures} size="lg">
-                    {isLoadingFeatures ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Loading Feature Data...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="w-4 h-4 mr-2" />
-                        Load Feature Data
-                      </>
-                    )}
+              {/* Simplified Dataset Selection */}
+              {idSelectionMethod === 'auto' ? (
+                <div>
+                  <select
+                    value={selectedFileUploadId || ''}
+                    onChange={(e) => setSelectedFileUploadId(Number(e.target.value))}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={!availableDatasets || availableDatasets.length === 0}
+                  >
+                    <option value="">Select dataset...</option>
+                    {availableDatasets?.map((dataset) => (
+                      <option key={dataset.file_upload_id} value={dataset.file_upload_id}>
+                        ID {dataset.file_upload_id} (
+                        {dataset.name.match(/\((\d+) samples\)/)?.[1] || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    value={manualId}
+                    onChange={(e) => setManualId(e.target.value)}
+                    placeholder="ID"
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      requestIdleCallback(() => {
+                        const id = parseInt(manualId);
+                        if (!isNaN(id)) {
+                          setSelectedFileUploadId(id);
+                        }
+                      });
+                    }}
+                    disabled={!manualId || isNaN(parseInt(manualId))}
+                  >
+                    Load
                   </Button>
                 </div>
-              </div>
+              )}
+
+              {/* Toggle Method */}
+              <button
+                onClick={() =>
+                  setIdSelectionMethod(idSelectionMethod === 'auto' ? 'manual' : 'auto')
+                }
+                className="w-full text-xs text-blue-600 hover:text-blue-800 py-1"
+              >
+                {idSelectionMethod === 'auto' ? 'Enter manual ID' : 'Use auto-detected'}
+              </button>
+
+              {/* Load Button */}
+              <Button
+                onClick={handleLoadFeatureData}
+                disabled={isLoadingFeatures || !selectedFileUploadId}
+                size="sm"
+                className="w-full"
+              >
+                {isLoadingFeatures ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-3 h-3 mr-1" />
+                    Load Data
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
 
-          {/* Sample Selection & Visualization */}
+          {/* Compact Sample Selection */}
           <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg text-white">
-                  <BarChart3 className="w-4 h-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <div className="p-1.5 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg text-white">
+                  <Eye className="w-3 h-3" />
                 </div>
-                Feature Value Plots
+                Samples
               </CardTitle>
-              <CardDescription>Select samples to visualize their raw feature data</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Sample Selection */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-medium text-gray-700">
-                      Select Samples to Visualize:
-                    </label>
-                    <span className="text-xs text-gray-500">
-                      {selectedSamples.length}/{maxSamples} selected
-                    </span>
+            <CardContent className="space-y-3">
+              {featureDataLoading ? (
+                <div className="text-center py-4">
+                  <RefreshCw className="w-4 h-4 mx-auto mb-2 text-gray-400 animate-spin" />
+                  <p className="text-xs text-gray-500">Loading...</p>
+                </div>
+              ) : featureData && featureData.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Quick Sample Buttons */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-600 font-medium">Quick Select:</p>
+                    <div className="grid grid-cols-1 gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedSamples([featureData[0].sample_id])}
+                        className="justify-start text-xs py-1 h-auto"
+                      >
+                        First Sample
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const samples = featureData.slice(0, 3).map((d) => d.sample_id);
+                          setSelectedSamples(samples);
+                        }}
+                        className="justify-start text-xs py-1 h-auto"
+                      >
+                        First 3 Samples
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const step = Math.floor(featureData.length / 3);
+                          const samples = [0, step, step * 2]
+                            .map((i) => featureData[i]?.sample_id)
+                            .filter(Boolean);
+                          setSelectedSamples(samples);
+                        }}
+                        className="justify-start text-xs py-1 h-auto"
+                      >
+                        Spread 3 Samples
+                      </Button>
+                    </div>
                   </div>
 
-                  {featureDataLoading ? (
-                    <div className="text-center py-4">
-                      <div className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2">Loading samples...</p>
-                    </div>
-                  ) : featureData && featureData.length > 0 ? (
-                    <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
-                      <div className="text-xs text-gray-500 p-2 border-b bg-gray-50">
-                        <span>
-                          {featureData.length} samples available (select up to {maxSamples} for
-                          visualization)
-                        </span>
-                      </div>
-                      <div className="grid gap-2 p-4">
-                        {featureData.map((sample, index) => (
-                          <label
-                            key={`${selectedFileUploadId}-${index}-${sample.sample_id}`}
-                            className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedSamples.includes(sample.sample_id)}
-                              onChange={(e) =>
-                                handleSampleSelection(sample.sample_id, e.target.checked)
-                              }
-                              disabled={
-                                !selectedSamples.includes(sample.sample_id) &&
-                                selectedSamples.length >= maxSamples
-                              }
-                              className="mr-3"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {sample.sample_id}
+                  {/* Current Selection */}
+                  {selectedSamples.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-600 font-medium">
+                        Selected ({selectedSamples.length}/{maxSamples}):
+                      </p>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {selectedSamples.map((sampleId, index) => {
+                          const sample = featureData.find((s) => s.sample_id === sampleId);
+                          const colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'];
+                          return (
+                            <div
+                              key={sampleId}
+                              className="flex items-center justify-between text-xs py-1 px-2 bg-gray-50 rounded"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: colors[index % colors.length] }}
+                                />
+                                <span className="font-mono">
+                                  {sample?.metadata?.segID || sampleId}
                                 </span>
-                                {sample.metadata?.segID && (
-                                  <span className="text-xs text-gray-500">
-                                    {sample.metadata.segID}
-                                  </span>
-                                )}
                               </div>
-                              {sample.metadata?.participant && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {sample.metadata.participant}
-                                </div>
-                              )}
+                              <button
+                                onClick={() => handleSampleSelection(sampleId, false)}
+                                className="text-gray-400 hover:text-red-500"
+                              >
+                                ✕
+                              </button>
                             </div>
-                          </label>
-                        ))}
+                          );
+                        })}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Database className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                      <p>No feature data loaded. Click "Load Feature Data" to begin.</p>
                     </div>
                   )}
-                </div>
 
-                {/* Selected Samples Summary */}
-                {selectedSamples.length > 0 && (
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Selected Samples:</h4>
-                    <div className="space-y-1">
-                      {selectedSamples.slice(0, 3).map((sampleId, index) => {
-                        const sample = featureData?.find((s) => s.sample_id === sampleId);
-                        return (
-                          <div
-                            key={`selected-${index}-${sampleId}`}
-                            className="text-sm text-gray-600"
-                          >
-                            <span className="font-medium">{sampleId}</span>
-                            {sample?.metadata?.segID && (
-                              <span className="ml-2">| segID: {sample.metadata.segID}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {selectedSamples.length > 3 && (
-                        <div className="text-sm text-gray-500">
-                          ...and {selectedSamples.length - 3} more samples
-                        </div>
-                      )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSamples([])}
+                    disabled={selectedSamples.length === 0}
+                    className="w-full text-xs"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <Database className="w-4 h-4 mx-auto mb-1 text-gray-300" />
+                  <p className="text-xs">Load data first</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Area - Plot Focused */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Feature Plot - Center of Focus */}
+          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white shadow-lg">
+                    <BarChart3 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Feature Analysis</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {selectedFileUploadId
+                        ? `Dataset ID ${selectedFileUploadId}`
+                        : 'No dataset selected'}
+                      {totalSamples > 0 &&
+                        ` • ${totalSamples.toLocaleString()} samples • ${totalFeatures} features`}
+                    </p>
+                  </div>
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportPlot('png')}
+                    disabled={!plotElement || selectedSamples.length === 0}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => refetchFeatureData()}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Main Plot Area */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                {selectedSamples.length > 0 && featureData ? (
+                  <div className="h-[500px] w-full">
+                    <Plot
+                      data={plotData}
+                      layout={plotLayout}
+                      config={plotConfig}
+                      style={{ width: '100%', height: '100%' }}
+                      useResizeHandler={true}
+                      onInitialized={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
+                      onUpdate={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
+                    />
+                  </div>
+                ) : featureDataLoading ? (
+                  <div className="h-[500px] flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <RefreshCw className="w-16 h-16 mx-auto mb-4 text-gray-300 animate-spin" />
+                      <p className="text-lg font-medium">Loading Feature Data...</p>
+                      <p className="text-sm">Please wait while we fetch the data</p>
+                    </div>
+                  </div>
+                ) : !featureData ? (
+                  <div className="h-[500px] flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <Database className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No Data Loaded</p>
+                      <p className="text-sm">Select a dataset and click "Load Data" to begin</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-[500px] flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No Samples Selected</p>
+                      <p className="text-sm">
+                        Use the sample selection panel to choose samples to visualize
+                      </p>
                     </div>
                   </div>
                 )}
-
-                {/* Plot */}
-                <div className="border border-gray-200 rounded-lg p-4 bg-white/50">
-                  {selectedSamples.length > 0 && featureData ? (
-                    <div className="h-96 w-full">
-                      <Plot
-                        data={createFeaturePlotData()}
-                        layout={plotLayout}
-                        config={plotConfig}
-                        style={{ width: '100%', height: '100%' }}
-                        useResizeHandler={true}
-                        onInitialized={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
-                        onUpdate={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
-                      />
-                    </div>
-                  ) : featureDataLoading ? (
-                    <div className="h-96 flex items-center justify-center text-gray-500">
-                      <div className="text-center">
-                        <RefreshCw className="w-16 h-16 mx-auto mb-4 text-gray-300 animate-spin" />
-                        <p className="text-lg font-medium">Loading Feature Data...</p>
-                        <p className="text-sm">Please wait while we fetch the data</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-96 flex items-center justify-center text-gray-500">
-                      <div className="text-center">
-                        <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg font-medium">
-                          {!featureData ? 'No Data Loaded' : 'No Samples Selected'}
-                        </p>
-                        <p className="text-sm">
-                          {!featureData
-                            ? 'Select a dataset and click "Load Feature Data" to begin'
-                            : 'Select samples above to visualize their feature data'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Feature Statistics */}
+        {/* Right Sidebar */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Statistics */}
           <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg text-white">
-                  <TrendingUp className="w-4 h-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg text-white">
+                  <TrendingUp className="w-3 h-3" />
                 </div>
-                Feature Statistics
+                Statistics
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {featureDataLoading ? (
-                  <div className="text-center py-4">
-                    <RefreshCw className="w-6 h-6 mx-auto mb-2 text-gray-400 animate-spin" />
-                    <p className="text-sm text-gray-500">Calculating statistics...</p>
+            <CardContent className="space-y-3">
+              {featureDataLoading ? (
+                <div className="text-center py-2">
+                  <RefreshCw className="w-4 h-4 mx-auto mb-1 text-gray-400 animate-spin" />
+                  <p className="text-xs text-gray-500">Calculating...</p>
+                </div>
+              ) : featureStats ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="text-center p-2 bg-blue-50 rounded">
+                      <div className="text-lg font-bold text-blue-900">{totalFeatures}</div>
+                      <div className="text-xs text-blue-700">Features</div>
+                    </div>
+                    <div className="text-center p-2 bg-green-50 rounded">
+                      <div className="text-lg font-bold text-green-900">
+                        {totalSamples.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-green-700">Samples</div>
+                    </div>
+                    <div className="text-center p-2 bg-purple-50 rounded">
+                      <div className="text-lg font-bold text-purple-900">
+                        {highVarianceFeatures}
+                      </div>
+                      <div className="text-xs text-purple-700">High Variance</div>
+                    </div>
                   </div>
-                ) : featureStats ? (
-                  <>
-                    <div className="grid grid-cols-1 gap-3">
-                      <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <div className="text-xl font-bold text-blue-900">{totalFeatures}</div>
-                        <div className="text-xs text-blue-700">Total Features</div>
+
+                  {mostVariableFeature && (
+                    <div className="text-xs text-gray-600 space-y-1 pt-2 border-t">
+                      <div>
+                        <span className="font-medium">Most Variable:</span> f_
+                        {mostVariableFeature.feature_index}
                       </div>
-                      <div className="text-center p-3 bg-purple-50 rounded-lg">
-                        <div className="text-xl font-bold text-purple-900">
-                          {highVarianceFeatures}
-                        </div>
-                        <div className="text-xs text-purple-700">High Variance</div>
-                      </div>
-                      <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-xl font-bold text-green-900">{totalSamples}</div>
-                        <div className="text-xs text-green-700">Total Samples</div>
+                      <div>
+                        <span className="font-medium">Least Variable:</span> f_
+                        {leastVariableFeature?.feature_index}
                       </div>
                     </div>
-
-                    {mostVariableFeature && leastVariableFeature && (
-                      <div className="space-y-3 pt-4 border-t">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            Most Variable Feature:
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            f_{mostVariableFeature.feature_index} (σ²=
-                            {mostVariableFeature.variance.toFixed(3)})
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            Least Variable Feature:
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            f_{leastVariableFeature.feature_index} (σ²=
-                            {leastVariableFeature.variance.toFixed(3)})
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    <TrendingUp className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm">No statistics available</p>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => refetchFeatureData()}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh Stats
-                  </Button>
-                  <Link href="/dashboard/analysis">
-                    <Button variant="outline" size="sm" className="w-full justify-start">
-                      <ArrowRight className="w-4 h-4 mr-2" />
-                      Advanced Analysis
-                    </Button>
-                  </Link>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-2 text-gray-500">
+                  <TrendingUp className="w-4 h-4 mx-auto mb-1 text-gray-400" />
+                  <p className="text-xs">No data</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Quick Actions */}
           <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-cyan-600 rounded-lg text-white">
-                  <Zap className="w-4 h-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-cyan-600 rounded-lg text-white">
+                  <Zap className="w-3 h-3" />
                 </div>
-                Quick Actions
+                Actions
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3">
+            <CardContent className="space-y-2">
+              <div className="grid grid-cols-1 gap-2">
                 <Button
                   variant="outline"
-                  className="justify-start"
+                  size="sm"
+                  className="justify-start text-xs py-1 h-auto"
                   onClick={() => exportPlot('png')}
                   disabled={!plotElement || selectedSamples.length === 0}
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="w-3 h-3 mr-1" />
                   Export Plot
                 </Button>
-                <Button variant="outline" className="justify-start">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Generate Report
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <Eye className="w-4 h-4 mr-2" />
-                  Compare Samples
-                </Button>
+                <Link href="/dashboard/analysis">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-xs py-1 h-auto"
+                  >
+                    <ArrowRight className="w-3 h-3 mr-1" />
+                    Advanced Analysis
+                  </Button>
+                </Link>
                 <Link href="/dashboard/visualization">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Settings className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-xs py-1 h-auto"
+                  >
+                    <Settings className="w-3 h-3 mr-1" />
                     View in D'insight
                   </Button>
                 </Link>
@@ -1065,82 +1107,51 @@ export default function FeatureAnalysisPage() {
             </CardContent>
           </Card>
 
-          {/* Data Quality */}
+          {/* Data Info */}
           <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg text-white">
-                  <CheckCircle className="w-4 h-4" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg text-white">
+                  <CheckCircle className="w-3 h-3" />
                 </div>
-                Data Quality
+                Data Info
               </CardTitle>
             </CardHeader>
             <CardContent>
               {selectedFileUploadId ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Metadata Available</span>
-                    <div className="flex items-center gap-2">
-                      {hasMetadata ? (
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4 text-yellow-500" />
-                      )}
-                      <span className="text-sm font-medium">{hasMetadata ? 'Yes' : 'No'}</span>
-                    </div>
-                  </div>
-
-                  {/* Show backend issue warning if no metadata */}
-                  {!hasMetadata && rawFeatureData && (
-                    <div className="text-xs bg-red-50 border border-red-200 p-3 rounded">
-                      <div className="flex items-center gap-2 text-red-800 font-medium mb-2">
-                        <AlertCircle className="w-4 h-4" />
-                        Backend Issue: Missing Metadata
-                      </div>
-                      <div className="text-red-700 space-y-1">
-                        <div>
-                          • Metadata array exists: {rawFeatureData.data.metadata ? 'Yes' : 'No'}
-                        </div>
-                        <div>• Expected: Array with segID, participant, timestamp</div>
-                        <div>• Impact: Generic sample labels (sample_000, etc.)</div>
-                        <div className="mt-2 text-xs">
-                          Check:{' '}
-                          <code className="bg-red-100 px-1 rounded">
-                            GET /feature/{selectedFileUploadId}
-                          </code>{' '}
-                          endpoint
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Feature Count</span>
-                    <span className="text-sm font-medium">{totalFeatures}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Sample Count</span>
-                    <span className="text-sm font-medium">{totalSamples.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Upload ID</span>
-                    <span className="text-sm font-medium px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Dataset ID</span>
+                    <span className="font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                       {selectedFileUploadId}
                     </span>
                   </div>
-                  {featureDataError && (
-                    <div className="pt-2 border-t">
-                      <div className="flex items-center gap-2 text-red-600">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="text-xs">Data Load Error</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Metadata</span>
+                    <div className="flex items-center gap-1">
+                      {hasMetadata ? (
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                      ) : (
+                        <AlertCircle className="w-3 h-3 text-yellow-500" />
+                      )}
+                      <span className="font-medium">{hasMetadata ? 'Available' : 'Missing'}</span>
+                    </div>
+                  </div>
+
+                  {!hasMetadata && rawFeatureData && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                      <div className="text-yellow-800 text-xs">
+                        <div className="font-medium mb-1">Backend Issue</div>
+                        <div>Missing metadata in API response</div>
+                        <div className="mt-1 text-yellow-600">Using fallback sample names</div>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-center py-4 text-gray-500">
-                  <Database className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm">Select a dataset to view quality metrics</p>
+                  <Database className="w-4 h-4 mx-auto mb-1 text-gray-400" />
+                  <p className="text-xs">No dataset selected</p>
                 </div>
               )}
             </CardContent>
