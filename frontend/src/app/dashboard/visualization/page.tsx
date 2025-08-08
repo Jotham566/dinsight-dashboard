@@ -235,21 +235,16 @@ export default function VisualizationPage() {
       const baselineTrace = {
         x: dinsightData.baseline.dinsight_x,
         y: dinsightData.baseline.dinsight_y,
-        mode: 'markers',
-        type: 'scatter',
-        name: `Baseline (ID: ${selectedDinsightId})`,
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Baseline Dataset',
         marker: {
-          color: '#3B82F6', // Blue for baseline
-          size: pointSize + 2, // Slightly larger for baseline to show as outline
-          opacity: 0.6,
-          line: {
-            color: '#1E40AF', // Darker blue outline
-            width: 1,
-          },
+          color: '#1A73E8',
+          size: pointSize,
+          opacity: 0.5,
+          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
         },
-        text: dinsightData.baseline.labels,
-        hovertemplate:
-          '<b>%{text}</b><br>' + 'X: %{x:.3f}<br>' + 'Y: %{y:.3f}<br>' + '<extra></extra>',
+        hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
         // For side-by-side mode, use subplot positioning
         ...(sideBySide && { xaxis: 'x', yaxis: 'y' }),
       };
@@ -293,21 +288,16 @@ export default function VisualizationPage() {
       const monitoringTrace = {
         x: dinsightData.monitoring.dinsight_x,
         y: dinsightData.monitoring.dinsight_y,
-        mode: 'markers',
-        type: 'scatter',
-        name: `Monitoring (ID: ${selectedDinsightId})`,
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Monitoring Dataset',
         marker: {
-          color: markerColor,
-          size: pointSize, // Slightly smaller so baseline shows as outline
-          opacity: 0.8,
-          line: {
-            color: '#7F1D1D', // Darker red outline
-            width: 1,
-          },
+          color: '#EA4335',
+          size: pointSize,
+          opacity: 0.7,
+          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
         },
-        text: dinsightData.monitoring.labels,
-        hovertemplate:
-          '<b>%{text}</b><br>' + 'X: %{x:.3f}<br>' + 'Y: %{y:.3f}<br>' + '<extra></extra>',
+        hovertemplate: '<b>Monitoring</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
         // For side-by-side mode, use second subplot
         ...(sideBySide && { xaxis: 'x2', yaxis: 'y2' }),
       };
@@ -343,82 +333,50 @@ export default function VisualizationPage() {
       title: { text: '' }, // Remove title since we have it in the card header
       showlegend: true,
       hovermode: 'closest' as const,
-      plot_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(240, 242, 246, 0.3)',
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { family: 'Inter, sans-serif' },
-      dragmode: false as const,
-      margin: { l: 60, r: 30, t: 30, b: 60 }, // Optimize margins for cleaner look
+      template: 'plotly_white' as any,
+      legend: { 
+        orientation: 'h' as any, 
+        yanchor: 'bottom' as any, 
+        y: 1.02, 
+        xanchor: 'right' as any, 
+        x: 1 
+      },
+      margin: { l: 60, r: 30, t: 30, b: 60 },
     };
 
     if (sideBySide) {
       // Side-by-side subplot configuration
       return {
         ...baseLayout,
-        title: { text: '' },
-        // Define subplot grid (remove for manual domain setup)
-        // grid: {
-        //   rows: 1,
-        //   columns: 2,
-        //   pattern: 'independent',
-        // },
+        height: 700,
         // Left subplot (Baseline)
         xaxis: {
-          title: { text: 'Baseline X' },
+          title: { text: 'Dinsight X (Baseline)' },
           domain: [0, 0.48],
-          fixedrange: !syncZoom,
-          ...(showContours && {
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.3)',
-          }),
         },
         yaxis: {
-          title: { text: 'Baseline Y' },
-          fixedrange: !syncZoom,
-          ...(showContours && {
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.3)',
-          }),
+          title: { text: 'Dinsight Y (Baseline)' },
         },
         // Right subplot (Monitoring)
         xaxis2: {
-          title: { text: 'Monitoring X' },
+          title: { text: 'Dinsight X (Monitoring)' },
           domain: [0.52, 1],
-          fixedrange: !syncZoom,
-          ...(showContours && {
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.3)',
-          }),
         },
         yaxis2: {
-          title: { text: 'Monitoring Y' },
+          title: { text: 'Dinsight Y (Monitoring)' },
           anchor: 'x2' as const,
-          fixedrange: !syncZoom,
-          ...(showContours && {
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.3)',
-          }),
         },
       };
     } else {
       // Single plot configuration (overlay mode)
       return {
         ...baseLayout,
-        xaxis: {
-          title: { text: "D'insight X" },
-          fixedrange: !syncZoom, // Allow zoom when sync zoom is enabled
-          ...(showContours && {
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.3)',
-          }),
-        },
-        yaxis: {
-          title: { text: "D'insight Y" },
-          fixedrange: !syncZoom, // Allow zoom when sync zoom is enabled
-          ...(showContours && {
-            showgrid: true,
-            gridcolor: 'rgba(128,128,128,0.3)',
-          }),
-        },
+        xaxis: { title: { text: 'Dinsight X' } },
+        yaxis: { title: { text: 'Dinsight Y' } },
+        height: 700,
       };
     }
   }, [showContours, sideBySide, syncZoom]);
@@ -426,39 +384,9 @@ export default function VisualizationPage() {
   const plotConfig = useMemo(
     () => ({
       displayModeBar: true,
-      modeBarButtonsToRemove: [
-        // Conditionally remove zoom/pan buttons based on sync zoom setting
-        ...(syncZoom
-          ? []
-          : [
-              'zoom2d' as const,
-              'pan2d' as const,
-              'zoomIn2d' as const,
-              'zoomOut2d' as const,
-              'autoScale2d' as const,
-              'resetScale2d' as const,
-            ]),
-        'select2d' as const,
-        'lasso2d' as const,
-      ],
-      displaylogo: false,
       responsive: true,
-      scrollZoom: syncZoom, // Enable scroll zoom only when sync zoom is enabled
-      doubleClick: syncZoom ? ('reset' as const) : (false as const), // Enable double-click reset when sync zoom is on
-      showTips: false,
-      staticPlot: false, // Keep interactive for hover
-      // Improve wheel event performance
-      editable: false,
-      autosizable: true,
-      toImageButtonOptions: {
-        format: 'png' as const,
-        filename: 'dinsight-plot',
-        height: 600,
-        width: 900,
-        scale: 2,
-      },
     }),
-    [syncZoom]
+    []
   );
 
   return (
@@ -757,7 +685,7 @@ export default function VisualizationPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="relative h-[600px] w-full">
+                  <div className="relative h-[700px] w-full">
                     {(() => {
                       const plotData = createPlotData();
                       if (plotData.length === 0) {
@@ -792,11 +720,11 @@ export default function VisualizationPage() {
                             config={plotConfig}
                             style={{ width: '100%', height: '100%' }}
                             useResizeHandler={true}
-                            onInitialized={(figure, graphDiv) => {
+                            onInitialized={(_figure, graphDiv) => {
                               // Store reference for export functionality
                               setPlotElement(graphDiv);
                             }}
-                            onUpdate={(figure, graphDiv) => {
+                            onUpdate={(_figure, graphDiv) => {
                               // Store reference for export functionality
                               setPlotElement(graphDiv);
                             }}
