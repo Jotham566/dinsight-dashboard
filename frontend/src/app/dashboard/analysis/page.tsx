@@ -81,10 +81,9 @@ export default function AdvancedAnalysisPage() {
   const [monitoringData, setMonitoringData] = useState<DinsightData | null>(null);
 
   // Query for available monitoring datasets (baseline IDs that have monitoring data)
-  const {
-    data: availableMonitoringDatasets,
-    isLoading: monitoringLoading,
-  } = useQuery<AvailableMonitoringDataset[]>({
+  const { data: availableMonitoringDatasets, isLoading: monitoringLoading } = useQuery<
+    AvailableMonitoringDataset[]
+  >({
     queryKey: ['available-monitoring-datasets'],
     retry: false,
     refetchOnWindowFocus: false,
@@ -178,9 +177,12 @@ export default function AdvancedAnalysisPage() {
   });
 
   // Filter baseline datasets to only those with monitoring data
-  const baselinesWithMonitoring = availableDinsightIds?.filter(dataset =>
-    availableMonitoringDatasets?.some(monitoring => monitoring.dinsight_data_id === dataset.dinsight_id)
-  ) || [];
+  const baselinesWithMonitoring =
+    availableDinsightIds?.filter((dataset) =>
+      availableMonitoringDatasets?.some(
+        (monitoring) => monitoring.dinsight_data_id === dataset.dinsight_id
+      )
+    ) || [];
 
   // Auto-select first available datasets when data loads
   useEffect(() => {
@@ -193,7 +195,10 @@ export default function AdvancedAnalysisPage() {
 
   // Auto-select monitoring dataset when baseline changes
   useEffect(() => {
-    if (baselineDataset && availableMonitoringDatasets?.some(m => m.dinsight_data_id === baselineDataset)) {
+    if (
+      baselineDataset &&
+      availableMonitoringDatasets?.some((m) => m.dinsight_data_id === baselineDataset)
+    ) {
       // For the current design, monitoring dataset ID = baseline dataset ID
       // because monitoring data is linked to baseline via dinsight_data_id
       setMonitoringDataset(baselineDataset);
@@ -233,7 +238,10 @@ export default function AdvancedAnalysisPage() {
       }
 
       // Check monitoring response structure
-      if (!monitoringResponse.data || (!monitoringResponse.data.success && !monitoringResponse.data.dinsight_x)) {
+      if (
+        !monitoringResponse.data ||
+        (!monitoringResponse.data.success && !monitoringResponse.data.dinsight_x)
+      ) {
         throw new Error('No monitoring data available for selected baseline dataset');
       }
 
@@ -276,7 +284,7 @@ export default function AdvancedAnalysisPage() {
       }
     } catch (error: any) {
       console.error('Error running anomaly detection:', error);
-      
+
       // Reset states on error
       setAnomalyResults(null);
       setBaselineData(null);
@@ -311,14 +319,14 @@ export default function AdvancedAnalysisPage() {
     });
 
     // Separate normal and anomalous monitoring points
-    const normalPoints = anomalyResults.anomalous_points.filter(p => !p.is_anomaly);
-    const anomalyPoints = anomalyResults.anomalous_points.filter(p => p.is_anomaly);
+    const normalPoints = anomalyResults.anomalous_points.filter((p) => !p.is_anomaly);
+    const anomalyPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
 
     // Add normal monitoring points
     if (normalPoints.length > 0) {
       data.push({
-        x: normalPoints.map(p => p.x),
-        y: normalPoints.map(p => p.y),
+        x: normalPoints.map((p) => p.x),
+        y: normalPoints.map((p) => p.y),
         mode: 'markers' as const,
         type: 'scattergl' as const,
         name: 'Normal Points',
@@ -328,16 +336,17 @@ export default function AdvancedAnalysisPage() {
           opacity: 0.7,
           line: { width: 1, color: 'rgba(0,0,0,0.2)' },
         },
-        hovertemplate: '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-        customdata: normalPoints.map(p => p.mahalanobis_distance),
+        hovertemplate:
+          '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+        customdata: normalPoints.map((p) => p.mahalanobis_distance),
       });
     }
 
     // Add anomalous monitoring points
     if (anomalyPoints.length > 0) {
       data.push({
-        x: anomalyPoints.map(p => p.x),
-        y: anomalyPoints.map(p => p.y),
+        x: anomalyPoints.map((p) => p.x),
+        y: anomalyPoints.map((p) => p.y),
         mode: 'markers' as const,
         type: 'scattergl' as const,
         name: 'Anomalies',
@@ -348,8 +357,9 @@ export default function AdvancedAnalysisPage() {
           symbol: 'circle',
           line: { width: 2, color: '#c62828' },
         },
-        hovertemplate: '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-        customdata: anomalyPoints.map(p => p.mahalanobis_distance),
+        hovertemplate:
+          '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+        customdata: anomalyPoints.map((p) => p.mahalanobis_distance),
       });
     }
 
@@ -395,7 +405,13 @@ export default function AdvancedAnalysisPage() {
         yaxis: { title: { text: 'Dinsight Y' } },
         height: 700,
         template: 'plotly_white' as any,
-        legend: { orientation: 'h' as any, yanchor: 'bottom' as any, y: 1.02, xanchor: 'right' as any, x: 1 },
+        legend: {
+          orientation: 'h' as any,
+          yanchor: 'bottom' as any,
+          y: 1.02,
+          xanchor: 'right' as any,
+          x: 1,
+        },
         plot_bgcolor: 'rgba(240, 242, 246, 0.3)',
         showlegend: true,
         hovermode: 'closest' as any,
@@ -407,22 +423,24 @@ export default function AdvancedAnalysisPage() {
   // Calculate analysis statistics from backend results
   const totalSamples = anomalyResults?.total_points || 0;
   const anomalyCount = anomalyResults?.anomaly_count || 0;
-  
+
   // Calculate "Critical" as anomalies in top 25% of distance/score values among all anomalous points
   const criticalCount = (() => {
     if (!anomalyResults?.anomalous_points) return 0;
-    
-    const anomalousPoints = anomalyResults.anomalous_points.filter(p => p.is_anomaly);
+
+    const anomalousPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
     if (anomalousPoints.length === 0) return 0;
-    
+
     // Sort anomalous points by distance/score (highest first)
-    const sortedAnomalies = anomalousPoints.sort((a, b) => b.mahalanobis_distance - a.mahalanobis_distance);
-    
+    const sortedAnomalies = anomalousPoints.sort(
+      (a, b) => b.mahalanobis_distance - a.mahalanobis_distance
+    );
+
     // Calculate the actual COUNT of critical anomalies (top 25%)
     const criticalThresholdCount = Math.max(1, Math.ceil(sortedAnomalies.length * 0.25));
     return criticalThresholdCount;
   })();
-  
+
   const detectionRate = anomalyResults?.anomaly_percentage || 0;
 
   return (
@@ -488,21 +506,26 @@ export default function AdvancedAnalysisPage() {
                       {baselineDataset === null && (
                         <option value="">Select baseline dataset...</option>
                       )}
-                      {(datasetsLoading || monitoringLoading) ? (
+                      {datasetsLoading || monitoringLoading ? (
                         <option>Loading datasets...</option>
                       ) : (
                         baselinesWithMonitoring?.map((dataset) => {
-                          const monitoringInfo = availableMonitoringDatasets?.find(m => m.dinsight_data_id === dataset.dinsight_id);
+                          const monitoringInfo = availableMonitoringDatasets?.find(
+                            (m) => m.dinsight_data_id === dataset.dinsight_id
+                          );
                           return (
                             <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                              {dataset.name} ({dataset.records} baseline, {monitoringInfo?.monitor_count || 0} monitoring)
+                              {dataset.name} ({dataset.records} baseline,{' '}
+                              {monitoringInfo?.monitor_count || 0} monitoring)
                             </option>
                           );
                         })
                       )}
-                      {!datasetsLoading && !monitoringLoading && baselinesWithMonitoring?.length === 0 && (
-                        <option disabled>No datasets with monitoring data available</option>
-                      )}
+                      {!datasetsLoading &&
+                        !monitoringLoading &&
+                        baselinesWithMonitoring?.length === 0 && (
+                          <option disabled>No datasets with monitoring data available</option>
+                        )}
                     </select>
                   </div>
                   <div>
@@ -598,11 +621,8 @@ export default function AdvancedAnalysisPage() {
                     <span>0.5 (Low Sensitivity)</span>
                     <span>5.0 (High Sensitivity)</span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Higher values detect more anomalies
-                  </p>
+                  <p className="text-xs text-gray-600 mt-2">Higher values detect more anomalies</p>
                 </div>
-
               </CardContent>
             </Card>
 
@@ -639,9 +659,13 @@ export default function AdvancedAnalysisPage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <Activity className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-blue-900 mb-1">{totalSamples.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-blue-900 mb-1">
+                    {totalSamples.toLocaleString()}
+                  </div>
                   <div className="text-sm font-medium text-blue-700">Monitoring Samples</div>
-                  <div className="text-xs text-blue-600 mt-1 opacity-80">Total data points analyzed</div>
+                  <div className="text-xs text-blue-600 mt-1 opacity-80">
+                    Total data points analyzed
+                  </div>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
@@ -649,9 +673,13 @@ export default function AdvancedAnalysisPage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <AlertTriangle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-red-900 mb-1">{anomalyCount.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-red-900 mb-1">
+                    {anomalyCount.toLocaleString()}
+                  </div>
                   <div className="text-sm font-medium text-red-700">Anomalies Detected</div>
-                  <div className="text-xs text-red-600 mt-1 opacity-80">Points flagged as anomalous</div>
+                  <div className="text-xs text-red-600 mt-1 opacity-80">
+                    Points flagged as anomalous
+                  </div>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
@@ -659,9 +687,13 @@ export default function AdvancedAnalysisPage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <XCircle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-orange-900 mb-1">{criticalCount.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-orange-900 mb-1">
+                    {criticalCount.toLocaleString()}
+                  </div>
                   <div className="text-sm font-medium text-orange-700">Critical Anomalies</div>
-                  <div className="text-xs text-orange-600 mt-1 opacity-80">Top 25% most severe anomalies</div>
+                  <div className="text-xs text-orange-600 mt-1 opacity-80">
+                    Top 25% most severe anomalies
+                  </div>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
@@ -669,9 +701,13 @@ export default function AdvancedAnalysisPage() {
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-purple-900 mb-1">{detectionRate.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold text-purple-900 mb-1">
+                    {detectionRate.toFixed(1)}%
+                  </div>
                   <div className="text-sm font-medium text-purple-700">Detection Rate</div>
-                  <div className="text-xs text-purple-600 mt-1 opacity-80">Percentage of samples flagged</div>
+                  <div className="text-xs text-purple-600 mt-1 opacity-80">
+                    Percentage of samples flagged
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -719,7 +755,8 @@ export default function AdvancedAnalysisPage() {
                         No Analysis Results
                       </h3>
                       <p className="text-gray-600 mb-6 max-w-sm">
-                        Select datasets and run anomaly detection to visualize baseline vs monitor data comparison.
+                        Select datasets and run anomaly detection to visualize baseline vs monitor
+                        data comparison.
                       </p>
                     </div>
                   </div>
@@ -751,68 +788,87 @@ export default function AdvancedAnalysisPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-600">Sensitivity Level</p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.sensitivity_level}</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {anomalyResults.sensitivity_level}
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-600">
-                        {detectionMethod === 'mahalanobis' 
-                          ? 'Distance Threshold' 
+                        {detectionMethod === 'mahalanobis'
+                          ? 'Distance Threshold'
                           : 'Anomaly Score Threshold'}
                       </p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.anomaly_threshold.toFixed(4)}</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {anomalyResults.anomaly_threshold.toFixed(4)}
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-600">Centroid Distance</p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.centroid_distance.toFixed(3)}</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {anomalyResults.centroid_distance.toFixed(3)}
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-600">
-                        {detectionMethod === 'mahalanobis' 
-                          ? 'Max Mahalanobis Distance' 
+                        {detectionMethod === 'mahalanobis'
+                          ? 'Max Mahalanobis Distance'
                           : 'Max Anomaly Score'}
                       </p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-600">
-                        {detectionMethod === 'mahalanobis' 
-                          ? 'Mean Mahalanobis Distance' 
+                        {detectionMethod === 'mahalanobis'
+                          ? 'Mean Mahalanobis Distance'
                           : 'Mean Anomaly Score'}
                       </p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}
+                      </p>
                     </div>
                     {detectionMethod === 'mahalanobis' && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-gray-600">Baseline Std Dev</p>
-                        <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.baseline_std_dev.toFixed(4)}</p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {anomalyResults.statistics.baseline_std_dev.toFixed(4)}
+                        </p>
                       </div>
                     )}
                     {detectionMethod === 'isolation_forest' && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-gray-600">Score Std Dev</p>
-                        <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.comparison_std_dev.toFixed(4)}</p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {anomalyResults.statistics.comparison_std_dev.toFixed(4)}
+                        </p>
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Additional Context for Critical Anomalies */}
                   <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                    <h4 className="text-sm font-semibold text-orange-800 mb-2">Critical Anomalies Definition</h4>
+                    <h4 className="text-sm font-semibold text-orange-800 mb-2">
+                      Critical Anomalies Definition
+                    </h4>
                     <p className="text-sm text-orange-700">
                       Critical anomalies represent the top 25% of detected anomalies ranked by their{' '}
-                      {detectionMethod === 'mahalanobis' 
-                        ? 'Mahalanobis distance' 
-                        : 'anomaly score'} values.
-                      Out of {anomalyCount} total anomalies, {criticalCount} are classified as critical.
+                      {detectionMethod === 'mahalanobis' ? 'Mahalanobis distance' : 'anomaly score'}{' '}
+                      values. Out of {anomalyCount} total anomalies, {criticalCount} are classified
+                      as critical.
                     </p>
                   </div>
-                  
+
                   {/* Detection Rate Context */}
                   <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <h4 className="text-sm font-semibold text-purple-800 mb-2">Detection Rate Explanation</h4>
+                    <h4 className="text-sm font-semibold text-purple-800 mb-2">
+                      Detection Rate Explanation
+                    </h4>
                     <p className="text-sm text-purple-700">
-                      Detection rate of {detectionRate.toFixed(2)}% means {anomalyCount} out of {totalSamples} monitoring samples 
-                      were flagged as anomalous using {detectionMethod.replace('_', ' ')} with {anomalyResults.sensitivity_level.toLowerCase()} sensitivity.
+                      Detection rate of {detectionRate.toFixed(2)}% means {anomalyCount} out of{' '}
+                      {totalSamples} monitoring samples were flagged as anomalous using{' '}
+                      {detectionMethod.replace('_', ' ')} with{' '}
+                      {anomalyResults.sensitivity_level.toLowerCase()} sensitivity.
                     </p>
                   </div>
                 </CardContent>

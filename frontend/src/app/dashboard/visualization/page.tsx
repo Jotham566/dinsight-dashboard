@@ -55,8 +55,9 @@ export default function VisualizationPage() {
       try {
         const validDatasets: Dataset[] = [];
 
-        // Start checking from ID 1 and continue until we find no more data
-        for (let id = 1; id <= 100; id++) {
+        // **PERFORMANCE FIX**: Scan only first 6 IDs with aggressive early termination
+        let consecutiveFailures = 0;
+        for (let id = 1; id <= 6; id++) {
           try {
             const response = await api.analysis.getDinsight(id);
 
@@ -76,20 +77,33 @@ export default function VisualizationPage() {
                 name: `Dinsight ID ${id}`,
                 type: 'dinsight' as const,
               });
+              consecutiveFailures = 0; // Reset counter on success
+            } else {
+              consecutiveFailures++;
+              // Stop after 2 consecutive failures for dinsight
+              if (consecutiveFailures >= 2) {
+                console.log(
+                  `Stopping dinsight scan at ID ${id} after ${consecutiveFailures} consecutive failures`
+                );
+                break;
+              }
             }
           } catch (error: any) {
-            // If we get a 404, this ID doesn't exist
+            consecutiveFailures++;
+            // If we get a 404 or any error, count as failure
             if (error?.response?.status === 404) {
-              // If we haven't found any datasets yet, continue checking a few more IDs
-              // in case there are gaps in the sequence
-              if (validDatasets.length === 0 && id <= 10) {
-                continue;
-              }
-              // If we already have datasets and hit consecutive 404s, stop checking
+              console.log(`Dinsight ID ${id} not found (404)`);
+            } else {
+              console.warn(`Error checking dinsight ID ${id}:`, error);
+            }
+
+            // Stop scanning after 2 consecutive failures to avoid unnecessary requests
+            if (consecutiveFailures >= 2) {
+              console.log(
+                `Stopping dinsight scan at ID ${id} after ${consecutiveFailures} consecutive failures`
+              );
               break;
             }
-            // For other errors, log and continue
-            console.warn(`Error checking dinsight ID ${id}:`, error);
           }
         }
 
@@ -147,9 +161,7 @@ export default function VisualizationPage() {
           monitoring: {
             dinsight_x: monitoringData.dinsight_x || [],
             dinsight_y: monitoringData.dinsight_y || [],
-            labels: (monitoringData.dinsight_x || []).map(
-              (_: any, i: number) => `monitoring_${i}`
-            ),
+            labels: (monitoringData.dinsight_x || []).map((_: any, i: number) => `monitoring_${i}`),
             anomaly_scores: (monitoringData.dinsight_x || []).map(() => Math.random() * 0.3),
           },
         };
@@ -277,7 +289,6 @@ export default function VisualizationPage() {
       dinsightData.monitoring.dinsight_x.length > 0 &&
       Array.isArray(dinsightData.monitoring.dinsight_y)
     ) {
-
       const monitoringTrace = {
         x: dinsightData.monitoring.dinsight_x,
         y: dinsightData.monitoring.dinsight_y,
@@ -330,12 +341,12 @@ export default function VisualizationPage() {
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { family: 'Inter, sans-serif' },
       template: 'plotly_white' as any,
-      legend: { 
-        orientation: 'h' as any, 
-        yanchor: 'bottom' as any, 
-        y: 1.02, 
-        xanchor: 'right' as any, 
-        x: 1 
+      legend: {
+        orientation: 'h' as any,
+        yanchor: 'bottom' as any,
+        y: 1.02,
+        xanchor: 'right' as any,
+        x: 1,
       },
       margin: { l: 60, r: 30, t: 30, b: 60 },
     };
