@@ -255,6 +255,7 @@ export default function AdvancedAnalysisPage() {
         baseline_dataset_id: baselineDataset,
         comparison_dataset_id: baselineDataset, // Backend now uses baseline ID to find monitoring data
         sensitivity_factor: sensitivity,
+        detection_method: detectionMethod,
       });
 
       // Run anomaly detection with proper backend integration
@@ -262,6 +263,7 @@ export default function AdvancedAnalysisPage() {
         baseline_dataset_id: baselineDataset,
         comparison_dataset_id: baselineDataset, // Backend now uses baseline ID to find monitoring data
         sensitivity_factor: sensitivity, // Use sensitivity directly (0.5-5.0 range)
+        detection_method: detectionMethod, // Pass selected detection method
       });
 
       console.log('Full API response:', response);
@@ -273,8 +275,16 @@ export default function AdvancedAnalysisPage() {
       } else {
         throw new Error('Invalid API response structure');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error running anomaly detection:', error);
+      
+      // Show user-friendly message for Isolation Forest not implemented
+      if (error?.response?.status === 501 && detectionMethod === 'isolation_forest') {
+        alert('Isolation Forest method is not yet implemented. Please use Mahalanobis Distance method.');
+        // Auto-switch back to Mahalanobis
+        setDetectionMethod('mahalanobis');
+      }
+      
       // Reset states on error
       setAnomalyResults(null);
       setBaselineData(null);
@@ -571,6 +581,9 @@ export default function AdvancedAnalysisPage() {
                       />
                       <span className="ml-3 text-sm font-medium text-gray-700">
                         Isolation Forest
+                        <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                          Coming Soon
+                        </span>
                       </span>
                     </label>
                   </div>

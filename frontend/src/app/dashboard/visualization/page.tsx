@@ -8,7 +8,6 @@ import {
   Settings2,
   Download,
   RefreshCw,
-  Maximize,
   Palette,
   BarChart3,
   Camera,
@@ -43,7 +42,6 @@ export default function VisualizationPage() {
   const [pointSize, setPointSize] = useState<number>(6);
   const [showContours, setShowContours] = useState<boolean>(false);
   const [sideBySide, setSideBySide] = useState<boolean>(false);
-  const [syncZoom, setSyncZoom] = useState<boolean>(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -279,11 +277,6 @@ export default function VisualizationPage() {
       dinsightData.monitoring.dinsight_x.length > 0 &&
       Array.isArray(dinsightData.monitoring.dinsight_y)
     ) {
-      const markerColor = dinsightData.monitoring.anomaly_scores
-        ? dinsightData.monitoring.anomaly_scores.map((score: number) =>
-            score > 0.7 ? '#DC2626' : score > 0.5 ? '#F59E0B' : '#EF4444'
-          )
-        : '#EF4444';
 
       const monitoringTrace = {
         x: dinsightData.monitoring.dinsight_x,
@@ -379,7 +372,7 @@ export default function VisualizationPage() {
         height: 700,
       };
     }
-  }, [showContours, sideBySide, syncZoom]);
+  }, [showContours, sideBySide]);
 
   const plotConfig = useMemo(
     () => ({
