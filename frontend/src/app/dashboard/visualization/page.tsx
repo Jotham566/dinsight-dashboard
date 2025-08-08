@@ -568,13 +568,6 @@ export default function VisualizationPage() {
                       setter: setSideBySide,
                       desc: 'Separate baseline & monitoring',
                     },
-                    {
-                      key: 'syncZoom',
-                      label: 'Enable Zoom',
-                      checked: syncZoom,
-                      setter: setSyncZoom,
-                      desc: 'Allow plot interaction',
-                    },
                   ].map((option) => (
                     <div
                       key={option.key}
@@ -658,14 +651,6 @@ export default function VisualizationPage() {
                       Dataset ID: {selectedDinsightId}
                     </div>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-                  >
-                    <Maximize className="w-4 h-4 mr-2" />
-                    Fullscreen
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
