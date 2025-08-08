@@ -67,7 +67,7 @@ interface AnomalyDetectionResult {
   };
 }
 
-type DetectionMethod = 'mahalanobis' | 'isolation_forest';
+type DetectionMethod = 'mahalanobis' | 'isolation_forest' | 'ensemble';
 
 export default function AdvancedAnalysisPage() {
   // State management
@@ -409,19 +409,19 @@ export default function AdvancedAnalysisPage() {
   const totalSamples = anomalyResults?.total_points || 0;
   const anomalyCount = anomalyResults?.anomaly_count || 0;
   
-  // Calculate "Critical" as anomalies in top 25% of Mahalanobis distances among all anomalous points
+  // Calculate "Critical" as anomalies in top 25% of distance/score values among all anomalous points
   const criticalCount = (() => {
     if (!anomalyResults?.anomalous_points) return 0;
     
     const anomalousPoints = anomalyResults.anomalous_points.filter(p => p.is_anomaly);
     if (anomalousPoints.length === 0) return 0;
     
-    // Sort anomalous points by Mahalanobis distance (highest first)
+    // Sort anomalous points by distance/score (highest first)
     const sortedAnomalies = anomalousPoints.sort((a, b) => b.mahalanobis_distance - a.mahalanobis_distance);
     
-    // Get top 25% as "critical"
-    const criticalThresholdIndex = Math.max(1, Math.ceil(sortedAnomalies.length * 0.25));
-    return criticalThresholdIndex;
+    // Calculate the actual COUNT of critical anomalies (top 25%)
+    const criticalThresholdCount = Math.max(1, Math.ceil(sortedAnomalies.length * 0.25));
+    return criticalThresholdCount;
   })();
   
   const detectionRate = anomalyResults?.anomaly_percentage || 0;
@@ -576,6 +576,21 @@ export default function AdvancedAnalysisPage() {
                         Isolation Forest
                       </span>
                     </label>
+                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input
+                        type="radio"
+                        value="ensemble"
+                        checked={detectionMethod === 'ensemble'}
+                        onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700">
+                        Ensemble (IF + LOF)
+                      </span>
+                      <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                        Advanced
+                      </span>
+                    </label>
                   </div>
                 </div>
 
@@ -659,40 +674,44 @@ export default function AdvancedAnalysisPage() {
           <div className="xl:col-span-3 space-y-6">
             {/* Analysis Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <Activity className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-blue-900 mb-1">{totalSamples}</div>
-                  <div className="text-sm font-medium text-blue-700">Total Samples</div>
+                  <div className="text-2xl font-bold text-blue-900 mb-1">{totalSamples.toLocaleString()}</div>
+                  <div className="text-sm font-medium text-blue-700">Monitoring Samples</div>
+                  <div className="text-xs text-blue-600 mt-1 opacity-80">Total data points analyzed</div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <AlertTriangle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-red-900 mb-1">{anomalyCount}</div>
-                  <div className="text-sm font-medium text-red-700">Anomalies</div>
+                  <div className="text-2xl font-bold text-red-900 mb-1">{anomalyCount.toLocaleString()}</div>
+                  <div className="text-sm font-medium text-red-700">Anomalies Detected</div>
+                  <div className="text-xs text-red-600 mt-1 opacity-80">Points flagged as anomalous</div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <XCircle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-orange-900 mb-1">{criticalCount}</div>
-                  <div className="text-sm font-medium text-orange-700">Critical</div>
+                  <div className="text-2xl font-bold text-orange-900 mb-1">{criticalCount.toLocaleString()}</div>
+                  <div className="text-sm font-medium text-orange-700">Critical Anomalies</div>
+                  <div className="text-xs text-orange-600 mt-1 opacity-80">Top 25% most severe anomalies</div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50 backdrop-blur-sm">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-purple-900 mb-1">{detectionRate.toFixed(1)}%</div>
                   <div className="text-sm font-medium text-purple-700">Detection Rate</div>
+                  <div className="text-xs text-purple-600 mt-1 opacity-80">Percentage of samples flagged</div>
                 </CardContent>
               </Card>
             </div>
@@ -764,6 +783,9 @@ export default function AdvancedAnalysisPage() {
                   <CardTitle className="text-lg font-semibold text-gray-900">
                     Analysis Details
                   </CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Detection Method: {detectionMethod.replace('_', ' ')}
+                  </p>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -772,25 +794,74 @@ export default function AdvancedAnalysisPage() {
                       <p className="text-lg font-semibold text-gray-900">{anomalyResults.sensitivity_level}</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">Threshold</p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.anomaly_threshold.toFixed(3)}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        {detectionMethod === 'mahalanobis' 
+                          ? 'Distance Threshold' 
+                          : detectionMethod === 'ensemble' 
+                          ? 'Ensemble Threshold' 
+                          : 'Anomaly Score Threshold'}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.anomaly_threshold.toFixed(4)}</p>
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-gray-600">Centroid Distance</p>
                       <p className="text-lg font-semibold text-gray-900">{anomalyResults.centroid_distance.toFixed(3)}</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">Max Mahalanobis Distance</p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.max_mahalanobis_distance.toFixed(3)}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        {detectionMethod === 'mahalanobis' 
+                          ? 'Max Mahalanobis Distance' 
+                          : detectionMethod === 'ensemble' 
+                          ? 'Max Ensemble Score' 
+                          : 'Max Anomaly Score'}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}</p>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">Mean Mahalanobis Distance</p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.mean_mahalanobis_distance.toFixed(3)}</p>
+                      <p className="text-sm font-medium text-gray-600">
+                        {detectionMethod === 'mahalanobis' 
+                          ? 'Mean Mahalanobis Distance' 
+                          : detectionMethod === 'ensemble' 
+                          ? 'Mean Ensemble Score' 
+                          : 'Mean Anomaly Score'}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}</p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">Baseline Std Dev</p>
-                      <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.baseline_std_dev.toFixed(3)}</p>
-                    </div>
+                    {detectionMethod === 'mahalanobis' && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-600">Baseline Std Dev</p>
+                        <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.baseline_std_dev.toFixed(4)}</p>
+                      </div>
+                    )}
+                    {detectionMethod === 'isolation_forest' && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-600">Score Std Dev</p>
+                        <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.comparison_std_dev.toFixed(4)}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Additional Context for Critical Anomalies */}
+                  <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <h4 className="text-sm font-semibold text-orange-800 mb-2">Critical Anomalies Definition</h4>
+                    <p className="text-sm text-orange-700">
+                      Critical anomalies represent the top 25% of detected anomalies ranked by their{' '}
+                      {detectionMethod === 'mahalanobis' 
+                        ? 'Mahalanobis distance' 
+                        : detectionMethod === 'ensemble' 
+                        ? 'ensemble score' 
+                        : 'anomaly score'} values.
+                      Out of {anomalyCount} total anomalies, {criticalCount} are classified as critical.
+                    </p>
+                  </div>
+                  
+                  {/* Detection Rate Context */}
+                  <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h4 className="text-sm font-semibold text-purple-800 mb-2">Detection Rate Explanation</h4>
+                    <p className="text-sm text-purple-700">
+                      Detection rate of {detectionRate.toFixed(2)}% means {anomalyCount} out of {totalSamples} monitoring samples 
+                      were flagged as anomalous using {detectionMethod.replace('_', ' ')} with {anomalyResults.sensitivity_level.toLowerCase()} sensitivity.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
