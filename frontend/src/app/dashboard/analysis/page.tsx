@@ -67,7 +67,7 @@ interface AnomalyDetectionResult {
   };
 }
 
-type DetectionMethod = 'mahalanobis' | 'isolation_forest' | 'ensemble';
+type DetectionMethod = 'mahalanobis' | 'isolation_forest';
 
 export default function AdvancedAnalysisPage() {
   // State management
@@ -75,7 +75,6 @@ export default function AdvancedAnalysisPage() {
   const [monitoringDataset, setMonitoringDataset] = useState<number | null>(null);
   const [detectionMethod, setDetectionMethod] = useState<DetectionMethod>('mahalanobis');
   const [sensitivity, setSensitivity] = useState<number>(3.0); // Changed to match backend sensitivity_factor (0.5-5.0)
-  const [threshold, setThreshold] = useState<number>(2.5);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [anomalyResults, setAnomalyResults] = useState<AnomalyDetectionResult | null>(null);
   const [baselineData, setBaselineData] = useState<DinsightData | null>(null);
@@ -576,21 +575,6 @@ export default function AdvancedAnalysisPage() {
                         Isolation Forest
                       </span>
                     </label>
-                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                      <input
-                        type="radio"
-                        value="ensemble"
-                        checked={detectionMethod === 'ensemble'}
-                        onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                      />
-                      <span className="ml-3 text-sm font-medium text-gray-700">
-                        Ensemble (IF + LOF)
-                      </span>
-                      <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                        Advanced
-                      </span>
-                    </label>
                   </div>
                 </div>
 
@@ -619,30 +603,6 @@ export default function AdvancedAnalysisPage() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Threshold: {threshold}
-                  </label>
-                  <input
-                    type="range"
-                    min="1.0"
-                    max="5.0"
-                    step="0.1"
-                    value={threshold}
-                    onChange={(e) => setThreshold(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${((threshold - 1) / 4) * 100}%, rgb(229 231 235) ${((threshold - 1) / 4) * 100}%, rgb(229 231 235) 100%)`,
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>1.0</span>
-                    <span>5.0</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Auto-calculated based on sensitivity (for reference)
-                  </p>
-                </div>
               </CardContent>
             </Card>
 
@@ -797,8 +757,6 @@ export default function AdvancedAnalysisPage() {
                       <p className="text-sm font-medium text-gray-600">
                         {detectionMethod === 'mahalanobis' 
                           ? 'Distance Threshold' 
-                          : detectionMethod === 'ensemble' 
-                          ? 'Ensemble Threshold' 
                           : 'Anomaly Score Threshold'}
                       </p>
                       <p className="text-lg font-semibold text-gray-900">{anomalyResults.anomaly_threshold.toFixed(4)}</p>
@@ -811,8 +769,6 @@ export default function AdvancedAnalysisPage() {
                       <p className="text-sm font-medium text-gray-600">
                         {detectionMethod === 'mahalanobis' 
                           ? 'Max Mahalanobis Distance' 
-                          : detectionMethod === 'ensemble' 
-                          ? 'Max Ensemble Score' 
                           : 'Max Anomaly Score'}
                       </p>
                       <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}</p>
@@ -821,8 +777,6 @@ export default function AdvancedAnalysisPage() {
                       <p className="text-sm font-medium text-gray-600">
                         {detectionMethod === 'mahalanobis' 
                           ? 'Mean Mahalanobis Distance' 
-                          : detectionMethod === 'ensemble' 
-                          ? 'Mean Ensemble Score' 
                           : 'Mean Anomaly Score'}
                       </p>
                       <p className="text-lg font-semibold text-gray-900">{anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}</p>
@@ -848,8 +802,6 @@ export default function AdvancedAnalysisPage() {
                       Critical anomalies represent the top 25% of detected anomalies ranked by their{' '}
                       {detectionMethod === 'mahalanobis' 
                         ? 'Mahalanobis distance' 
-                        : detectionMethod === 'ensemble' 
-                        ? 'ensemble score' 
                         : 'anomaly score'} values.
                       Out of {anomalyCount} total anomalies, {criticalCount} are classified as critical.
                     </p>
