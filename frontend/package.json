@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-select": "^2.2.5",

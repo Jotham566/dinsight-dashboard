@@ -330,7 +330,7 @@ export default function VisualizationPage() {
     }
 
     return data;
-  }, [dinsightData, selectedDinsightId, pointSize, showContours, sideBySide]);
+  }, [dinsightData, pointSize, showContours, sideBySide]);
 
   const plotLayout = useMemo(() => {
     const baseLayout = {
@@ -383,7 +383,7 @@ export default function VisualizationPage() {
         height: 700,
       };
     }
-  }, [showContours, sideBySide]);
+  }, [sideBySide]);
 
   const plotConfig = useMemo(
     () => ({

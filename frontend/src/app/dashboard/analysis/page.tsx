@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -177,12 +177,15 @@ export default function AdvancedAnalysisPage() {
   });
 
   // Filter baseline datasets to only those with monitoring data
-  const baselinesWithMonitoring =
-    availableDinsightIds?.filter((dataset) =>
-      availableMonitoringDatasets?.some(
-        (monitoring) => monitoring.dinsight_data_id === dataset.dinsight_id
-      )
-    ) || [];
+  const baselinesWithMonitoring = useMemo(
+    () =>
+      availableDinsightIds?.filter((dataset) =>
+        availableMonitoringDatasets?.some(
+          (monitoring) => monitoring.dinsight_data_id === dataset.dinsight_id
+        )
+      ) || [],
+    [availableDinsightIds, availableMonitoringDatasets]
+  );
 
   // Auto-select first available datasets when data loads
   useEffect(() => {
@@ -205,20 +208,8 @@ export default function AdvancedAnalysisPage() {
     }
   }, [baselineDataset, availableMonitoringDatasets]);
 
-  // Re-run analysis when parameters change (for real-time updates)
-  useEffect(() => {
-    // Only re-run if we have existing results and parameters changed
-    if (anomalyResults && baselineDataset && monitoringDataset && !isAnalyzing) {
-      // Debounce the analysis to avoid too many API calls
-      const timeoutId = setTimeout(() => {
-        handleRunAnalysis();
-      }, 500); // 500ms debounce
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [sensitivity]); // Re-run when sensitivity changes
-
-  const handleRunAnalysis = async () => {
+  // Define handleRunAnalysis with useCallback to prevent unnecessary re-renders
+  const handleRunAnalysis = useCallback(async () => {
     if (!baselineDataset || !monitoringDataset) {
       console.warn('Please select both baseline and monitoring datasets');
       return;
@@ -292,7 +283,27 @@ export default function AdvancedAnalysisPage() {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [baselineDataset, monitoringDataset, sensitivity, detectionMethod]);
+
+  // Re-run analysis when parameters change (for real-time updates)
+  useEffect(() => {
+    // Only re-run if we have existing results and parameters changed
+    if (anomalyResults && baselineDataset && monitoringDataset && !isAnalyzing) {
+      // Debounce the analysis to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        handleRunAnalysis();
+      }, 500); // 500ms debounce
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    sensitivity,
+    anomalyResults,
+    baselineDataset,
+    monitoringDataset,
+    isAnalyzing,
+    handleRunAnalysis,
+  ]); // Re-run when sensitivity changes
 
   // Create the scatter plot visualization
   const createAnomalyVisualization = () => {
