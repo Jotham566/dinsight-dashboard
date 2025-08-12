@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/utils/cn';
 import { formatBytes, formatRelativeTime, formatNumber } from '@/utils/format';
@@ -69,6 +70,7 @@ export default function DataSummaryPage() {
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [editedConfig, setEditedConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
 
   // Default configuration values based on backend config.json
   const defaultConfig = {
@@ -334,9 +336,11 @@ export default function DataSummaryPage() {
   };
 
   const handleRestoreDefaults = () => {
-    if (confirm('Are you sure you want to restore default configuration values? This will overwrite your current changes.')) {
-      setEditedConfig({ ...defaultConfig });
-    }
+    setShowRestoreDialog(true);
+  };
+
+  const confirmRestoreDefaults = () => {
+    setEditedConfig({ ...defaultConfig });
   };
 
   const handleSaveConfig = async () => {
@@ -1246,6 +1250,26 @@ export default function DataSummaryPage() {
           </Card>
         </div>
       )}
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        open={showRestoreDialog}
+        onOpenChange={setShowRestoreDialog}
+        title="Restore Default Configuration"
+        description={
+          <div className="space-y-2">
+            <p>Are you sure you want to restore the default configuration values?</p>
+            <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+              <strong>Warning:</strong> This will overwrite your current changes and cannot be
+              undone.
+            </p>
+          </div>
+        }
+        confirmText="Restore Defaults"
+        cancelText="Keep Current Values"
+        variant="default"
+        onConfirm={confirmRestoreDefaults}
+      />
     </div>
   );
 }

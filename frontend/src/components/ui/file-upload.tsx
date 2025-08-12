@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, File, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from './button';
+import { ConfirmationDialog } from './confirmation-dialog';
 import { cn } from '@/utils/cn';
 import { formatBytes } from '@/utils/format';
 
@@ -38,6 +39,8 @@ export function FileUpload({
 }: FileUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+  const [fileToRemove, setFileToRemove] = useState<string | null>(null);
 
   // Notify parent component when files change
   useEffect(() => {
@@ -74,7 +77,14 @@ export function FileUpload({
   });
 
   const removeFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+    setFileToRemove(id);
+  };
+
+  const confirmRemoveFile = () => {
+    if (fileToRemove) {
+      setFiles((prev) => prev.filter((f) => f.id !== fileToRemove));
+      setFileToRemove(null);
+    }
   };
 
   const handleUpload = async () => {
@@ -108,6 +118,10 @@ export function FileUpload({
   };
 
   const clearAll = () => {
+    setShowClearAllDialog(true);
+  };
+
+  const confirmClearAll = () => {
     setFiles([]);
   };
 
@@ -261,6 +275,29 @@ export function FileUpload({
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        open={showClearAllDialog}
+        onOpenChange={setShowClearAllDialog}
+        title="Clear All Files"
+        description="Are you sure you want to remove all uploaded files? This action cannot be undone."
+        confirmText="Clear All"
+        cancelText="Keep Files"
+        variant="destructive"
+        onConfirm={confirmClearAll}
+      />
+
+      <ConfirmationDialog
+        open={!!fileToRemove}
+        onOpenChange={(open) => !open && setFileToRemove(null)}
+        title="Remove File"
+        description="Are you sure you want to remove this file from the upload list?"
+        confirmText="Remove"
+        cancelText="Keep File"
+        variant="destructive"
+        onConfirm={confirmRemoveFile}
+      />
     </div>
   );
 }
