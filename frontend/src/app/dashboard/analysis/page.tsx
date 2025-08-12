@@ -285,25 +285,38 @@ export default function AdvancedAnalysisPage() {
     }
   }, [baselineDataset, monitoringDataset, sensitivity, detectionMethod]);
 
-  // Re-run analysis when parameters change (for real-time updates)
+  // Auto-rerun analysis when sensitivity changes (for real-time updates)
   useEffect(() => {
-    // Only re-run if we have existing results and parameters changed
+    // Only re-run if we have existing results and sensitivity changed
     if (anomalyResults && baselineDataset && monitoringDataset && !isAnalyzing) {
       // Debounce the analysis to avoid too many API calls
-      const timeoutId = setTimeout(() => {
-        handleRunAnalysis();
+      const timeoutId = setTimeout(async () => {
+        if (!baselineDataset || !monitoringDataset) return;
+
+        setIsAnalyzing(true);
+        try {
+          // Run anomaly detection with updated sensitivity
+          const response = await api.anomaly.detect({
+            baseline_dataset_id: baselineDataset,
+            comparison_dataset_id: baselineDataset,
+            sensitivity_factor: sensitivity,
+            detection_method: detectionMethod,
+          });
+
+          if (response?.data?.success && response.data.data) {
+            const result: AnomalyDetectionResult = response.data.data;
+            setAnomalyResults(result);
+          }
+        } catch (error) {
+          console.error('Error during auto-rerun analysis:', error);
+        } finally {
+          setIsAnalyzing(false);
+        }
       }, 500); // 500ms debounce
 
       return () => clearTimeout(timeoutId);
     }
-  }, [
-    sensitivity,
-    anomalyResults,
-    baselineDataset,
-    monitoringDataset,
-    isAnalyzing,
-    handleRunAnalysis,
-  ]); // Re-run when sensitivity changes
+  }, [sensitivity, detectionMethod]); // Only depend on the parameters that should trigger re-runs
 
   // Create the scatter plot visualization
   const createAnomalyVisualization = () => {

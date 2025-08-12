@@ -21,7 +21,6 @@ const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       'Password must contain at least one uppercase letter, one lowercase letter, and one number'
     ),
-  organization_code: z.string().optional(),
   agree_terms: z.boolean().refine((val) => val === true, {
     message: 'You must agree to the terms of service',
   }),
@@ -60,7 +59,6 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         full_name: data.full_name,
-        organization_code: data.organization_code,
       });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -277,23 +275,6 @@ export default function RegisterPage() {
               </div>
 
               {/* Organization Code Field */}
-              <div>
-                <label
-                  htmlFor="organization_code"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Organization Code (Optional)
-                </label>
-                <input
-                  {...register('organization_code')}
-                  type="text"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200"
-                  placeholder="Enter your organization code"
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                  If you have an organization code, enter it here to join your team
-                </p>
-              </div>
             </div>
 
             {/* Terms of Service */}

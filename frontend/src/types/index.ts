@@ -6,15 +6,8 @@ export interface User {
   role: 'admin' | 'user' | 'viewer';
   is_active?: boolean;
   email_verified?: boolean;
-  organizations?: UserOrganization[];
   last_login?: string;
   created_at?: string;
-}
-
-export interface UserOrganization {
-  id: number;
-  name: string;
-  role: 'admin' | 'member' | 'viewer';
 }
 
 export interface LoginRequest {
@@ -27,7 +20,6 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
-  organization_code?: string;
 }
 
 export interface AuthResponse {
@@ -38,51 +30,6 @@ export interface AuthResponse {
     expires_in: number;
     user: User;
   };
-}
-
-// Organization Types
-export interface Organization {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
-  industry?: string;
-  settings?: OrganizationSettings;
-  subscription_tier: 'free' | 'pro' | 'enterprise';
-  is_active: boolean;
-  created_at: string;
-  users?: OrganizationUser[];
-}
-
-export interface OrganizationSettings {
-  default_alert_threshold?: number;
-  notification_preferences?: {
-    email: boolean;
-    slack: boolean;
-    sms?: boolean;
-  };
-}
-
-export interface OrganizationUser {
-  id: number;
-  full_name: string;
-  email: string;
-  role: 'admin' | 'member' | 'viewer';
-}
-
-// Machine Types
-export interface Machine {
-  id: number;
-  organization_id: number;
-  name: string;
-  model?: string;
-  serial_number?: string;
-  location?: string;
-  status: 'active' | 'maintenance' | 'inactive';
-  metadata?: Record<string, any>;
-  last_analysis_at?: string;
-  created_at: string;
-  analyses?: Analysis[];
 }
 
 // Analysis Types
@@ -175,10 +122,6 @@ export interface Alert {
   severity: 'low' | 'medium' | 'high' | 'critical';
   status: 'active' | 'acknowledged' | 'resolved';
   anomaly_percentage?: number;
-  machine?: {
-    id: number;
-    name: string;
-  };
   created_at: string;
   acknowledged_at?: string;
   resolved_at?: string;
@@ -186,8 +129,6 @@ export interface Alert {
 
 export interface AlertRule {
   id: number;
-  organization_id: number;
-  machine_id?: number;
   name: string;
   description?: string;
   alert_type: 'anomaly_detection' | 'threshold' | 'pattern';
@@ -251,7 +192,6 @@ export interface RegisterFormData {
   email: string;
   password: string;
   full_name: string;
-  organization_code?: string;
   agree_terms: boolean;
 }
 
@@ -268,14 +208,12 @@ export interface ResetPasswordFormData {
 // Dashboard Types
 export interface DashboardStats {
   total_analyses: number;
-  total_machines: number;
   system_uptime: number;
   active_alerts: number;
 }
 
 export interface RecentAnalysis {
   id: number;
-  machine_name: string;
   analysis_type: 'baseline' | 'monitoring' | 'anomaly';
   status: 'completed' | 'processing' | 'failed';
   created_at: string;

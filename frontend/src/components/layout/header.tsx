@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Bell, Menu, User, LogOut, Settings, Building2, ChevronDown } from 'lucide-react';
+import { Search, Bell, Menu, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,7 +62,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="search"
-              placeholder="Search machines, analyses, or data..."
+              placeholder="Search analyses, data, or features..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-gray-50 pl-10 pr-4 py-2 text-sm focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
@@ -101,7 +101,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               <DropdownMenuItem>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">High Anomaly Detected</p>
-                  <p className="text-xs text-gray-500">CNC Machine #1 - 18.5% anomaly rate</p>
+                  <p className="text-xs text-gray-500">Dataset analysis - 18.5% anomaly rate</p>
                   <p className="text-xs text-gray-400">2 minutes ago</p>
                 </div>
               </DropdownMenuItem>
@@ -115,7 +115,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               <DropdownMenuItem>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">Maintenance Due</p>
-                  <p className="text-xs text-gray-500">Press #2 scheduled maintenance</p>
+                  <p className="text-xs text-gray-500">System maintenance scheduled</p>
                   <p className="text-xs text-gray-400">3 hours ago</p>
                 </div>
               </DropdownMenuItem>
@@ -156,10 +156,6 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
                 <Link href="/dashboard/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Building2 className="mr-2 h-4 w-4" />
-                <Link href="/dashboard/switch-org">Switch Organization</Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />

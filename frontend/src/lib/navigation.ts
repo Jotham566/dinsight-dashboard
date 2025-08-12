@@ -4,8 +4,6 @@ import {
   LineChart,
   Microscope,
   Dna,
-  Factory,
-  Building2,
   Settings,
   Bell,
   Upload,
@@ -58,21 +56,6 @@ export const mainNavItems: NavItem[] = [
     requiresAuth: true,
     description: 'Raw feature data exploration and visualization',
   },
-  {
-    label: 'Machines',
-    href: '/dashboard/machines',
-    icon: Factory,
-    requiresAuth: true,
-    description: 'Manage your equipment and machines',
-  },
-  {
-    label: 'Organization',
-    href: '/dashboard/organization',
-    icon: Building2,
-    requiresAuth: true,
-    requiredRoles: ['admin', 'user'],
-    description: 'Organization settings and team management',
-  },
 ];
 
 export const bottomNavItems: NavItem[] = [
@@ -87,7 +70,6 @@ export const bottomNavItems: NavItem[] = [
 
 export const userMenuItems = [
   { label: 'Profile', href: '/dashboard/profile' },
-  { label: 'Switch Organization', href: '/dashboard/switch-org' },
   { label: 'Settings', href: '/dashboard/settings' },
   { label: 'Change Password', href: '/dashboard/change-password' },
 ];
@@ -96,5 +78,4 @@ export const quickActions = [
   { label: 'Upload Data', href: '/dashboard/data-summary', icon: Upload },
   { label: 'New Analysis', href: '/dashboard/analysis', icon: Microscope },
   { label: 'View Alerts', href: '/dashboard/alerts', icon: Bell },
-  { label: 'Add Machine', href: '/dashboard/machines/new', icon: Factory },
 ];
