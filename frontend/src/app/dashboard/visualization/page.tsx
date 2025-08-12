@@ -389,6 +389,8 @@ export default function VisualizationPage() {
     () => ({
       displayModeBar: true,
       responsive: true,
+      // Performance optimization to reduce console warnings about wheel events
+      scrollZoom: false, // Disable scroll-based zooming to reduce wheel event listeners
     }),
     []
   );

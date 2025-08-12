@@ -288,6 +288,7 @@ export default function AdvancedAnalysisPage() {
   }, [baselineDataset, monitoringDataset, sensitivity, detectionMethod]);
 
   // Auto-rerun analysis when sensitivity changes (for real-time updates)
+  // Note: We intentionally exclude anomalyResults from dependencies to prevent infinite loops
   useEffect(() => {
     // Only re-run if we have existing results and sensitivity changed
     if (anomalyResults && baselineDataset && monitoringDataset && !isAnalyzing) {
@@ -318,17 +319,11 @@ export default function AdvancedAnalysisPage() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [
-    sensitivity,
-    detectionMethod,
-    anomalyResults,
-    baselineDataset,
-    monitoringDataset,
-    isAnalyzing,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensitivity, detectionMethod]); // Only depend on the parameters that should trigger re-runs
 
-  // Create the scatter plot visualization
-  const createAnomalyVisualization = () => {
+  // Create the scatter plot visualization - memoized to prevent infinite loops
+  const createAnomalyVisualization = useCallback(() => {
     if (!baselineData || !monitoringData || !anomalyResults) {
       return null;
     }
@@ -449,9 +444,14 @@ export default function AdvancedAnalysisPage() {
         showlegend: true,
         hovermode: 'closest' as any,
       },
-      config: { displayModeBar: true, responsive: true },
+      config: {
+        displayModeBar: true,
+        responsive: true,
+        // Performance optimization to reduce console warnings about wheel events
+        scrollZoom: false, // Disable scroll-based zooming to reduce wheel event listeners
+      },
     };
-  };
+  }, [baselineData, monitoringData, anomalyResults]);
 
   // Calculate analysis statistics from backend results
   const totalSamples = anomalyResults?.total_points || 0;
