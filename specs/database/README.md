@@ -6,7 +6,7 @@
 
 ## 📋 Overview
 
-PostgreSQL database schema for the DInsight predictive maintenance platform. The schema supports multi-tenant operations, time-series data, and complex analytical computations.
+PostgreSQL database schema for the DInsight data analytics platform. The schema supports user-specific data access, time-series data, and complex analytical computations.
 
 ## 🔧 Database Configuration
 
@@ -148,72 +148,35 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 ```
 
-### organizations
-Multi-tenant organization support.
+### datasets
+User dataset registry.
 
 ```sql
-CREATE TABLE organizations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    industry VARCHAR(100),
-    settings JSONB DEFAULT '{}',
-    subscription_tier VARCHAR(50) DEFAULT 'free',
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_organizations_slug ON organizations(slug);
-```
-
-### user_organizations
-Many-to-many relationship for users and organizations.
-
-```sql
-CREATE TABLE user_organizations (
+CREATE TABLE datasets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL DEFAULT 'member',
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, organization_id)
-);
-
-CREATE INDEX idx_user_organizations_user ON user_organizations(user_id);
-CREATE INDEX idx_user_organizations_org ON user_organizations(organization_id);
-```
-
-### machines
-Equipment/machine registry.
-
-```sql
-CREATE TABLE machines (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    model VARCHAR(255),
-    serial_number VARCHAR(255),
-    location VARCHAR(500),
-    status VARCHAR(50) DEFAULT 'active',
+    description TEXT,
+    tags TEXT[],
     metadata JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
     last_analysis_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_machines_organization ON machines(organization_id);
-CREATE INDEX idx_machines_status ON machines(status);
+CREATE INDEX idx_datasets_user ON datasets(user_id);
+CREATE INDEX idx_datasets_active ON datasets(is_active);
+CREATE INDEX idx_datasets_tags ON datasets USING GIN(tags);
 ```
 
 ### analyses
-Links file uploads and processing to specific machines.
+Links file uploads and processing to specific datasets.
 
 ```sql
 CREATE TABLE analyses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    machine_id UUID NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+    dataset_id UUID NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
     file_upload_id UUID NOT NULL REFERENCES file_uploads(id),
     dinsight_id UUID REFERENCES dinsight_data(id),
     analysis_type VARCHAR(50) NOT NULL,
@@ -224,7 +187,7 @@ CREATE TABLE analyses (
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX idx_analyses_machine ON analyses(machine_id);
+CREATE INDEX idx_analyses_dataset ON analyses(dataset_id);
 CREATE INDEX idx_analyses_status ON analyses(status);
 CREATE INDEX idx_analyses_created_at ON analyses(created_at DESC);
 ```
@@ -236,7 +199,7 @@ Detected anomalies from monitoring.
 CREATE TABLE anomalies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     analysis_id UUID NOT NULL REFERENCES analyses(id) ON DELETE CASCADE,
-    machine_id UUID NOT NULL REFERENCES machines(id),
+    dataset_id UUID NOT NULL REFERENCES datasets(id),
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     severity VARCHAR(20) NOT NULL,
     distance FLOAT NOT NULL,
@@ -250,7 +213,7 @@ CREATE TABLE anomalies (
 );
 
 CREATE INDEX idx_anomalies_analysis ON anomalies(analysis_id);
-CREATE INDEX idx_anomalies_machine ON anomalies(machine_id);
+CREATE INDEX idx_anomalies_dataset ON anomalies(dataset_id);
 CREATE INDEX idx_anomalies_timestamp ON anomalies(timestamp DESC);
 CREATE INDEX idx_anomalies_severity ON anomalies(severity);
 CREATE INDEX idx_anomalies_acknowledged ON anomalies(acknowledged);
@@ -262,7 +225,7 @@ Configurable alert conditions.
 ```sql
 CREATE TABLE alert_rules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    machine_id UUID NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+    dataset_id UUID NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     condition JSONB NOT NULL,
     actions JSONB NOT NULL,
@@ -273,7 +236,7 @@ CREATE TABLE alert_rules (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_alert_rules_machine ON alert_rules(machine_id);
+CREATE INDEX idx_alert_rules_dataset ON alert_rules(dataset_id);
 CREATE INDEX idx_alert_rules_active ON alert_rules(is_active);
 ```
 
@@ -284,7 +247,7 @@ Alert instances generated from rules.
 CREATE TABLE alerts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     alert_rule_id UUID NOT NULL REFERENCES alert_rules(id),
-    machine_id UUID NOT NULL REFERENCES machines(id),
+    dataset_id UUID NOT NULL REFERENCES datasets(id),
     anomaly_id UUID REFERENCES anomalies(id),
     status VARCHAR(50) NOT NULL DEFAULT 'active',
     data JSONB NOT NULL,
@@ -296,7 +259,7 @@ CREATE TABLE alerts (
 );
 
 CREATE INDEX idx_alerts_rule ON alerts(alert_rule_id);
-CREATE INDEX idx_alerts_machine ON alerts(machine_id);
+CREATE INDEX idx_alerts_dataset ON alerts(dataset_id);
 CREATE INDEX idx_alerts_status ON alerts(status);
 CREATE INDEX idx_alerts_created_at ON alerts(created_at DESC);
 ```
@@ -324,7 +287,6 @@ System audit trail.
 CREATE TABLE audit_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id),
-    organization_id UUID REFERENCES organizations(id),
     action VARCHAR(100) NOT NULL,
     resource_type VARCHAR(50),
     resource_id UUID,
@@ -335,24 +297,21 @@ CREATE TABLE audit_logs (
 );
 
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
-CREATE INDEX idx_audit_logs_organization ON audit_logs(organization_id);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 ```
 
 ## 🔄 Migration Strategy
 
-### Phase 1: Authentication & Organizations
+### Phase 1: Authentication & Users
 1. Create users table
-2. Create organizations table
-3. Create user_organizations table
-4. Create refresh_tokens table
-5. Migrate existing data to default organization
+2. Create datasets table
+3. Create refresh_tokens table
+4. Associate existing data with default user
 
-### Phase 2: Machine Management
-1. Create machines table
-2. Create analyses table
-3. Link existing file_uploads to machines via analyses
+### Phase 2: Dataset Management
+1. Create analyses table
+2. Link existing file_uploads to datasets via analyses
 
 ### Phase 3: Anomaly Detection
 1. Create anomalies table
@@ -368,15 +327,13 @@ CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 
 ```mermaid
 erDiagram
-    users ||--o{ user_organizations : belongs_to
-    organizations ||--o{ user_organizations : has_many
-    organizations ||--o{ machines : owns
-    machines ||--o{ analyses : has_many
+    users ||--o{ datasets : owns
+    datasets ||--o{ analyses : has_many
     analyses ||--|| file_uploads : uses
     analyses ||--o| dinsight_data : produces
     dinsight_data ||--o{ monitor_data : monitors
     analyses ||--o{ anomalies : detects
-    machines ||--o{ alert_rules : has_many
+    datasets ||--o{ alert_rules : has_many
     alert_rules ||--o{ alerts : generates
     anomalies ||--o{ alerts : triggers
 ```
@@ -393,7 +350,7 @@ erDiagram
 ### Partitioning
 - Partition anomalies table by month
 - Partition audit_logs table by month
-- Consider partitioning monitor_data by machine_id
+- Consider partitioning monitor_data by dataset_id
 
 ### Data Retention
 - Archive analyses older than 1 year
@@ -404,10 +361,9 @@ erDiagram
 
 ### Row Level Security (RLS)
 Enable RLS on sensitive tables:
-- organizations (users see only their orgs)
-- machines (filtered by organization)
-- analyses (filtered by organization)
-- alerts (filtered by organization)
+- datasets (users see only their own)
+- analyses (filtered by user/dataset ownership)
+- alerts (filtered by user/dataset ownership)
 
 ### Encryption
 - Encrypt sensitive JSONB fields

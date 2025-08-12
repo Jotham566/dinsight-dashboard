@@ -6,7 +6,7 @@
 
 ## 📋 Overview
 
-The DInsight API provides endpoints for predictive maintenance analytics, including data upload, processing, visualization, and anomaly detection. This specification documents both existing endpoints and planned enhancements.
+The DInsight API provides endpoints for data analytics, including data upload, processing, visualization, and anomaly detection. This specification documents both existing endpoints and planned enhancements.
 
 ## 🏗️ Architecture
 
@@ -209,8 +209,7 @@ Register a new user account.
 {
   "email": "user@example.com",
   "password": "securepassword",
-  "full_name": "John Doe",
-  "organization_id": "uuid" // optional
+  "full_name": "John Doe"
 }
 ```
 
@@ -251,63 +250,32 @@ Initiate password reset process.
 #### `POST /api/v1/auth/reset-password`
 Reset password with token.
 
-### Organization Management
+### Dataset Management
 
-#### `GET /api/v1/organizations`
-List user's organizations.
+#### `GET /api/v1/datasets`
+List user's datasets.
 
-#### `POST /api/v1/organizations`
-Create new organization.
-
-**Request:**
-```json
-{
-  "name": "ACME Corp",
-  "description": "Manufacturing company",
-  "industry": "manufacturing",
-  "settings": {}
-}
-```
-
-#### `GET /api/v1/organizations/:id`
-Get organization details.
-
-#### `PUT /api/v1/organizations/:id`
-Update organization.
-
-#### `DELETE /api/v1/organizations/:id`
-Delete organization (admin only).
-
-### Machine/Equipment Management
-
-#### `GET /api/v1/organizations/:org_id/machines`
-List machines in organization.
-
-#### `POST /api/v1/organizations/:org_id/machines`
-Add new machine.
+#### `POST /api/v1/datasets`
+Create new dataset.
 
 **Request:**
 ```json
 {
-  "name": "CNC Machine #1",
-  "model": "DMG MORI NLX 2500",
-  "serial_number": "SN123456",
-  "location": "Plant A - Floor 2",
-  "metadata": {
-    "installation_date": "2023-01-15",
-    "maintenance_interval": "monthly"
-  }
+  "name": "Production Data Q1",
+  "description": "First quarter production analytics data",
+  "tags": ["production", "q1-2025"],
+  "metadata": {}
 }
 ```
 
-#### `GET /api/v1/machines/:id`
-Get machine details with latest analysis.
+#### `GET /api/v1/datasets/:id`
+Get dataset details.
 
-#### `PUT /api/v1/machines/:id`
-Update machine information.
+#### `PUT /api/v1/datasets/:id`
+Update dataset information.
 
-#### `DELETE /api/v1/machines/:id`
-Remove machine.
+#### `DELETE /api/v1/datasets/:id`
+Delete dataset and associated analyses.
 
 ### Advanced Analytics
 
@@ -333,7 +301,7 @@ Run Mahalanobis Distance-based anomaly detection.
       "timestamp": "2025-01-01T12:00:00Z",
       "distance": 3.2,
       "severity": "high",
-      "features": ["temperature", "vibration"],
+      "features": ["f_temperature", "f_pressure"],
       "confidence": 0.95
     }
   ],
@@ -345,16 +313,16 @@ Run Mahalanobis Distance-based anomaly detection.
 }
 ```
 
-#### `GET /api/v1/analytics/thresholds/:machine_id`
-Get adaptive thresholds for machine.
+#### `GET /api/v1/analytics/thresholds/:dataset_id`
+Get adaptive thresholds for dataset.
 
-#### `POST /api/v1/analytics/thresholds/:machine_id`
+#### `POST /api/v1/analytics/thresholds/:dataset_id`
 Update anomaly detection thresholds.
 
 ### Alerts & Notifications
 
 #### `GET /api/v1/alerts`
-List alerts for user's machines.
+List alerts for user's datasets.
 
 #### `POST /api/v1/alerts/rules`
 Create alert rule.
@@ -362,7 +330,7 @@ Create alert rule.
 **Request:**
 ```json
 {
-  "machine_id": "uuid",
+  "dataset_id": "uuid",
   "condition": {
     "metric": "anomaly_score",
     "operator": "greater_than",
@@ -394,7 +362,7 @@ Generate analysis report.
 **Request:**
 ```json
 {
-  "machine_id": "uuid",
+  "dataset_id": "uuid",
   "date_range": {
     "start": "2025-01-01",
     "end": "2025-01-31"
@@ -444,11 +412,11 @@ Error codes:
 ## 📊 Websocket Endpoints (Planned)
 
 ### Real-time Monitoring
-`ws://api/v1/ws/monitor/:machine_id`
+`ws://api/v1/ws/monitor/:dataset_id`
 
-Receive real-time updates for machine monitoring.
+Receive real-time updates for dataset monitoring.
 
 ### Alert Stream
 `ws://api/v1/ws/alerts`
 
-Stream real-time alerts for user's machines.
+Stream real-time alerts for user's datasets.

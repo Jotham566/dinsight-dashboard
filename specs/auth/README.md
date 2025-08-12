@@ -6,7 +6,7 @@
 
 ## 📋 Overview
 
-Comprehensive authentication and authorization system for the DInsight platform using JWT tokens, role-based access control (RBAC), and organization-based multi-tenancy.
+Comprehensive authentication and authorization system for the DInsight platform using JWT tokens, role-based access control (RBAC), and user-based data access.
 
 ## 🏗️ Architecture
 
@@ -40,8 +40,7 @@ Comprehensive authentication and authorization system for the DInsight platform 
 {
   "email": "user@example.com",
   "password": "SecurePass123!",
-  "full_name": "John Doe",
-  "organization_code": "ACME-2024" // optional
+  "full_name": "John Doe"
 }
 ```
 
@@ -106,14 +105,7 @@ Comprehensive authentication and authorization system for the DInsight platform 
     "id": "uuid",
     "email": "user@example.com",
     "full_name": "John Doe",
-    "role": "user",
-    "organizations": [
-      {
-        "id": "uuid",
-        "name": "ACME Corp",
-        "role": "admin"
-      }
-    ]
+    "role": "user"
   }
 }
 ```
@@ -205,39 +197,32 @@ Cookie: refresh_token=eyJhbGc...
 ```
 Super Admin
     │
-    ├── Organization Owner
-    │       │
-    │       ├── Organization Admin
-    │       │       │
-    │       │       ├── Organization Member
-    │       │       │
-    │       │       └── Organization Viewer
-    │       │
-    │       └── Machine Operator
+    ├── Admin
+    │   │
+    │   └── User
     │
     └── System Admin
 ```
 
 ### Permission Matrix
 
-| Resource | Viewer | Member | Operator | Admin | Owner | Super Admin |
-|----------|--------|--------|----------|-------|-------|-------------|
-| View Dashboards | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Upload Data | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Run Analysis | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Manage Machines | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ |
-| Manage Alerts | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ |
-| Manage Users | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ |
-| Manage Organization | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
-| System Administration | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Resource | User | Admin | Super Admin |
+|----------|------|-------|--------------|
+| View Dashboards | ✓ | ✓ | ✓ |
+| Upload Data | ✓ | ✓ | ✓ |
+| Run Analysis | ✓ | ✓ | ✓ |
+| Manage Datasets | Own | ✓ | ✓ |
+| Manage Alerts | Own | ✓ | ✓ |
+| User Management | ✗ | ✓ | ✓ |
+| System Administration | ✗ | ✗ | ✓ |
 
 ### Resource-Based Permissions
 
 ```go
 type Permission struct {
-    Resource string   // "machine", "analysis", "alert"
+    Resource string   // "dataset", "analysis", "alert"
     Action   string   // "create", "read", "update", "delete"
-    Scope    string   // "own", "organization", "all"
+    Scope    string   // "own", "all"
 }
 ```
 
@@ -326,6 +311,7 @@ Authorization: ApiKey sk_live_abc123...
 - Password changes
 - Permission changes
 - Data access
+- Dataset operations
 - Configuration changes
 
 ### Compliance Features
@@ -377,5 +363,5 @@ Content-Security-Policy: default-src 'self'
 ### Integration Tests
 - Full auth flows
 - Token refresh cycles
-- Multi-org access
+- User data access
 - Role transitions

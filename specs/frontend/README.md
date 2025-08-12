@@ -6,7 +6,7 @@
 
 ## 📋 Overview
 
-Modern, responsive web application for predictive maintenance analytics. Replacing the legacy Streamlit dashboard with a production-ready Next.js application.
+Modern, responsive web application for data analytics. Replacing the legacy Streamlit dashboard with a production-ready Next.js application.
 
 ## 🛠️ Technology Stack
 
@@ -38,7 +38,7 @@ frontend/
 │   │   ├── visualization/
 │   │   ├── analysis/
 │   │   ├── features/
-│   │   ├── machines/
+│   │   ├── datasets/
 │   │   └── settings/
 │   ├── api/                 # API routes (if needed)
 │   ├── layout.tsx           # Root layout
@@ -73,7 +73,6 @@ frontend/
 - Full name, email, password fields
 - Password strength indicator
 - Terms acceptance
-- Optional organization code
 - Email verification flow
 
 #### Password Reset (`/forgot-password`)
@@ -86,7 +85,7 @@ frontend/
 - Recent analyses list
 - Active alerts summary
 - Quick actions panel
-- Machine health status grid
+- Dataset status overview
 
 ### 3. Data Summary Page (`/dashboard/data-summary`)
 
@@ -161,21 +160,22 @@ frontend/
 - Metadata display
 - Comparison tools
 
-### 7. Machine Management (`/dashboard/machines`)
+### 7. Dataset Management (`/dashboard/datasets`)
 
-**Machine List View:**
+**Dataset List View:**
 - Grid/list toggle
 - Status indicators
 - Last analysis timestamp
 - Quick actions menu
 - Search and filters
+- Tag filtering
 
-**Machine Detail View:**
+**Dataset Detail View:**
 - Information card
 - Analysis history
-- Health metrics
+- Data statistics
 - Alert configuration
-- Maintenance schedule
+- Sharing settings
 
 ### 8. Settings Page (`/dashboard/settings`)
 
@@ -185,10 +185,10 @@ frontend/
 - Notification preferences
 - API key management
 
-**Organization Settings:**
-- Organization details
-- User management
-- Billing information
+**Data Settings:**
+- Data retention policies
+- Export preferences
+- Privacy settings
 - Usage statistics
 
 ## 🎨 UI Components
@@ -259,8 +259,7 @@ interface AlertDialogProps {
 ```typescript
 interface AppState {
   user: User | null
-  organization: Organization | null
-  machines: Machine[]
+  datasets: Dataset[]
   activeDataset: Dataset | null
   theme: 'light' | 'dark' | 'system'
 }

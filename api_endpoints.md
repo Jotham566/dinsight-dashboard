@@ -7,7 +7,7 @@
 
 ## 📋 Overview
 
-The D'insight API provides comprehensive endpoints for predictive maintenance analytics, including authentication, data upload/processing, organization management, anomaly detection, and real-time monitoring.
+The D'insight API provides comprehensive endpoints for data analytics and anomaly detection, including authentication, data upload/processing, dataset management, anomaly detection, and real-time monitoring.
 
 ## 🔐 Authentication Endpoints
 
@@ -19,8 +19,7 @@ Register a new user account.
 {
   "email": "user@example.com",
   "password": "securepassword123",
-  "full_name": "John Doe",
-  "organization_code": "ACME-2024"
+  "full_name": "John Doe"
 }
 ```
 
@@ -34,8 +33,7 @@ Register a new user account.
       "id": 1,
       "email": "user@example.com",
       "full_name": "John Doe",
-      "role": "user",
-      "organizations": []
+      "role": "user"
     }
   }
 }
@@ -65,14 +63,7 @@ Authenticate user and receive JWT tokens.
       "id": 1,
       "email": "user@example.com",
       "full_name": "John Doe",
-      "role": "user",
-      "organizations": [
-        {
-          "id": 1,
-          "name": "ACME Corp",
-          "role": "member"
-        }
-      ]
+      "role": "user"
     }
   }
 }
@@ -375,306 +366,6 @@ Retrieve only monitoring coordinates for visualization.
 
 ---
 
-## 🏢 Organization Management Endpoints
-
-### **POST** `/organizations`
-**Auth Required**: ✅  
-Create a new organization.
-
-**Request Body:**
-```json
-{
-  "name": "ACME Manufacturing Corp",
-  "slug": "acme-manufacturing",
-  "description": "Industrial manufacturing company",
-  "industry": "manufacturing",
-  "settings": {
-    "default_alert_threshold": 2.5,
-    "notification_preferences": {
-      "email": true,
-      "slack": false
-    }
-  }
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "ACME Manufacturing Corp",
-    "slug": "acme-manufacturing",
-    "description": "Industrial manufacturing company",
-    "industry": "manufacturing",
-    "settings": {...},
-    "subscription_tier": "free",
-    "is_active": true,
-    "created_at": "2025-01-01T00:00:00Z"
-  }
-}
-```
-
-### **GET** `/organizations`
-**Auth Required**: ✅  
-List user's organizations.
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "ACME Manufacturing Corp",
-      "slug": "acme-manufacturing",
-      "role": "admin",
-      "is_active": true
-    }
-  ]
-}
-```
-
-### **GET** `/organizations/:id`
-**Auth Required**: ✅  
-Get organization details.
-
-**Path Parameters:**
-- **id**: Organization ID
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "ACME Manufacturing Corp",
-    "slug": "acme-manufacturing",
-    "description": "Industrial manufacturing company",
-    "industry": "manufacturing",
-    "settings": {...},
-    "subscription_tier": "free",
-    "is_active": true,
-    "created_at": "2025-01-01T00:00:00Z",
-    "users": [
-      {
-        "id": 1,
-        "full_name": "John Doe",
-        "email": "john@acme.com",
-        "role": "admin"
-      }
-    ]
-  }
-}
-```
-
-### **PUT** `/organizations/:id`
-**Auth Required**: ✅  
-Update organization.
-
-**Path Parameters:**
-- **id**: Organization ID
-
-**Request Body:**
-```json
-{
-  "name": "ACME Manufacturing Corp Updated",
-  "description": "Updated description",
-  "settings": {
-    "default_alert_threshold": 3.0
-  }
-}
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "ACME Manufacturing Corp Updated",
-    "description": "Updated description",
-    ...
-  }
-}
-```
-
-### **DELETE** `/organizations/:id`
-**Auth Required**: ✅ (Admin only)  
-Delete organization.
-
-**Path Parameters:**
-- **id**: Organization ID
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "message": "Organization deleted successfully"
-}
-```
-
----
-
-## 🏭 Machine Management Endpoints
-
-### **POST** `/orgs/:orgid/machines`
-**Auth Required**: ✅  
-Create a new machine in organization.
-
-**Path Parameters:**
-- **orgid**: Organization ID
-
-**Request Body:**
-```json
-{
-  "name": "CNC Machine #1",
-  "model": "DMG MORI NLX 2500",
-  "serial_number": "SN123456789",
-  "location": "Plant A - Floor 2",
-  "status": "active",
-  "metadata": {
-    "installation_date": "2023-01-15",
-    "maintenance_interval": "monthly",
-    "operating_hours": 2400
-  }
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "organization_id": 1,
-    "name": "CNC Machine #1",
-    "model": "DMG MORI NLX 2500",
-    "serial_number": "SN123456789",
-    "location": "Plant A - Floor 2",
-    "status": "active",
-    "metadata": {...},
-    "created_at": "2025-01-01T00:00:00Z"
-  }
-}
-```
-
-### **GET** `/orgs/:orgid/machines`
-**Auth Required**: ✅  
-List machines in organization.
-
-**Path Parameters:**
-- **orgid**: Organization ID
-
-**Query Parameters (Optional):**
-- **status**: Filter by status (active, maintenance, inactive)
-- **location**: Filter by location
-- **limit**: Number of results (default: 50)
-- **offset**: Pagination offset (default: 0)
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "machines": [
-      {
-        "id": 1,
-        "name": "CNC Machine #1",
-        "model": "DMG MORI NLX 2500",
-        "status": "active",
-        "location": "Plant A - Floor 2",
-        "last_analysis_at": "2025-01-01T12:00:00Z"
-      }
-    ],
-    "total": 1,
-    "limit": 50,
-    "offset": 0
-  }
-}
-```
-
-### **GET** `/machines/:id`
-**Auth Required**: ✅  
-Get machine details with latest analysis.
-
-**Path Parameters:**
-- **id**: Machine ID
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "organization_id": 1,
-    "name": "CNC Machine #1",
-    "model": "DMG MORI NLX 2500",
-    "serial_number": "SN123456789",
-    "location": "Plant A - Floor 2",
-    "status": "active",
-    "metadata": {...},
-    "last_analysis_at": "2025-01-01T12:00:00Z",
-    "analyses": [
-      {
-        "id": 1,
-        "analysis_type": "baseline",
-        "status": "completed",
-        "completed_at": "2025-01-01T12:00:00Z"
-      }
-    ]
-  }
-}
-```
-
-### **PUT** `/machines/:id`
-**Auth Required**: ✅  
-Update machine information.
-
-**Path Parameters:**
-- **id**: Machine ID
-
-**Request Body:**
-```json
-{
-  "name": "CNC Machine #1 Updated",
-  "location": "Plant A - Floor 3",
-  "status": "maintenance"
-}
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "CNC Machine #1 Updated",
-    "location": "Plant A - Floor 3",
-    "status": "maintenance",
-    ...
-  }
-}
-```
-
-### **DELETE** `/machines/:id`
-**Auth Required**: ✅  
-Remove machine.
-
-**Path Parameters:**
-- **id**: Machine ID
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "message": "Machine deleted successfully"
-}
-```
-
----
-
 ## 🚨 Anomaly Detection Endpoints
 
 ### **POST** `/anomaly/detect`
@@ -773,8 +464,7 @@ Create alert rule.
 **Request Body:**
 ```json
 {
-  "organization_id": 1,
-  "machine_id": 1,
+  "dataset_id": 123,
   "name": "High Anomaly Alert",
   "description": "Alert when anomaly percentage exceeds threshold",
   "alert_type": "anomaly_detection",
@@ -804,12 +494,12 @@ Create alert rule.
 }
 ```
 
-### **GET** `/alerts/rules/organization/:id`
+### **GET** `/alerts/rules`
 **Auth Required**: ✅  
-Get alert rules for organization.
+Get alert rules for user.
 
-**Path Parameters:**
-- **id**: Organization ID
+**Query Parameters (Optional):**
+- **dataset_id**: Filter by dataset ID
 
 **Response (200):**
 ```json
@@ -822,26 +512,23 @@ Get alert rules for organization.
       "alert_type": "anomaly_detection",
       "anomaly_threshold": 2.5,
       "is_active": true,
-      "machine": {
-        "id": 1,
-        "name": "CNC Machine #1"
+      "dataset": {
+        "id": 123,
+        "name": "Baseline Dataset"
       }
     }
   ]
 }
 ```
 
-### **GET** `/alerts/organization/:id`
+### **GET** `/alerts`
 **Auth Required**: ✅  
-Get alerts for organization.
-
-**Path Parameters:**
-- **id**: Organization ID
+Get alerts for user.
 
 **Query Parameters (Optional):**
 - **status**: Filter by status (active, acknowledged, resolved)
 - **severity**: Filter by severity (low, medium, high, critical)
-- **machine_id**: Filter by machine ID
+- **dataset_id**: Filter by dataset ID
 - **limit**: Number of results (default: 50)
 
 **Response (200):**
@@ -857,9 +544,9 @@ Get alerts for organization.
         "severity": "high",
         "status": "active",
         "anomaly_percentage": 18.5,
-        "machine": {
-          "id": 1,
-          "name": "CNC Machine #1"
+        "dataset": {
+          "id": 123,
+          "name": "Baseline Dataset"
         },
         "created_at": "2025-01-01T12:00:00Z"
       }
@@ -997,8 +684,6 @@ Create dataset metadata.
 {
   "dataset_id": 123,
   "dataset_type": "baseline",
-  "organization_id": 1,
-  "machine_id": 1,
   "name": "Baseline Data - Week 1",
   "description": "Initial baseline measurement",
   "tags": ["baseline", "production", "week1"]
@@ -1068,8 +753,7 @@ Create data lineage record.
   "parameters": {
     "gamma0": 1e-7,
     "optimizer": "adam"
-  },
-  "organization_id": 1
+  }
 }
 ```
 
@@ -1129,7 +813,6 @@ Create validation rule.
 **Request Body:**
 ```json
 {
-  "organization_id": 1,
   "name": "Feature Range Check",
   "description": "Ensure feature values are within expected range",
   "rule_type": "range",
@@ -1203,14 +886,14 @@ Get available example dataset types.
     {
       "type": "manufacturing_baseline",
       "name": "Manufacturing Baseline",
-      "description": "Sample baseline data for manufacturing equipment",
+      "description": "Sample baseline data for analysis",
       "size": "1000 records",
       "features": 1024
     },
     {
-      "type": "maintenance_monitoring",
-      "name": "Maintenance Monitoring",
-      "description": "Sample monitoring data showing gradual degradation",
+      "type": "monitoring_data",
+      "name": "Monitoring Data",
+      "description": "Sample monitoring data for anomaly detection",
       "size": "500 records",
       "features": 1024
     }
@@ -1225,9 +908,7 @@ Load example dataset.
 **Request Body:**
 ```json
 {
-  "dataset_type": "manufacturing_baseline",
-  "organization_id": 1,
-  "machine_id": 1
+  "dataset_type": "manufacturing_baseline"
 }
 ```
 
@@ -1238,7 +919,7 @@ Load example dataset.
   "data": {
     "dataset_id": 999,
     "file_upload_id": 888,
-    "name": "Manufacturing Baseline Example",
+    "name": "Baseline Example Dataset",
     "records_loaded": 1000,
     "processing_status": "completed"
   }
@@ -1301,8 +982,8 @@ Core processing endpoints also require license validation headers (handled autom
 
 3. **Async Processing**: File analysis happens asynchronously. Use the returned IDs to poll for results.
 
-4. **Multi-tenancy**: All data is isolated by organization. Users can only access data from their associated organizations.
+4. **Data Isolation**: All data is isolated by user. Users can only access their own datasets and analyses.
 
-5. **Permissions**: Role-based access control is enforced at the organization level (admin, member, viewer).
+5. **Permissions**: Role-based access control is enforced at the user level.
 
 6. **Real-time Features**: WebSocket endpoints for real-time monitoring are planned for future versions.

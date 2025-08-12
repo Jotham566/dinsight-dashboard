@@ -2,17 +2,17 @@
 
 > **Version**: 1.0.0  
 > **Created**: 2025-08-03  
-> **Purpose**: Comprehensive technical specifications for the DInsight predictive maintenance platform
+> **Purpose**: Comprehensive technical specifications for the DInsight data analytics platform
 
 ## 📂 Specification Documents
 
 ### [API Specification](./api/README.md)
 Complete REST API documentation including:
 - Current endpoints (file upload, analysis, monitoring)
-- Planned endpoints (auth, organizations, machines, alerts)
+- Planned endpoints (auth, datasets, alerts)
 - Request/response formats
 - Error handling standards
-- Websocket endpoints for real-time features
+- Real-time monitoring capabilities
 
 ### [Frontend Specification](./frontend/README.md)
 Modern Next.js application blueprint:
@@ -25,7 +25,7 @@ Modern Next.js application blueprint:
 ### [Database Schema](./database/README.md)
 PostgreSQL database design:
 - Current schema (file uploads, configs, monitoring data)
-- New schema (users, organizations, machines, anomalies)
+- New schema (users, datasets, anomalies)
 - Relationships and constraints
 - Performance optimization strategies
 - Migration approach
@@ -34,7 +34,7 @@ PostgreSQL database design:
 Security implementation guide:
 - JWT-based authentication
 - Role-based access control (RBAC)
-- Multi-tenancy support
+- User-based data access
 - Security best practices
 - OAuth integration plans
 
@@ -42,7 +42,7 @@ Security implementation guide:
 
 1. **Review the master task list**: Check [TASKS.md](../TASKS.md) for the implementation roadmap
 2. **Understand current state**: The API already has basic file processing capabilities
-3. **Focus areas**: Authentication, multi-tenant support, and advanced analytics are the main gaps
+3. **Focus areas**: Authentication, user management, and advanced analytics are the main gaps
 4. **Technology decisions**: Backend uses Go + Gin, Frontend will use Next.js + TypeScript
 
 ## 🔄 Development Workflow
@@ -64,20 +64,20 @@ Security implementation guide:
 
 ### 🚧 What Needs Building
 - **Authentication System**: Complete JWT-based auth
-- **User Management**: Registration, profiles, organizations
-- **Multi-tenancy**: Organization and machine management
+- **User Management**: Registration, profiles, preferences
+- **Dataset Management**: User-specific dataset organization
 - **Advanced Analytics**: Mahalanobis Distance anomaly detection
 - **Alerting System**: Rules, notifications, acknowledgments
 - **Modern Frontend**: Replace Streamlit with Next.js
-- **Real-time Features**: Websockets for live monitoring
+- **Real-time Features**: Live monitoring capabilities
 
 ## 🛠️ Implementation Priorities
 
 ### Phase 1: Backend Foundation
-Focus on authentication and data models to support multi-tenant operations.
+Focus on authentication and data models to support user-specific operations.
 
 ### Phase 2: Core Features
-Implement organization/machine management and enhance analytics.
+Implement dataset management and enhance analytics capabilities.
 
 ### Phase 3: Frontend Development
 Build the Next.js application following the frontend specification.
