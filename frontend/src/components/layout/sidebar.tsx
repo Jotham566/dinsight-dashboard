@@ -117,7 +117,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/dashboard/analysis" onClick={onClose}>
-                    🔬 New Analysis
+                    🔬 Detect Anomalies
                   </Link>
                 </Button>
               </div>

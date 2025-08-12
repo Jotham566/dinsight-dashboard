@@ -488,10 +488,10 @@ export default function AdvancedAnalysisPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Advanced Analysis
+                  Anomaly Detection
                 </h1>
                 <p className="text-sm text-slate-600">
-                  AI-powered anomaly detection and feature importance analysis
+                  Detect anomalies between baseline and monitoring datasets
                 </p>
               </div>
             </div>

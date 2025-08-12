@@ -29,32 +29,32 @@ export const mainNavItems: NavItem[] = [
     description: 'Overview of your predictive maintenance analytics',
   },
   {
-    label: 'Data Summary',
+    label: 'Data Upload & Config',
     href: '/dashboard/data-summary',
     icon: Upload,
     requiresAuth: true,
-    description: 'Upload and manage your CSV data files',
+    description: 'Upload data and configure processing settings',
   },
   {
-    label: 'Visualization',
+    label: 'Data Comparison',
     href: '/dashboard/visualization',
     icon: LineChart,
     requiresAuth: true,
-    description: 'Interactive plots and data visualization',
+    description: 'Interactive comparison between datasets',
   },
   {
-    label: 'Analysis',
+    label: 'Anomaly Detection',
     href: '/dashboard/analysis',
     icon: Microscope,
     requiresAuth: true,
-    description: 'Advanced anomaly detection and analysis',
+    description: 'Detect anomalies between baseline and monitoring data',
   },
   {
-    label: 'Features',
+    label: 'Feature Explorer',
     href: '/dashboard/features',
     icon: Dna,
     requiresAuth: true,
-    description: 'Raw feature data exploration and visualization',
+    description: 'Explore raw feature data with heatmap visualization',
   },
 ];
 
@@ -76,6 +76,6 @@ export const userMenuItems = [
 
 export const quickActions = [
   { label: 'Upload Data', href: '/dashboard/data-summary', icon: Upload },
-  { label: 'New Analysis', href: '/dashboard/analysis', icon: Microscope },
+  { label: 'Detect Anomalies', href: '/dashboard/analysis', icon: Microscope },
   { label: 'View Alerts', href: '/dashboard/alerts', icon: Bell },
 ];

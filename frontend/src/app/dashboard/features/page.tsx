@@ -678,10 +678,10 @@ export default function FeatureAnalysisPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Feature Analysis
+                  Feature Explorer
                 </h1>
                 <p className="text-sm text-slate-600">
-                  Raw feature data exploration and visualization
+                  Explore raw feature data with heatmap visualization
                 </p>
               </div>
             </div>
