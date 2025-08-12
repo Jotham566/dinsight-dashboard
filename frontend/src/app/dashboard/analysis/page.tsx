@@ -477,20 +477,20 @@ export default function AdvancedAnalysisPage() {
   const detectionRate = anomalyResults?.anomaly_percentage || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-      {/* Modern Header with Glass Effect */}
-      <div className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-slate-200/50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Modern Header with Enhanced Gradient */}
+      <div className="sticky top-0 z-10 glass-card backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Activity className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                <Activity className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold gradient-text">
                   Anomaly Detection
                 </h1>
-                <p className="text-sm text-slate-600">
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
                   Detect anomalies between baseline and monitoring datasets
                 </p>
               </div>
@@ -499,7 +499,7 @@ export default function AdvancedAnalysisPage() {
               <Button
                 variant="outline"
                 onClick={() => refetchDatasets()}
-                className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+                className="glass-card hover:shadow-lg transition-all duration-200"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh Data
@@ -515,25 +515,25 @@ export default function AdvancedAnalysisPage() {
           {/* Control Sidebar */}
           <div className="xl:col-span-1 space-y-6">
             {/* Analysis Configuration Card */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
-                    <Settings2 className="w-4 h-4 text-white" />
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Settings2 className="w-5 h-5 text-white" />
                   </div>
-                  Configuration
+                  <span className="gradient-text">Configuration</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Baseline Dataset
                     </label>
                     <select
                       value={baselineDataset || ''}
                       onChange={(e) => setBaselineDataset(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100"
                       disabled={datasetsLoading || monitoringLoading}
                     >
                       {baselineDataset === null && (
@@ -562,25 +562,25 @@ export default function AdvancedAnalysisPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Monitoring Dataset
                     </label>
-                    <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+                    <div className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
                       {baselineDataset ? (
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 dark:text-gray-300">
                             Monitoring data for Dataset ID {baselineDataset}
                           </span>
-                          <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-md">
+                          <span className="text-sm text-accent-teal-600 dark:text-accent-teal-400 bg-accent-teal-100 dark:bg-accent-teal-900/30 px-2 py-1 rounded-md">
                             Auto-linked
                           </span>
                         </div>
                       ) : (
-                        <span className="text-gray-500">Select baseline dataset first</span>
+                        <span className="text-gray-500 dark:text-gray-400">Select baseline dataset first</span>
                       )}
                     </div>
-                    <div className="px-4 py-3 mt-3 bg-blue-50 border border-blue-100 rounded-xl">
-                      <p className="text-xs text-blue-700 leading-relaxed">
+                    <div className="glass-card px-4 py-3 mt-3 bg-gradient-to-r from-primary-100/80 to-accent-teal-100/60 dark:from-primary-900/50 dark:to-accent-teal-900/40 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
+                      <p className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed">
                         {baselinesWithMonitoring && baselinesWithMonitoring.length > 0
                           ? 'Monitoring data is automatically linked to the selected baseline dataset'
                           : 'Upload baseline and monitoring data to begin anomaly detection'}
@@ -592,42 +592,42 @@ export default function AdvancedAnalysisPage() {
             </Card>
 
             {/* Detection Parameters Card */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-white" />
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                    <TrendingUp className="w-5 h-5 text-white" />
                   </div>
-                  Parameters
+                  <span className="gradient-text">Parameters</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     Detection Method
                   </label>
                   <div className="space-y-2">
-                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <label className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600">
                       <input
                         type="radio"
                         value="mahalanobis"
                         checked={detectionMethod === 'mahalanobis'}
                         onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500 dark:bg-gray-700"
                       />
-                      <span className="ml-3 text-sm font-medium text-gray-700">
+                      <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                         Mahalanobis Distance
                       </span>
                     </label>
-                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <label className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600">
                       <input
                         type="radio"
                         value="isolation_forest"
                         checked={detectionMethod === 'isolation_forest'}
                         onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500 dark:bg-gray-700"
                       />
-                      <span className="ml-3 text-sm font-medium text-gray-700">
+                      <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                         Isolation Forest
                       </span>
                     </label>
@@ -635,7 +635,7 @@ export default function AdvancedAnalysisPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     Sensitivity Factor: {sensitivity.toFixed(1)}
                   </label>
                   <input
@@ -645,36 +645,36 @@ export default function AdvancedAnalysisPage() {
                     step="0.1"
                     value={sensitivity}
                     onChange={(e) => setSensitivity(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                     style={{
-                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${((sensitivity - 0.5) / 4.5) * 100}%, rgb(229 231 235) ${((sensitivity - 0.5) / 4.5) * 100}%, rgb(229 231 235) 100%)`,
+                      background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${((sensitivity - 0.5) / 4.5) * 100}%, rgb(229, 231, 235) ${((sensitivity - 0.5) / 4.5) * 100}%, rgb(229, 231, 235) 100%)`,
                     }}
                   />
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
                     <span>0.5 (Low Sensitivity)</span>
                     <span>5.0 (High Sensitivity)</span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">Higher values detect more anomalies</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Higher values detect more anomalies</p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Run Analysis Button */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
               <CardContent className="p-6">
                 <Button
                   onClick={handleRunAnalysis}
                   disabled={isAnalyzing || !baselineDataset || !monitoringDataset}
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 text-base font-semibold"
                 >
                   {isAnalyzing ? (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
                       Analyzing...
                     </>
                   ) : (
                     <>
-                      <Play className="w-4 h-4 mr-2" />
+                      <Play className="w-5 h-5 mr-2" />
                       Run Analysis
                     </>
                   )}
@@ -687,58 +687,58 @@ export default function AdvancedAnalysisPage() {
           <div className="xl:col-span-3 space-y-6">
             {/* Analysis Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-primary-500/25 group-hover:scale-110 transition-transform duration-200">
                     <Activity className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-blue-900 mb-1">
+                  <div className="text-2xl font-bold gradient-text mb-1">
                     {totalSamples.toLocaleString()}
                   </div>
-                  <div className="text-sm font-medium text-blue-700">Monitoring Samples</div>
-                  <div className="text-xs text-blue-600 mt-1 opacity-80">
+                  <div className="text-sm font-medium text-primary-700 dark:text-primary-300">Monitoring Samples</div>
+                  <div className="text-xs text-primary-600 dark:text-primary-400 mt-1 opacity-80">
                     Total data points analyzed
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-red-50/30 to-red-100/20 dark:from-red-950/30 dark:to-red-900/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-500/25 group-hover:scale-110 transition-transform duration-200">
                     <AlertTriangle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-red-900 mb-1">
+                  <div className="text-2xl font-bold text-red-900 dark:text-red-100 mb-1">
                     {anomalyCount.toLocaleString()}
                   </div>
-                  <div className="text-sm font-medium text-red-700">Anomalies Detected</div>
-                  <div className="text-xs text-red-600 mt-1 opacity-80">
+                  <div className="text-sm font-medium text-red-700 dark:text-red-300">Anomalies Detected</div>
+                  <div className="text-xs text-red-600 dark:text-red-400 mt-1 opacity-80">
                     Points flagged as anomalous
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-accent-orange-50/30 to-accent-orange-100/20 dark:from-accent-orange-950/30 dark:to-accent-orange-900/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-12 h-12 bg-gradient-to-br from-accent-orange-500 to-accent-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-accent-orange-500/25 group-hover:scale-110 transition-transform duration-200">
                     <XCircle className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-orange-900 mb-1">
+                  <div className="text-2xl font-bold text-accent-orange-900 dark:text-accent-orange-100 mb-1">
                     {criticalCount.toLocaleString()}
                   </div>
-                  <div className="text-sm font-medium text-orange-700">Critical Anomalies</div>
-                  <div className="text-xs text-orange-600 mt-1 opacity-80">
+                  <div className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">Critical Anomalies</div>
+                  <div className="text-xs text-accent-orange-600 dark:text-accent-orange-400 mt-1 opacity-80">
                     Top 25% most severe anomalies
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-accent-purple-50/30 to-accent-purple-100/20 dark:from-accent-purple-950/30 dark:to-accent-purple-900/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <div className="w-12 h-12 bg-gradient-to-br from-accent-purple-500 to-accent-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-accent-purple-500/25 group-hover:scale-110 transition-transform duration-200">
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-2xl font-bold text-purple-900 mb-1">
+                  <div className="text-2xl font-bold text-accent-purple-900 dark:text-accent-purple-100 mb-1">
                     {detectionRate.toFixed(1)}%
                   </div>
-                  <div className="text-sm font-medium text-purple-700">Detection Rate</div>
-                  <div className="text-xs text-purple-600 mt-1 opacity-80">
+                  <div className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300">Detection Rate</div>
+                  <div className="text-xs text-accent-purple-600 dark:text-accent-purple-400 mt-1 opacity-80">
                     Percentage of samples flagged
                   </div>
                 </CardContent>
@@ -746,34 +746,36 @@ export default function AdvancedAnalysisPage() {
             </div>
 
             {/* Visualization Card */}
-            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+            <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Activity className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Activity className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-semibold text-gray-900">
+                    <CardTitle className="text-2xl font-bold gradient-text">
                       Anomaly Detection Visualization
                     </CardTitle>
-                    <CardDescription className="text-sm text-gray-600">
+                    <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
                       Baseline vs Monitor data comparison with anomaly overlay
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-0">
                 {isAnalyzing ? (
                   <div className="flex items-center justify-center h-96">
                     <div className="text-center">
                       <div className="relative">
-                        <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="w-20 h-20 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin mx-auto mb-6"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Activity className="w-6 h-6 text-purple-600" />
+                          <Activity className="w-8 h-8 text-primary-600 dark:text-primary-400" />
                         </div>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyzing Data</h3>
-                      <p className="text-sm text-gray-600">
+                      <h3 className="text-2xl font-bold gradient-text mb-3">
+                        Analyzing Data
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300">
                         Running anomaly detection algorithms...
                       </p>
                     </div>
@@ -781,25 +783,26 @@ export default function AdvancedAnalysisPage() {
                 ) : !anomalyResults || !baselineData || !monitoringData ? (
                   <div className="flex items-center justify-center h-96">
                     <div className="text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                        <Activity className="w-8 h-8 text-gray-400" />
+                      <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
+                        <Activity className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h3 className="text-2xl font-bold gradient-text mb-3">
                         No Analysis Results
                       </h3>
-                      <p className="text-gray-600 mb-6 max-w-sm">
+                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
                         Select datasets and run anomaly detection to visualize baseline vs monitor
                         data comparison.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full">
+                  <div className="relative h-[700px] w-full p-6">
                     <Plot
                       data={createAnomalyVisualization()?.data || []}
                       layout={createAnomalyVisualization()?.layout || {}}
                       config={createAnomalyVisualization()?.config || {}}
-                      className="w-full"
+                      style={{ width: '100%', height: '100%' }}
+                      useResizeHandler={true}
                     />
                   </div>
                 )}
@@ -808,71 +811,74 @@ export default function AdvancedAnalysisPage() {
 
             {/* Analysis Statistics */}
             {anomalyResults && (
-              <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="text-lg font-semibold text-gray-900">
+              <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+                <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 to-accent-purple-50/20 dark:from-primary-950/30 dark:to-accent-purple-950/20 rounded-t-xl">
+                  <CardTitle className="text-2xl font-bold gradient-text flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
                     Analysis Details
                   </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
                     Detection Method: {detectionMethod.replace('_', ' ')}
                   </p>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">Sensitivity Level</p>
-                      <p className="text-lg font-semibold text-gray-900">
+                    <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
+                      <p className="text-sm font-medium text-primary-700 dark:text-primary-300">Sensitivity Level</p>
+                      <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
                         {anomalyResults.sensitivity_level}
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="glass-card p-4 bg-gradient-to-br from-accent-purple-50/50 to-accent-purple-100/30 dark:from-accent-purple-950/50 dark:to-accent-purple-900/30 border border-accent-purple-200/50 dark:border-accent-purple-700/50 rounded-xl">
+                      <p className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300">
                         {detectionMethod === 'mahalanobis'
                           ? 'Distance Threshold'
                           : 'Anomaly Score Threshold'}
                       </p>
-                      <p className="text-lg font-semibold text-gray-900">
+                      <p className="text-lg font-bold text-accent-purple-900 dark:text-accent-purple-100 mt-1">
                         {anomalyResults.anomaly_threshold.toFixed(4)}
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">Centroid Distance</p>
-                      <p className="text-lg font-semibold text-gray-900">
+                    <div className="glass-card p-4 bg-gradient-to-br from-accent-teal-50/50 to-accent-teal-100/30 dark:from-accent-teal-950/50 dark:to-accent-teal-900/30 border border-accent-teal-200/50 dark:border-accent-teal-700/50 rounded-xl">
+                      <p className="text-sm font-medium text-accent-teal-700 dark:text-accent-teal-300">Centroid Distance</p>
+                      <p className="text-lg font-bold text-accent-teal-900 dark:text-accent-teal-100 mt-1">
                         {anomalyResults.centroid_distance.toFixed(3)}
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="glass-card p-4 bg-gradient-to-br from-accent-orange-50/50 to-accent-orange-100/30 dark:from-accent-orange-950/50 dark:to-accent-orange-900/30 border border-accent-orange-200/50 dark:border-accent-orange-700/50 rounded-xl">
+                      <p className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">
                         {detectionMethod === 'mahalanobis'
                           ? 'Max Mahalanobis Distance'
                           : 'Max Anomaly Score'}
                       </p>
-                      <p className="text-lg font-semibold text-gray-900">
+                      <p className="text-lg font-bold text-accent-orange-900 dark:text-accent-orange-100 mt-1">
                         {anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-600">
+                    <div className="glass-card p-4 bg-gradient-to-br from-accent-pink-50/50 to-accent-pink-100/30 dark:from-accent-pink-950/50 dark:to-accent-pink-900/30 border border-accent-pink-200/50 dark:border-accent-pink-700/50 rounded-xl">
+                      <p className="text-sm font-medium text-accent-pink-700 dark:text-accent-pink-300">
                         {detectionMethod === 'mahalanobis'
                           ? 'Mean Mahalanobis Distance'
                           : 'Mean Anomaly Score'}
                       </p>
-                      <p className="text-lg font-semibold text-gray-900">
+                      <p className="text-lg font-bold text-accent-pink-900 dark:text-accent-pink-100 mt-1">
                         {anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}
                       </p>
                     </div>
                     {detectionMethod === 'mahalanobis' && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-600">Baseline Std Dev</p>
-                        <p className="text-lg font-semibold text-gray-900">
+                      <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
+                        <p className="text-sm font-medium text-primary-700 dark:text-primary-300">Baseline Std Dev</p>
+                        <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
                           {anomalyResults.statistics.baseline_std_dev.toFixed(4)}
                         </p>
                       </div>
                     )}
                     {detectionMethod === 'isolation_forest' && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-600">Score Std Dev</p>
-                        <p className="text-lg font-semibold text-gray-900">
+                      <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
+                        <p className="text-sm font-medium text-primary-700 dark:text-primary-300">Score Std Dev</p>
+                        <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
                           {anomalyResults.statistics.comparison_std_dev.toFixed(4)}
                         </p>
                       </div>
@@ -880,11 +886,12 @@ export default function AdvancedAnalysisPage() {
                   </div>
 
                   {/* Additional Context for Critical Anomalies */}
-                  <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                    <h4 className="text-sm font-semibold text-orange-800 mb-2">
+                  <div className="glass-card p-6 bg-gradient-to-r from-accent-orange-100/80 to-accent-orange-50/60 dark:from-accent-orange-900/50 dark:to-accent-orange-950/40 border border-accent-orange-200/50 dark:border-accent-orange-700/50 rounded-xl">
+                    <h4 className="text-sm font-semibold text-accent-orange-800 dark:text-accent-orange-200 mb-3 flex items-center gap-2">
+                      <XCircle className="w-4 h-4" />
                       Critical Anomalies Definition
                     </h4>
-                    <p className="text-sm text-orange-700">
+                    <p className="text-sm text-accent-orange-700 dark:text-accent-orange-300 leading-relaxed">
                       Critical anomalies represent the top 25% of detected anomalies ranked by their{' '}
                       {detectionMethod === 'mahalanobis' ? 'Mahalanobis distance' : 'anomaly score'}{' '}
                       values. Out of {anomalyCount} total anomalies, {criticalCount} are classified
@@ -893,11 +900,12 @@ export default function AdvancedAnalysisPage() {
                   </div>
 
                   {/* Detection Rate Context */}
-                  <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <h4 className="text-sm font-semibold text-purple-800 mb-2">
+                  <div className="glass-card p-6 bg-gradient-to-r from-accent-purple-100/80 to-accent-purple-50/60 dark:from-accent-purple-900/50 dark:to-accent-purple-950/40 border border-accent-purple-200/50 dark:border-accent-purple-700/50 rounded-xl">
+                    <h4 className="text-sm font-semibold text-accent-purple-800 dark:text-accent-purple-200 mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
                       Detection Rate Explanation
                     </h4>
-                    <p className="text-sm text-purple-700">
+                    <p className="text-sm text-accent-purple-700 dark:text-accent-purple-300 leading-relaxed">
                       Detection rate of {detectionRate.toFixed(2)}% means {anomalyCount} out of{' '}
                       {totalSamples} monitoring samples were flagged as anomalous using{' '}
                       {detectionMethod.replace('_', ' ')} with{' '}

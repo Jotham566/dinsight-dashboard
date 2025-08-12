@@ -227,7 +227,7 @@ export default function SettingsPage() {
                           setProfileData((prev) => ({ ...prev, fullName: e.target.value }));
                           setHasChanges(true);
                         }}
-                        className="mt-1"
+                        className="mt-1 glass-input"
                       />
                     </div>
                     <div>
@@ -240,11 +240,13 @@ export default function SettingsPage() {
                             setProfileData((prev) => ({ ...prev, email: e.target.value }));
                             setHasChanges(true);
                           }}
-                          className="flex-1"
+                          className="flex-1 glass-input"
                         />
-                        <div className="flex items-center text-green-600 text-sm">
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Verified
+                        <div className="flex items-center gap-2">
+                          <div className="px-3 py-1.5 bg-gradient-to-r from-accent-teal-100 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-900/30 text-accent-teal-700 dark:text-accent-teal-300 text-sm font-semibold rounded-lg border border-accent-teal-200/50 dark:border-accent-teal-700/50 backdrop-blur-sm flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            Verified
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -257,7 +259,7 @@ export default function SettingsPage() {
                         id="role"
                         value={profileData.role}
                         disabled
-                        className="mt-1 bg-gray-50"
+                        className="mt-1 bg-gray-50/50 dark:bg-gray-800/50 glass-input opacity-60"
                       />
                       <p className="text-xs text-gray-500 mt-1">Assigned by organization admin</p>
                     </div>
@@ -267,7 +269,7 @@ export default function SettingsPage() {
                         id="organization"
                         value={profileData.organization}
                         disabled
-                        className="mt-1 bg-gray-50"
+                        className="mt-1 bg-gray-50/50 dark:bg-gray-800/50 glass-input opacity-60"
                       />
                     </div>
                   </div>
@@ -292,7 +294,7 @@ export default function SettingsPage() {
                           setProfileData((prev) => ({ ...prev, theme: value }))
                         }
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 glass-input">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -310,7 +312,7 @@ export default function SettingsPage() {
                           setProfileData((prev) => ({ ...prev, language: value }))
                         }
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 glass-input">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -328,7 +330,7 @@ export default function SettingsPage() {
                           setProfileData((prev) => ({ ...prev, timezone: value }))
                         }
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 glass-input">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -527,21 +529,25 @@ export default function SettingsPage() {
 
           {/* Security Tab */}
           {activeTab === 'security' && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
-                    Password & Security
+            <div className="space-y-8">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50">
+                <CardHeader className="bg-gradient-to-br from-red-50 via-white to-red-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 rounded-t-2xl">
+                  <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-gray-100">
+                    <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/25">
+                      <Shield className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="gradient-text font-bold">Password & Security</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">Manage your password and security settings</div>
+                    </div>
                   </CardTitle>
-                  <CardDescription>Manage your password and security settings</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <Button
                       onClick={() => setShowChangePasswordDialog(true)}
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto glass-button border-red-200/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-xl"
                     >
                       Change Password
                     </Button>
@@ -551,17 +557,19 @@ export default function SettingsPage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
                       Two-Factor Authentication
                     </h3>
-                    <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center">
-                        <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
+                    <div className="flex items-center justify-between p-6 glass-card bg-gradient-to-br from-red-50/80 to-red-100/50 dark:from-red-900/20 dark:to-red-900/10 border border-red-200/50 dark:border-red-700/50 rounded-xl">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/25">
+                          <AlertCircle className="w-6 h-6 text-white" />
+                        </div>
                         <div>
-                          <p className="font-medium text-red-800">2FA Disabled</p>
-                          <p className="text-sm text-red-600">
+                          <p className="font-semibold text-red-800 dark:text-red-200">2FA Disabled</p>
+                          <p className="text-sm text-red-600 dark:text-red-300">
                             Enable two-factor authentication for enhanced security
                           </p>
                         </div>
                       </div>
-                      <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                      <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl">
                         Enable 2FA
                       </Button>
                     </div>
@@ -595,7 +603,7 @@ export default function SettingsPage() {
                       ].map((session, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 border rounded-lg"
+                          className="flex items-center justify-between p-4 glass-card border border-gray-200/50 dark:border-gray-700/50 rounded-xl card-hover"
                         >
                           <div>
                             <p className="font-medium text-gray-900">{session.device}</p>
@@ -607,18 +615,18 @@ export default function SettingsPage() {
                             </p>
                           </div>
                           {session.current ? (
-                            <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                            <span className="px-3 py-1.5 text-xs bg-gradient-to-r from-accent-teal-100 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-900/30 text-accent-teal-700 dark:text-accent-teal-300 font-semibold rounded-lg border border-accent-teal-200/50 dark:border-accent-teal-700/50 backdrop-blur-sm">
                               Current
                             </span>
                           ) : (
-                            <Button variant="outline" size="sm" className="text-red-600">
+                            <Button variant="outline" size="sm" className="text-red-600 dark:text-red-400 glass-button border-red-200/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-lg">
                               Revoke
                             </Button>
                           )}
                         </div>
                       ))}
                     </div>
-                    <Button variant="outline" className="mt-4 text-red-600 border-red-300">
+                    <Button variant="outline" className="mt-4 text-red-600 dark:text-red-400 glass-button border-red-300/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-xl">
                       Revoke All Sessions
                     </Button>
                   </div>
@@ -629,43 +637,54 @@ export default function SettingsPage() {
 
           {/* API Keys Tab */}
           {activeTab === 'api' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="w-5 h-5" />
-                  API Keys
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50">
+              <CardHeader className="bg-gradient-to-br from-accent-teal-50 via-white to-accent-teal-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 rounded-t-2xl">
+                <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-gray-100">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-teal-500/25">
+                    <Key className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="gradient-text font-bold">API Keys</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">Manage API keys for programmatic access to your data</div>
+                  </div>
                 </CardTitle>
-                <CardDescription>
-                  Manage API keys for programmatic access to your data
-                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <Key className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No API Keys</h3>
-                  <p className="text-gray-500 mb-6">
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 bg-gradient-to-br from-accent-teal-100 to-accent-teal-200 dark:from-accent-teal-900/30 dark:to-accent-teal-800/30 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                    <Key className="w-10 h-10 text-accent-teal-600 dark:text-accent-teal-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">No API Keys</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
                     Create API keys to access DInsight programmatically
                   </p>
-                  <Button>Create API Key</Button>
+                  <Button className="bg-gradient-to-r from-accent-teal-500 to-accent-teal-600 hover:from-accent-teal-600 hover:to-accent-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl">
+                    Create API Key
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {/* Save Button */}
-          <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex items-center justify-between pt-8 border-t border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center">
               {saveSuccess && (
-                <div className="flex items-center text-green-600 mr-4">
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Settings saved successfully
+                <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-accent-teal-100 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-900/30 text-accent-teal-700 dark:text-accent-teal-300 rounded-xl border border-accent-teal-200/50 dark:border-accent-teal-700/50 backdrop-blur-sm">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-semibold">Settings saved successfully</span>
                 </div>
               )}
             </div>
             <Button
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
-              className="min-w-[120px]"
+              className={cn(
+                "min-w-[140px] rounded-xl shadow-lg hover:shadow-xl transition-all duration-200",
+                hasChanges
+                  ? "bg-gradient-to-r from-primary-500 to-accent-purple-600 hover:from-primary-600 hover:to-accent-purple-700 text-white"
+                  : "glass-button border-gray-200/50 dark:border-gray-700/50"
+              )}
             >
               {isSaving ? (
                 <>
@@ -700,6 +719,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
                   }
+                  className="glass-input"
                 />
                 <button
                   type="button"
@@ -723,7 +743,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
                 }
-                className="mt-1"
+                className="mt-1 glass-input"
               />
             </div>
             <div>
@@ -735,7 +755,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
                 }
-                className="mt-1"
+                className="mt-1 glass-input"
               />
             </div>
           </div>

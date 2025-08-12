@@ -396,15 +396,17 @@ export default function VisualizationPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-      {/* Notification Toast */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Modern Notification Toast */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform ${
-            notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform backdrop-blur-sm border ${
+            notification.type === 'success' 
+              ? 'bg-accent-teal-500/90 text-white border-accent-teal-400/20 shadow-accent-teal-500/25' 
+              : 'bg-red-500/90 text-white border-red-400/20 shadow-red-500/25'
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {notification.type === 'success' ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -424,24 +426,24 @@ export default function VisualizationPage() {
                 />
               </svg>
             )}
-            <span className="font-medium">{notification.message}</span>
+            <span className="font-semibold">{notification.message}</span>
           </div>
         </div>
       )}
 
-      {/* Modern Header with Glass Effect */}
-      <div className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-slate-200/50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      {/* Modern Header with Enhanced Gradient */}
+      <div className="sticky top-0 z-10 glass-card backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <BarChart3 className="w-5 h-5 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  Data Comparison
+                <h1 className="text-3xl font-bold gradient-text">
+                  Data Visualization
                 </h1>
-                <p className="text-sm text-slate-600">
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
                   Interactive comparison between baseline and monitoring datasets
                 </p>
               </div>
@@ -450,7 +452,7 @@ export default function VisualizationPage() {
               <Button
                 variant="outline"
                 onClick={refreshData}
-                className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+                className="glass-card hover:shadow-lg transition-all duration-200"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh Data
@@ -466,24 +468,24 @@ export default function VisualizationPage() {
           {/* Control Sidebar */}
           <div className="xl:col-span-1 space-y-6">
             {/* Dataset Selection Card */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
-                    <Settings2 className="w-4 h-4 text-white" />
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Settings2 className="w-5 h-5 text-white" />
                   </div>
-                  Dataset
+                  <span className="gradient-text">Dataset</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     Dinsight ID
                   </label>
                   <select
                     value={selectedDinsightId || ''}
                     onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100"
                     disabled={datasetsLoading}
                   >
                     {selectedDinsightId === null && <option value="">Select Dataset...</option>}
@@ -503,8 +505,8 @@ export default function VisualizationPage() {
                     )}
                   </select>
                 </div>
-                <div className="px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl">
-                  <p className="text-xs text-blue-700 leading-relaxed">
+                <div className="glass-card px-4 py-3 bg-gradient-to-r from-primary-100/80 to-accent-teal-100/60 dark:from-primary-900/50 dark:to-accent-teal-900/40 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
+                  <p className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed">
                     {availableDinsightIds && availableDinsightIds.length > 0
                       ? 'Comparing baseline and monitoring coordinates for anomaly detection'
                       : 'Upload baseline data to begin visualization'}
@@ -514,13 +516,13 @@ export default function VisualizationPage() {
             </Card>
 
             {/* Plot Configuration Card */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                    <Palette className="w-4 h-4 text-white" />
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                    <Palette className="w-5 h-5 text-white" />
                   </div>
-                  Appearance
+                  <span className="gradient-text">Appearance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -536,7 +538,7 @@ export default function VisualizationPage() {
                     onChange={(e) => setPointSize(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                     style={{
-                      background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${((pointSize - 3) / 9) * 100}%, rgb(229 231 235) ${((pointSize - 3) / 9) * 100}%, rgb(229 231 235) 100%)`,
+                      background: `linear-gradient(to right, rgb(59, 130, 246) 0%, rgb(59, 130, 246) ${((pointSize - 3) / 9) * 100}%, rgb(229, 231, 235) ${((pointSize - 3) / 9) * 100}%, rgb(229, 231, 235) 100%)`,
                     }}
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-2">
@@ -548,13 +550,13 @@ export default function VisualizationPage() {
             </Card>
 
             {/* Display Options Card */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                    <Eye className="w-4 h-4 text-white" />
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-accent-orange-50/30 to-accent-teal-50/20 dark:from-accent-orange-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent-orange-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-orange-500/25">
+                    <Eye className="w-5 h-5 text-white" />
                   </div>
-                  Display
+                  <span className="gradient-text">Display</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -600,13 +602,13 @@ export default function VisualizationPage() {
             </Card>
 
             {/* Export Options Card */}
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-                    <Download className="w-4 h-4 text-white" />
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary-50/30 to-accent-purple-50/20 dark:from-primary-950/30 dark:to-accent-purple-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Download className="w-5 h-5 text-white" />
                   </div>
-                  Export
+                  <span className="gradient-text">Export</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -614,7 +616,7 @@ export default function VisualizationPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleExportPNG}
-                  className="w-full justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                  className="w-full justify-start glass-card hover:shadow-lg transition-all duration-200"
                 >
                   <Camera className="w-4 h-4 mr-2" />
                   Export as PNG
@@ -623,7 +625,7 @@ export default function VisualizationPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleExportSVG}
-                  className="w-full justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                  className="w-full justify-start glass-card hover:shadow-lg transition-all duration-200"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export as SVG
@@ -634,17 +636,17 @@ export default function VisualizationPage() {
 
           {/* Main Visualization Area */}
           <div className="xl:col-span-3">
-            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm min-h-[700px]">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+            <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 min-h-[700px] card-hover">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <BarChart3 className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <BarChart3 className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-semibold text-gray-900">
+                    <CardTitle className="text-2xl font-bold gradient-text">
                       Interactive Visualization
                     </CardTitle>
-                    <CardDescription className="text-sm text-gray-600">
+                    <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
                       {sideBySide
                         ? 'Side-by-side baseline vs monitoring comparison'
                         : 'Overlay comparison with anomaly highlighting'}
@@ -653,7 +655,7 @@ export default function VisualizationPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedDinsightId && (
-                    <div className="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                    <div className="glass-card px-4 py-2 bg-gradient-to-r from-primary-100/80 to-accent-purple-100/60 dark:from-primary-900/50 dark:to-accent-purple-900/40 text-primary-700 dark:text-primary-300 text-sm font-semibold rounded-full border border-primary-200/50 dark:border-primary-700/50">
                       Dataset ID: {selectedDinsightId}
                     </div>
                   )}
@@ -664,15 +666,15 @@ export default function VisualizationPage() {
                   <div className="flex items-center justify-center h-[600px]">
                     <div className="text-center">
                       <div className="relative">
-                        <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="w-20 h-20 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin mx-auto mb-6"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <BarChart3 className="w-6 h-6 text-blue-600" />
+                          <BarChart3 className="w-8 h-8 text-primary-600 dark:text-primary-400" />
                         </div>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-2xl font-bold gradient-text mb-3">
                         Loading Visualization
                       </h3>
-                      <p className="text-sm text-gray-600">Processing coordinate data...</p>
+                      <p className="text-gray-600 dark:text-gray-300">Processing coordinate data...</p>
                     </div>
                   </div>
                 ) : (
@@ -683,18 +685,18 @@ export default function VisualizationPage() {
                         return (
                           <div className="flex items-center justify-center h-full">
                             <div className="text-center">
-                              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                                <BarChart3 className="w-8 h-8 text-gray-400" />
+                              <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
+                                <BarChart3 className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                               </div>
-                              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                              <h3 className="text-2xl font-bold gradient-text mb-3">
                                 No Data Available
                               </h3>
-                              <p className="text-gray-600 mb-6 max-w-sm">
+                              <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
                                 Upload baseline data to begin visualizing coordinate patterns and
                                 anomalies.
                               </p>
                               <Link href="/dashboard/data-summary">
-                                <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+                                <Button className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all duration-200">
                                   Upload Data
                                   <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>

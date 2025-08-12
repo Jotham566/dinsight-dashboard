@@ -2,76 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
-:root {
-  /* Primary colors */
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-200: #bfdbfe;
-  --primary-300: #93c5fd;
-  --primary-400: #60a5fa;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
-  --primary-950: #172554;
+@layer base {
+  * {
+    border-color: theme('colors.gray.200');
+  }
+  
+  .dark * {
+    border-color: theme('colors.gray.800');
+  }
+  
+  body {
+    @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  html {
+    @apply scroll-smooth;
+  }
 }
 
-/* Custom component styles */
-.primary-gradient {
-  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
+@layer components {
+  /* Modern Glass Card */
+  .glass-card {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50;
+    @apply shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+  
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-600 to-accent-purple-600 bg-clip-text text-transparent;
+  }
+  
+  /* Card Hover Effects */
+  .card-hover {
+    @apply transition-all duration-300;
+    @apply hover:shadow-xl hover:-translate-y-1;
+    @apply hover:border-primary-500/20;
+  }
+  
+  /* Skeleton Loading */
+  .skeleton {
+    @apply relative overflow-hidden bg-gray-200 dark:bg-gray-800;
+  }
+  
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full animate-pulse;
+    @apply bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    content: '';
+  }
 }
 
-/* Custom utilities */
-.text-gradient {
-  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+@layer utilities {
+  /* Custom Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-/* Scrollbar styles */
+/* Custom Scrollbar Styles */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  @apply bg-gray-100 dark:bg-gray-900;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+  @apply hover:bg-gray-500 dark:hover:bg-gray-500;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* Selection Colors */
+::selection {
+  @apply bg-primary-500/20 text-primary-900 dark:text-primary-100;
 }
 
-/* Animation utilities */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Focus styles */
+/* Focus Visible */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
+  @apply dark:focus-visible:ring-offset-gray-900;
 }
 
-/* Card hover effects */
-.card-hover {
-  @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+/* Loading Spinner */
+.spinner {
+  @apply inline-block w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin;
 }

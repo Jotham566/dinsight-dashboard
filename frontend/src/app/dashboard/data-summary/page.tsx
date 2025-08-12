@@ -409,67 +409,74 @@ export default function DataSummaryPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Enhanced Page Header */}
+      {/* Modern Page Header with Gradient */}
       <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="mb-4 sm:mb-0">
-            <h1 className="text-3xl font-bold text-gray-900">Run Dinsight Analysis</h1>
-            <p className="mt-2 text-lg text-gray-600">
-              Configure processing settings and upload data for Dinsight analysis
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={resetWorkflow} className="flex-shrink-0">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reset Workflow
-            </Button>
-            <Button variant="outline" onClick={() => refetchConfig()} className="flex-shrink-0">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Config
-            </Button>
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary-50 via-white to-accent-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 rounded-2xl p-8 border border-gray-200/50 dark:border-gray-700/50">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-accent-purple-500/5"></div>
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-accent-purple-600 bg-clip-text text-transparent mb-3">
+                Run DInsight Analysis
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl">
+                Configure processing settings and upload data for comprehensive anomaly detection and insights
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" onClick={resetWorkflow} className="glass-card hover:shadow-lg">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reset Workflow
+              </Button>
+              <Button variant="outline" onClick={() => refetchConfig()} className="glass-card hover:shadow-lg">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Config
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* View Mode Tabs - Reorganized for better workflow */}
-        <div className="mt-6 border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setViewMode('config')}
-              className={cn(
-                'py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                viewMode === 'config'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              <Settings className="w-4 h-4 mr-2 inline" />
-              1. Configuration
-            </button>
-            <button
-              onClick={() => setViewMode('upload')}
-              className={cn(
-                'py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                viewMode === 'upload'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              <Upload className="w-4 h-4 mr-2 inline" />
-              2. Data Upload
-            </button>
-            <button
-              onClick={() => setViewMode('stats')}
-              className={cn(
-                'py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                viewMode === 'stats'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              <BarChart3 className="w-4 h-4 mr-2 inline" />
-              3. Statistics
-            </button>
-          </nav>
+        {/* Modern Tab Navigation */}
+        <div className="mt-8">
+          <div className="glass-card rounded-xl p-2">
+            <nav className="flex space-x-2">
+              <button
+                onClick={() => setViewMode('config')}
+                className={cn(
+                  'flex items-center px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200',
+                  viewMode === 'config'
+                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                )}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                1. Configuration
+              </button>
+              <button
+                onClick={() => setViewMode('upload')}
+                className={cn(
+                  'flex items-center px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200',
+                  viewMode === 'upload'
+                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                )}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                2. Data Upload
+              </button>
+              <button
+                onClick={() => setViewMode('stats')}
+                className={cn(
+                  'flex items-center px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200',
+                  viewMode === 'stats'
+                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                )}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                3. Statistics
+              </button>
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -477,25 +484,25 @@ export default function DataSummaryPage() {
       {viewMode === 'config' && (
         <div className="space-y-6">
           {/* Configuration Instructions */}
-          <Card className="border-l-4 border-l-blue-500 bg-blue-50/50">
+          <Card className="glass-card border-l-4 border-l-primary-500 bg-gradient-to-r from-primary-50/50 to-accent-purple-50/30 dark:from-primary-950/50 dark:to-accent-purple-950/30 card-hover">
             <CardContent className="pt-6">
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Settings className="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
                     Configure Processing Parameters
                   </h3>
-                  <p className="text-gray-700 mb-4">
+                  <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
                     Set up your analysis parameters before uploading data. These settings will be
                     applied to all baseline and monitoring datasets during processing.
                   </p>
-                  <div className="bg-blue-100 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-800">
-                      <strong>💡 Tip:</strong> Configure these settings first, then proceed to
+                  <div className="glass-card bg-gradient-to-r from-primary-100/80 to-accent-purple-100/60 dark:from-primary-900/50 dark:to-accent-purple-900/40 border border-primary-200/50 dark:border-primary-700/50 rounded-xl p-4">
+                    <p className="text-sm text-primary-800 dark:text-primary-200">
+                      <strong>💡 Pro Tip:</strong> Configure these settings first, then proceed to
                       upload your data. You can always come back to adjust parameters if needed.
                     </p>
                   </div>
@@ -505,23 +512,27 @@ export default function DataSummaryPage() {
           </Card>
 
           {/* Processing Configuration */}
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
               <div>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-blue-600" />
-                  Processing Configuration
+                <CardTitle className="text-2xl flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+                    <Settings className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="gradient-text">Processing Configuration</span>
                 </CardTitle>
-                <CardDescription>Analysis parameters and algorithm settings</CardDescription>
+                <CardDescription className="text-gray-600 dark:text-gray-400 mt-2">
+                  Analysis parameters and algorithm settings for optimal performance
+                </CardDescription>
               </div>
               {isEditingConfig ? (
                 <div className="flex gap-2">
                   <Button
-                    variant="default"
+                    variant="gradient"
                     size="sm"
                     onClick={handleSaveConfig}
                     disabled={isSavingConfig}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="shadow-lg"
                   >
                     <Save className="w-4 h-4 mr-1" />
                     {isSavingConfig ? 'Saving...' : 'Save'}
@@ -531,13 +542,13 @@ export default function DataSummaryPage() {
                     size="sm"
                     onClick={handleRestoreDefaults}
                     disabled={isSavingConfig}
-                    className="border-orange-200 hover:bg-orange-50 text-orange-700"
+                    className="border-accent-orange-300 hover:bg-accent-orange-50 text-accent-orange-700 dark:border-accent-orange-700 dark:hover:bg-accent-orange-950 dark:text-accent-orange-300"
                   >
                     <RefreshCw className="w-4 h-4 mr-1" />
                     Restore Defaults
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={handleCancelEdit}
                     disabled={isSavingConfig}
@@ -551,7 +562,7 @@ export default function DataSummaryPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleEditConfig}
-                  className="border-blue-200 hover:bg-blue-50"
+                  className="glass-card hover:shadow-lg"
                 >
                   <Settings className="w-4 h-4 mr-1" />
                   Edit Configuration
@@ -560,11 +571,11 @@ export default function DataSummaryPage() {
             </CardHeader>
             <CardContent className="p-6">
               {configLoading ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-5 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-lg w-3/4 mb-3"></div>
+                      <div className="h-12 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl w-full"></div>
                     </div>
                   ))}
                 </div>
@@ -673,36 +684,36 @@ export default function DataSummaryPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                      <span className="text-sm font-medium text-blue-700">Optimizer</span>
-                      <p className="text-lg font-semibold text-blue-900 capitalize">
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="glass-card bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950/50 dark:to-primary-900/50 p-6 rounded-xl border border-primary-200/50 dark:border-primary-700/50 hover:shadow-lg transition-all duration-200">
+                      <span className="text-sm font-medium text-primary-700 dark:text-primary-300 block mb-2">Optimizer</span>
+                      <p className="text-xl font-bold text-primary-900 dark:text-primary-100 capitalize">
                         {config?.optimizer}
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                      <span className="text-sm font-medium text-green-700">Alpha</span>
-                      <p className="text-lg font-semibold text-green-900">{config?.alpha}</p>
+                    <div className="glass-card bg-gradient-to-br from-accent-teal-50 to-accent-teal-100 dark:from-accent-teal-950/50 dark:to-accent-teal-900/50 p-6 rounded-xl border border-accent-teal-200/50 dark:border-accent-teal-700/50 hover:shadow-lg transition-all duration-200">
+                      <span className="text-sm font-medium text-accent-teal-700 dark:text-accent-teal-300 block mb-2">Alpha</span>
+                      <p className="text-xl font-bold text-accent-teal-900 dark:text-accent-teal-100">{config?.alpha}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-                      <span className="text-sm font-medium text-purple-700">Gamma0</span>
-                      <p className="text-lg font-semibold text-purple-900">{config?.gamma0}</p>
+                    <div className="glass-card bg-gradient-to-br from-accent-purple-50 to-accent-purple-100 dark:from-accent-purple-950/50 dark:to-accent-purple-900/50 p-6 rounded-xl border border-accent-purple-200/50 dark:border-accent-purple-700/50 hover:shadow-lg transition-all duration-200">
+                      <span className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300 block mb-2">Gamma0</span>
+                      <p className="text-xl font-bold text-accent-purple-900 dark:text-accent-purple-100">{config?.gamma0}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
-                      <span className="text-sm font-medium text-orange-700">End Meta</span>
-                      <p className="text-lg font-semibold text-orange-900">{config?.end_meta}</p>
+                    <div className="glass-card bg-gradient-to-br from-accent-orange-50 to-accent-orange-100 dark:from-accent-orange-950/50 dark:to-accent-orange-900/50 p-6 rounded-xl border border-accent-orange-200/50 dark:border-accent-orange-700/50 hover:shadow-lg transition-all duration-200">
+                      <span className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300 block mb-2">End Meta</span>
+                      <p className="text-xl font-bold text-accent-orange-900 dark:text-accent-orange-100">{config?.end_meta}</p>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-gray-200">
+                  <div className="pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-lg border border-indigo-200">
-                        <span className="text-sm font-medium text-indigo-700">Start Dim</span>
-                        <p className="text-lg font-semibold text-indigo-900">{config?.start_dim}</p>
+                      <div className="glass-card bg-gradient-to-br from-accent-pink-50 to-accent-pink-100 dark:from-accent-pink-950/50 dark:to-accent-pink-900/50 p-6 rounded-xl border border-accent-pink-200/50 dark:border-accent-pink-700/50 hover:shadow-lg transition-all duration-200">
+                        <span className="text-sm font-medium text-accent-pink-700 dark:text-accent-pink-300 block mb-2">Start Dimension</span>
+                        <p className="text-xl font-bold text-accent-pink-900 dark:text-accent-pink-100 font-mono">{config?.start_dim}</p>
                       </div>
-                      <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-lg border border-teal-200">
-                        <span className="text-sm font-medium text-teal-700">End Dim</span>
-                        <p className="text-lg font-semibold text-teal-900">{config?.end_dim}</p>
+                      <div className="glass-card bg-gradient-to-br from-primary-50 to-accent-teal-100 dark:from-primary-950/50 dark:to-accent-teal-900/50 p-6 rounded-xl border border-primary-200/50 dark:border-primary-700/50 hover:shadow-lg transition-all duration-200">
+                        <span className="text-sm font-medium text-primary-700 dark:text-primary-300 block mb-2">End Dimension</span>
+                        <p className="text-xl font-bold text-primary-900 dark:text-primary-100 font-mono">{config?.end_dim}</p>
                       </div>
                     </div>
                   </div>
@@ -712,21 +723,23 @@ export default function DataSummaryPage() {
           </Card>
 
           {/* Next Steps Card */}
-          <Card className="border-green-200 bg-green-50/50">
+          <Card className="glass-card border-accent-teal-200/50 bg-gradient-to-r from-accent-teal-50/50 to-primary-50/30 dark:from-accent-teal-950/30 dark:to-primary-950/30 dark:border-accent-teal-700/50 card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-teal-500/25">
+                    <CheckCircle className="w-6 h-6 text-white" />
+                  </div>
                   <div>
-                    <h3 className="font-semibold text-green-800">Configuration Complete</h3>
-                    <p className="text-sm text-green-700">
-                      Ready to proceed with data upload using these settings
+                    <h3 className="text-lg font-bold text-accent-teal-800 dark:text-accent-teal-200">Configuration Complete</h3>
+                    <p className="text-sm text-accent-teal-700 dark:text-accent-teal-300">
+                      Ready to proceed with data upload using these optimized settings
                     </p>
                   </div>
                 </div>
                 <Button
                   onClick={() => setViewMode('upload')}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-gradient-to-r from-accent-teal-600 to-accent-teal-700 hover:from-accent-teal-700 hover:to-accent-teal-800 text-white shadow-lg shadow-accent-teal-500/25"
                 >
                   Proceed to Upload
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -739,34 +752,34 @@ export default function DataSummaryPage() {
 
       {viewMode === 'upload' && (
         <div className="space-y-6">
-          {/* Workflow Progress - Compact Header */}
-          <Card className="border-l-4 border-l-blue-500">
+          {/* Workflow Progress - Modern Header */}
+          <Card className="glass-card border-l-4 border-l-primary-500 bg-gradient-to-r from-primary-50/30 to-accent-purple-50/20 dark:from-primary-950/30 dark:to-accent-purple-950/20 card-hover">
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-2">
                     <div
                       className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                        'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-all duration-200',
                         isBaselineStep ||
                           processingState.status === 'processing' ||
                           isMonitoringStep ||
                           isCompleteStep
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-600'
+                          ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       )}
                     >
                       1
                     </div>
                     <span
                       className={cn(
-                        'font-medium text-sm',
+                        'font-semibold text-sm',
                         isBaselineStep ||
                           processingState.status === 'processing' ||
                           isMonitoringStep ||
                           isCompleteStep
-                          ? 'text-blue-600'
-                          : 'text-gray-400'
+                          ? 'text-primary-600 dark:text-primary-400'
+                          : 'text-gray-400 dark:text-gray-500'
                       )}
                     >
                       Baseline
@@ -775,26 +788,26 @@ export default function DataSummaryPage() {
 
                   <ArrowRight
                     className={cn(
-                      'w-4 h-4 hidden sm:block',
-                      isMonitoringStep || isCompleteStep ? 'text-blue-600' : 'text-gray-400'
+                      'w-5 h-5 hidden sm:block transition-all duration-200',
+                      isMonitoringStep || isCompleteStep ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'
                     )}
                   />
 
                   <div className="flex items-center space-x-2">
                     <div
                       className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                        'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-all duration-200',
                         isMonitoringStep || isCompleteStep
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-600'
+                          ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       )}
                     >
                       2
                     </div>
                     <span
                       className={cn(
-                        'font-medium text-sm',
-                        isMonitoringStep || isCompleteStep ? 'text-blue-600' : 'text-gray-400'
+                        'font-semibold text-sm',
+                        isMonitoringStep || isCompleteStep ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'
                       )}
                     >
                       Monitoring
@@ -803,24 +816,24 @@ export default function DataSummaryPage() {
 
                   <ArrowRight
                     className={cn(
-                      'w-4 h-4 hidden sm:block',
-                      isCompleteStep ? 'text-green-600' : 'text-gray-400'
+                      'w-5 h-5 hidden sm:block transition-all duration-200',
+                      isCompleteStep ? 'text-accent-teal-600 dark:text-accent-teal-400' : 'text-gray-400 dark:text-gray-500'
                     )}
                   />
 
                   <div className="flex items-center space-x-2">
                     <div
                       className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-                        isCompleteStep ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'
+                        'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-lg transition-all duration-200',
+                        isCompleteStep ? 'bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 text-white shadow-accent-teal-500/25' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       )}
                     >
                       ✓
                     </div>
                     <span
                       className={cn(
-                        'font-medium text-sm',
-                        isCompleteStep ? 'text-green-600' : 'text-gray-400'
+                        'font-semibold text-sm',
+                        isCompleteStep ? 'text-accent-teal-600 dark:text-accent-teal-400' : 'text-gray-400 dark:text-gray-500'
                       )}
                     >
                       Complete
@@ -897,19 +910,19 @@ export default function DataSummaryPage() {
             {/* Step 1: Baseline Upload */}
             <Card
               className={cn(
-                'h-fit transition-all duration-200',
-                isBaselineStep ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-lg' : '',
+                'glass-card h-fit transition-all duration-300 card-hover',
+                isBaselineStep ? 'ring-2 ring-primary-500/50 shadow-xl shadow-primary-500/10' : '',
                 isMonitoringStep || isCompleteStep ? 'opacity-80' : ''
               )}
             >
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-lg">
-                  <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-sm flex items-center justify-center mr-3">
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary-50/30 to-transparent dark:from-primary-950/30 rounded-t-xl">
+                <CardTitle className="flex items-center text-xl">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-white text-sm font-bold flex items-center justify-center mr-3 shadow-lg shadow-primary-500/25">
                     1
-                  </span>
-                  Baseline Data
+                  </div>
+                  <span className="gradient-text">Baseline Data</span>
                 </CardTitle>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-gray-600 dark:text-gray-400">
                   Upload CSV files for initial analysis and processing
                 </CardDescription>
               </CardHeader>
@@ -940,26 +953,28 @@ export default function DataSummaryPage() {
             {/* Step 2: Monitoring Upload */}
             <Card
               className={cn(
-                'h-fit transition-all duration-200',
-                isMonitoringStep ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-lg' : '',
+                'glass-card h-fit transition-all duration-300 card-hover',
+                isMonitoringStep ? 'ring-2 ring-primary-500/50 shadow-xl shadow-primary-500/10' : '',
                 !isMonitoringStep ? 'opacity-60' : ''
               )}
             >
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-lg">
-                  <span
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary-50/30 to-transparent dark:from-primary-950/30 rounded-t-xl">
+                <CardTitle className="flex items-center text-xl">
+                  <div
                     className={cn(
-                      'w-7 h-7 rounded-full text-sm flex items-center justify-center mr-3',
+                      'w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center mr-3 shadow-lg transition-all duration-200',
                       isMonitoringStep || isCompleteStep
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-300 text-gray-500'
+                        ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-primary-500/25'
+                        : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                     )}
                   >
                     2
+                  </div>
+                  <span className={cn(isMonitoringStep || isCompleteStep ? 'gradient-text' : 'text-gray-500 dark:text-gray-400')}>
+                    Monitoring Data
                   </span>
-                  Monitoring Data
                 </CardTitle>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-gray-600 dark:text-gray-400">
                   Upload monitoring data for anomaly detection
                 </CardDescription>
               </CardHeader>
@@ -1009,28 +1024,28 @@ export default function DataSummaryPage() {
 
           {/* Completion Status - Full Width */}
           {isCompleteStep && (
-            <Card className="border-green-200 bg-gradient-to-r from-green-50 to-green-100 mt-6">
-              <CardContent className="pt-8 pb-8">
+            <Card className="glass-card border-accent-teal-200/50 bg-gradient-to-r from-accent-teal-50/50 via-primary-50/30 to-accent-purple-50/30 dark:from-accent-teal-950/30 dark:via-primary-950/20 dark:to-accent-purple-950/30 mt-6 card-hover">
+              <CardContent className="pt-10 pb-10">
                 <div className="text-center">
-                  <div className="mx-auto mb-4 w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
-                    <CheckCircle className="h-8 w-8 text-white" />
+                  <div className="mx-auto mb-6 w-20 h-20 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-full flex items-center justify-center shadow-2xl shadow-accent-teal-500/25">
+                    <CheckCircle className="h-10 w-10 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-green-800 mb-2">
+                  <h3 className="text-3xl font-bold gradient-text mb-3">
                     🎉 Data Processing Complete!
                   </h3>
-                  <p className="text-green-700 mb-6 max-w-md mx-auto">
+                  <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
                     Both baseline and monitoring data have been successfully uploaded and processed.
                     You can now view analysis results or upload new data.
                   </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    <Button className="bg-green-600 hover:bg-green-700 text-white">
+                  <div className="flex flex-wrap justify-center gap-4">
+                    <Button className="bg-gradient-to-r from-accent-teal-600 to-accent-teal-700 hover:from-accent-teal-700 hover:to-accent-teal-800 text-white shadow-lg shadow-accent-teal-500/25">
                       <BarChart3 className="w-4 h-4 mr-2" />
                       View Analysis
                     </Button>
                     <Button
                       onClick={() => setViewMode('stats')}
                       variant="outline"
-                      className="border-green-300 text-green-700 hover:bg-green-50"
+                      className="glass-card hover:shadow-lg"
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       View Statistics
@@ -1038,7 +1053,7 @@ export default function DataSummaryPage() {
                     <Button
                       onClick={resetWorkflow}
                       variant="outline"
-                      className="border-green-300 text-green-700 hover:bg-green-50"
+                      className="glass-card hover:shadow-lg"
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       Upload New Data
@@ -1054,23 +1069,25 @@ export default function DataSummaryPage() {
       {viewMode === 'stats' && (
         <div className="space-y-6">
           {/* Current Configuration Summary */}
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card className="glass-card border-primary-200/50 bg-gradient-to-r from-primary-50/50 to-accent-purple-50/30 dark:from-primary-950/50 dark:to-accent-purple-950/30 dark:border-primary-700/50 card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Settings className="w-6 h-6 text-blue-600" />
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Settings className="w-6 h-6 text-white" />
+                  </div>
                   <div>
-                    <h3 className="font-semibold text-blue-800">Current Configuration</h3>
-                    <p className="text-sm text-blue-700">
-                      Optimizer: {config?.optimizer || 'Loading...'} | Alpha:{' '}
-                      {config?.alpha || 'Loading...'}
+                    <h3 className="text-lg font-bold text-primary-800 dark:text-primary-200">Current Configuration</h3>
+                    <p className="text-sm text-primary-700 dark:text-primary-300">
+                      Optimizer: <span className="font-mono font-semibold">{config?.optimizer || 'Loading...'}</span> | Alpha:{' '}
+                      <span className="font-mono font-semibold">{config?.alpha || 'Loading...'}</span>
                     </p>
                   </div>
                 </div>
                 <Button
                   onClick={() => setViewMode('config')}
                   variant="outline"
-                  className="border-blue-200 hover:bg-blue-100 text-blue-700"
+                  className="glass-card hover:shadow-lg"
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Edit Configuration
@@ -1080,47 +1097,52 @@ export default function DataSummaryPage() {
           </Card>
 
           {/* Dataset Statistics */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl">Dataset Statistics</CardTitle>
-              <CardDescription>
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
+              <CardTitle className="text-2xl flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-white" />
+                </div>
+                <span className="gradient-text">Dataset Statistics</span>
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400 mt-2">
                 {dinsightStats
                   ? `Data overview for Dinsight ID ${dinsightStats.dinsightId}`
-                  : 'Data quality metrics and insights'}
+                  : 'Data quality metrics and insights for your analysis'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {statsLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-gray-600">Loading statistics...</span>
+                <div className="flex items-center justify-center p-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                  <span className="ml-4 text-gray-600 dark:text-gray-300 text-lg">Loading statistics...</span>
                 </div>
               ) : dinsightStats ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                      <p className="text-2xl font-bold text-blue-900">
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="glass-card text-center p-6 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950/50 dark:to-primary-900/50 rounded-xl border border-primary-200/50 dark:border-primary-700/50 hover:shadow-lg transition-all duration-200">
+                      <p className="text-3xl font-bold text-primary-900 dark:text-primary-100 mb-2">
                         {formatNumber(dinsightStats.totalRecords)}
                       </p>
-                      <p className="text-sm font-medium text-blue-700">Total Records</p>
+                      <p className="text-sm font-medium text-primary-700 dark:text-primary-300">Total Records</p>
                     </div>
-                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
-                      <p className="text-2xl font-bold text-green-900">
+                    <div className="glass-card text-center p-6 bg-gradient-to-br from-accent-teal-50 to-accent-teal-100 dark:from-accent-teal-950/50 dark:to-accent-teal-900/50 rounded-xl border border-accent-teal-200/50 dark:border-accent-teal-700/50 hover:shadow-lg transition-all duration-200">
+                      <p className="text-3xl font-bold text-accent-teal-900 dark:text-accent-teal-100 mb-2">
                         {formatNumber(dinsightStats.features)}
                       </p>
-                      <p className="text-sm font-medium text-green-700">Features</p>
+                      <p className="text-sm font-medium text-accent-teal-700 dark:text-accent-teal-300">Features</p>
                     </div>
-                    <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                      <p className="text-2xl font-bold text-purple-900">
+                    <div className="glass-card text-center p-6 bg-gradient-to-br from-accent-purple-50 to-accent-purple-100 dark:from-accent-purple-950/50 dark:to-accent-purple-900/50 rounded-xl border border-accent-purple-200/50 dark:border-accent-purple-700/50 hover:shadow-lg transition-all duration-200">
+                      <p className="text-3xl font-bold text-accent-purple-900 dark:text-accent-purple-100 mb-2">
                         {dinsightStats.missingValues.toFixed(1)}%
                       </p>
-                      <p className="text-sm font-medium text-purple-700">Missing Values</p>
+                      <p className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300">Missing Values</p>
                     </div>
-                    <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200">
-                      <p className="text-2xl font-bold text-orange-900">
+                    <div className="glass-card text-center p-6 bg-gradient-to-br from-accent-orange-50 to-accent-orange-100 dark:from-accent-orange-950/50 dark:to-accent-orange-900/50 rounded-xl border border-accent-orange-200/50 dark:border-accent-orange-700/50 hover:shadow-lg transition-all duration-200">
+                      <p className="text-3xl font-bold text-accent-orange-900 dark:text-accent-orange-100 mb-2">
                         {dinsightStats.dataQuality.toFixed(1)}%
                       </p>
-                      <p className="text-sm font-medium text-orange-700">Data Quality</p>
+                      <p className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">Data Quality</p>
                     </div>
                   </div>
 
@@ -1206,43 +1228,50 @@ export default function DataSummaryPage() {
           </Card>
 
           {/* Quick Actions */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl">Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
+              <CardTitle className="text-2xl flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </div>
+                <span className="gradient-text">Quick Actions</span>
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400 mt-2">
+                Common tasks and shortcuts for data management
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button variant="outline" className="justify-start h-auto p-4 flex-col items-start">
-                  <BarChart3 className="w-6 h-6 mb-2 text-blue-600" />
+                <Button variant="ghost" className="glass-card justify-start h-auto p-6 flex-col items-start hover:shadow-lg transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50">
+                  <BarChart3 className="w-8 h-8 mb-3 text-primary-600 dark:text-primary-400" />
                   <div className="text-left">
-                    <div className="font-semibold">Sample Data</div>
-                    <div className="text-xs text-gray-500">Load demo dataset</div>
+                    <div className="font-bold text-gray-900 dark:text-gray-100">Sample Data</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Load demo dataset</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto p-4 flex-col items-start">
-                  <Download className="w-6 h-6 mb-2 text-green-600" />
+                <Button variant="ghost" className="glass-card justify-start h-auto p-6 flex-col items-start hover:shadow-lg transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50">
+                  <Download className="w-8 h-8 mb-3 text-accent-teal-600 dark:text-accent-teal-400" />
                   <div className="text-left">
-                    <div className="font-semibold">Export Stats</div>
-                    <div className="text-xs text-gray-500">Download reports</div>
+                    <div className="font-bold text-gray-900 dark:text-gray-100">Export Stats</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Download reports</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto p-4 flex-col items-start">
-                  <Settings className="w-6 h-6 mb-2 text-orange-600" />
+                <Button variant="ghost" className="glass-card justify-start h-auto p-6 flex-col items-start hover:shadow-lg transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50">
+                  <Settings className="w-8 h-8 mb-3 text-accent-orange-600 dark:text-accent-orange-400" />
                   <div className="text-left">
-                    <div className="font-semibold">Reset Config</div>
-                    <div className="text-xs text-gray-500">Default settings</div>
+                    <div className="font-bold text-gray-900 dark:text-gray-100">Reset Config</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Default settings</div>
                   </div>
                 </Button>
                 <Button
-                  variant="outline"
-                  className="justify-start h-auto p-4 flex-col items-start"
+                  variant="ghost"
+                  className="glass-card justify-start h-auto p-6 flex-col items-start hover:shadow-lg transition-all duration-200 border border-gray-200/50 dark:border-gray-700/50"
                   onClick={() => setViewMode('upload')}
                 >
-                  <Upload className="w-6 h-6 mb-2 text-purple-600" />
+                  <Upload className="w-8 h-8 mb-3 text-accent-purple-600 dark:text-accent-purple-400" />
                   <div className="text-left">
-                    <div className="font-semibold">New Upload</div>
-                    <div className="text-xs text-gray-500">Upload more data</div>
+                    <div className="font-bold text-gray-900 dark:text-gray-100">New Upload</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Upload more data</div>
                   </div>
                 </Button>
               </div>
