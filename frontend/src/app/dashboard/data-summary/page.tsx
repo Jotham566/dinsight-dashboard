@@ -7,19 +7,14 @@ import {
   Download,
   Eye,
   BarChart3,
-  FileText,
-  Trash2,
   RefreshCw,
   AlertCircle,
   CheckCircle,
   Clock,
-  Database,
   ArrowRight,
   Upload,
   Save,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,33 +57,6 @@ const mockConfig = {
   end_dim: 'f_1023',
 };
 
-const mockDatasets = [
-  {
-    id: 1,
-    name: 'baseline_data_week1.csv',
-    records: 1000,
-    features: 1024,
-    status: 'processed',
-    type: 'baseline',
-    tags: ['baseline', 'production', 'week1'],
-    quality_score: 98.5,
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    size: 15728640, // ~15MB
-  },
-  {
-    id: 2,
-    name: 'monitoring_data_day1.csv',
-    records: 500,
-    features: 1024,
-    status: 'processing',
-    type: 'monitoring',
-    tags: ['monitoring', 'day1'],
-    quality_score: null,
-    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    size: 7864320, // ~7.5MB
-  },
-];
-
 export default function DataSummaryPage() {
   const [baselineFiles, setBaselineFiles] = useState<UploadedFile[]>([]);
   const [monitoringFiles, setMonitoringFiles] = useState<UploadedFile[]>([]);
@@ -102,12 +70,8 @@ export default function DataSummaryPage() {
   const [editedConfig, setEditedConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
-  // Pagination state for Dataset Library
-  const [currentPage, setCurrentPage] = useState(1);
-  const datasetsPerPage = 4; // Increased for better UX
-
   // View mode state for switching between different views - Config first for better UX
-  const [viewMode, setViewMode] = useState<'config' | 'upload' | 'library' | 'stats'>('config');
+  const [viewMode, setViewMode] = useState<'config' | 'upload' | 'stats'>('config');
 
   // Query for processing configuration
   const {
@@ -159,61 +123,6 @@ export default function DataSummaryPage() {
     },
     enabled: !!processingState.dinsightId && processingState.status === 'completed',
   });
-
-  // Query for available datasets - simplified approach for empty database state
-  const {
-    data: availableDatasets,
-    isLoading: datasetsLoading,
-    refetch: refetchDatasets,
-  } = useQuery({
-    queryKey: ['available-datasets'],
-    queryFn: async () => {
-      // TODO: When data exists, this should be updated to:
-      // 1. Either use a proper list endpoint (GET /dinsight) if backend implements it
-      // 2. Or track dinsight IDs from successful uploads and query those specific IDs
-      //
-      // For now, with empty database, return empty array to avoid API errors
-      return [];
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
-
-  // Reset pagination when datasets change
-  useEffect(() => {
-    if (availableDatasets) {
-      setCurrentPage(1);
-    }
-  }, [availableDatasets]);
-
-  // Handle scroll navigation for pagination
-  const handleScroll = (event: React.WheelEvent) => {
-    if (!availableDatasets || availableDatasets.length <= datasetsPerPage) return;
-
-    const totalPages = Math.ceil(availableDatasets.length / datasetsPerPage);
-
-    if (event.deltaY > 0) {
-      // Scrolling down - next page
-      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-    } else if (event.deltaY < 0) {
-      // Scrolling up - previous page
-      setCurrentPage((prev) => Math.max(1, prev - 1));
-    }
-  };
-
-  // Handle keyboard navigation for pagination
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (!availableDatasets || availableDatasets.length <= datasetsPerPage) return;
-
-    const totalPages = Math.ceil(availableDatasets.length / datasetsPerPage);
-
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      setCurrentPage((prev) => Math.max(1, prev - 1));
-    } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      event.preventDefault();
-      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-    }
-  };
 
   // Polling effect to check processing status
   useEffect(() => {
@@ -466,7 +375,7 @@ export default function DataSummaryPage() {
       case 'error':
         return <AlertCircle className="h-4 w-4" />;
       default:
-        return <Database className="h-4 w-4" />;
+        return <Clock className="h-4 w-4" />;
     }
   };
 
@@ -527,18 +436,6 @@ export default function DataSummaryPage() {
               2. Data Upload
             </button>
             <button
-              onClick={() => setViewMode('library')}
-              className={cn(
-                'py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
-                viewMode === 'library'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              <Database className="w-4 h-4 mr-2 inline" />
-              3. Dataset Library
-            </button>
-            <button
               onClick={() => setViewMode('stats')}
               className={cn(
                 'py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
@@ -548,7 +445,7 @@ export default function DataSummaryPage() {
               )}
             >
               <BarChart3 className="w-4 h-4 mr-2 inline" />
-              4. Statistics
+              3. Statistics
             </button>
           </nav>
         </div>
@@ -1119,204 +1016,6 @@ export default function DataSummaryPage() {
               </CardContent>
             </Card>
           )}
-        </div>
-      )}
-
-      {viewMode === 'library' && (
-        <div className="space-y-6">
-          {/* Dataset Library */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl">Dataset Library</CardTitle>
-                <CardDescription className="text-base">
-                  {datasetsLoading
-                    ? 'Loading your datasets...'
-                    : availableDatasets && availableDatasets.length > 0
-                      ? availableDatasets.length > datasetsPerPage
-                        ? `${availableDatasets.length} datasets • ${datasetsPerPage} per page`
-                        : `${availableDatasets.length} datasets total`
-                      : 'No datasets found'}
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetchDatasets()}
-                  disabled={datasetsLoading}
-                >
-                  <RefreshCw className={cn('w-4 h-4 mr-2', datasetsLoading && 'animate-spin')} />
-                  Refresh
-                </Button>
-                <Button variant="default" size="sm" onClick={() => setViewMode('upload')}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload New
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {datasetsLoading ? (
-                <div className="flex items-center justify-center p-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-gray-600">Loading datasets...</span>
-                </div>
-              ) : availableDatasets && availableDatasets.length > 0 ? (
-                <div
-                  className="space-y-4 focus:outline-none"
-                  onWheel={handleScroll}
-                  onKeyDown={handleKeyDown}
-                  tabIndex={0}
-                >
-                  {/* Dataset Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {availableDatasets
-                      .slice((currentPage - 1) * datasetsPerPage, currentPage * datasetsPerPage)
-                      .map((dataset: any) => (
-                        <Card
-                          key={dataset.id}
-                          className="hover:shadow-md transition-shadow border border-gray-200"
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center space-x-3">
-                                <div className="flex-shrink-0">
-                                  <FileText className="h-8 w-8 text-blue-500" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-gray-900 truncate mb-1">
-                                    {dataset.name}
-                                  </p>
-                                  <span
-                                    className={cn(
-                                      'inline-flex items-center px-2 py-1 text-xs font-medium rounded-full',
-                                      getStatusColor(dataset.status)
-                                    )}
-                                  >
-                                    {getStatusIcon(dataset.status)}
-                                    <span className="ml-1 capitalize">{dataset.status}</span>
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2 mb-4">
-                              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                <div className="flex items-center">
-                                  <span className="mr-1">📊</span>
-                                  <span>{formatNumber(dataset.records)} records</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <span className="mr-1">🧬</span>
-                                  <span>{formatNumber(dataset.features)} features</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <span className="mr-1">💾</span>
-                                  <span>{formatBytes(dataset.size)}</span>
-                                </div>
-                                {dataset.quality_score && (
-                                  <div className="flex items-center">
-                                    <span className="mr-1">✨</span>
-                                    <span>{dataset.quality_score}% quality</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex flex-wrap gap-1">
-                                {dataset.tags.slice(0, 2).map((tag: any) => (
-                                  <span
-                                    key={tag}
-                                    className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                                {dataset.tags.length > 2 && (
-                                  <span className="inline-flex px-2 py-1 text-xs text-gray-400">
-                                    +{dataset.tags.length - 2} more
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" className="flex-1 h-8 text-xs">
-                                <Eye className="h-3 w-3 mr-1" />
-                                Preview
-                              </Button>
-                              <Button variant="ghost" size="sm" className="flex-1 h-8 text-xs">
-                                <BarChart3 className="h-3 w-3 mr-1" />
-                                Analyze
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-8 px-2">
-                                <Download className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                  </div>
-
-                  {/* Pagination Controls */}
-                  {availableDatasets.length > datasetsPerPage && (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 border-t space-y-3 sm:space-y-0">
-                      <div className="text-sm text-gray-600">
-                        Showing {(currentPage - 1) * datasetsPerPage + 1} to{' '}
-                        {Math.min(currentPage * datasetsPerPage, availableDatasets.length)} of{' '}
-                        {availableDatasets.length} datasets
-                      </div>
-                      <div className="flex items-center justify-center sm:justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="w-4 h-4 mr-1" />
-                          Previous
-                        </Button>
-                        <span className="text-sm text-gray-600 px-2">
-                          {currentPage} of {Math.ceil(availableDatasets.length / datasetsPerPage)}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setCurrentPage((prev) =>
-                              Math.min(
-                                Math.ceil(availableDatasets.length / datasetsPerPage),
-                                prev + 1
-                              )
-                            )
-                          }
-                          disabled={
-                            currentPage >= Math.ceil(availableDatasets.length / datasetsPerPage)
-                          }
-                        >
-                          Next
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Database className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No datasets found</h3>
-                  <p className="text-sm mb-4">
-                    Upload your first dataset to get started with analysis
-                  </p>
-                  <Button onClick={() => setViewMode('upload')}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Data
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
 
