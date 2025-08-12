@@ -7,7 +7,7 @@
 
 ## 📋 Overview
 
-The D'insight API provides comprehensive endpoints for data analytics and anomaly detection, including authentication, data upload/processing, dataset management, anomaly detection, and real-time monitoring.
+The D'insight API provides comprehensive endpoints for data analytics and anomaly detection, including authentication, data upload/processing, anomaly detection, and real-time monitoring.
 
 ## 🔐 Authentication Endpoints
 

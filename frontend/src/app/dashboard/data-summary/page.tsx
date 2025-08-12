@@ -393,7 +393,7 @@ export default function DataSummaryPage() {
           <div className="mb-4 sm:mb-0">
             <h1 className="text-3xl font-bold text-gray-900">Data Summary</h1>
             <p className="mt-2 text-lg text-gray-600">
-              Upload and manage your datasets for anomaly detection analysis
+              Configure processing settings and upload data for anomaly detection analysis
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
