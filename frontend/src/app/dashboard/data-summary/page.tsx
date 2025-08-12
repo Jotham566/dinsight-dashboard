@@ -654,12 +654,11 @@ export default function DataSummaryPage() {
                           <SelectValue placeholder="Select optimizer" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="adam">Adam (Recommended)</SelectItem>
-                          <SelectItem value="sgd">SGD</SelectItem>
+                          <SelectItem value="adam">Adam</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
-                        Optimization algorithm for training
+                        Adam optimizer (currently supported algorithm)
                       </p>
                     </div>
                     <div>
