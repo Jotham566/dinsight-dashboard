@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/auth-context';
+import { api } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +30,34 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Helper function to detect user's timezone
+const detectTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    console.error('Failed to detect timezone:', error);
+    return 'UTC';
+  }
+};
+
+// Helper function to format timezone for display
+const formatTimezone = (timezone: string) => {
+  try {
+    const offset = new Intl.DateTimeFormat('en', {
+      timeZone: timezone,
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(new Date())
+      .find((part) => part.type === 'timeZoneName')?.value;
+
+    return `${timezone} (${offset})`;
+  } catch (error) {
+    return timezone;
+  }
+};
+
 export default function SettingsPage() {
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'api'>(
     'profile'
   );
@@ -36,19 +65,32 @@ export default function SettingsPage() {
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  // Mock user data - in real app this would come from API/context
+  // Real user data from auth context
   const [profileData, setProfileData] = useState({
-    fullName: 'John Doe',
-    email: 'john.doe@acme.com',
-    role: 'User',
+    fullName: '',
+    email: '',
+    role: 'user' as 'admin' | 'user' | 'viewer',
     organization: 'ACME Manufacturing',
     theme: 'auto',
     language: 'en',
-    timezone: 'UTC-8',
+    timezone: detectTimezone(),
     itemsPerPage: '50',
     showAdvancedFeatures: false,
   });
+
+  // Initialize profile data from user context
+  useEffect(() => {
+    if (user) {
+      setProfileData((prev) => ({
+        ...prev,
+        fullName: user.full_name || '',
+        email: user.email || '',
+        role: user.role || 'user',
+      }));
+    }
+  }, [user]);
 
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
@@ -73,14 +115,35 @@ export default function SettingsPage() {
   ] as const;
 
   const handleSave = async () => {
+    if (!hasChanges) return;
+
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Only update fields that have changed
+      const updateData: { full_name?: string; email?: string } = {};
+
+      if (profileData.fullName !== user?.full_name) {
+        updateData.full_name = profileData.fullName;
+      }
+
+      if (profileData.email !== user?.email) {
+        updateData.email = profileData.email;
+      }
+
+      // Only make API call if there are actual changes
+      if (Object.keys(updateData).length > 0) {
+        await api.users.updateProfile(updateData);
+        // Refresh user data to get updated info
+        await refreshUser();
+      }
+
       setSaveSuccess(true);
+      setHasChanges(false);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error('Failed to save settings:', error);
+      // TODO: Show error toast/notification
+      alert('Failed to save settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -91,8 +154,20 @@ export default function SettingsPage() {
       alert('Passwords do not match');
       return;
     }
-    // Simulate password change
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    if (passwordData.newPassword.length < 8) {
+      alert('Password must be at least 8 characters long');
+      return;
+    }
+
+    try {
+      await api.users.changePassword(passwordData.currentPassword, passwordData.newPassword);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      alert('Password changed successfully');
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      alert('Failed to change password. Please check your current password and try again.');
+    }
   };
 
   return (
@@ -148,9 +223,10 @@ export default function SettingsPage() {
                       <Input
                         id="fullName"
                         value={profileData.fullName}
-                        onChange={(e) =>
-                          setProfileData((prev) => ({ ...prev, fullName: e.target.value }))
-                        }
+                        onChange={(e) => {
+                          setProfileData((prev) => ({ ...prev, fullName: e.target.value }));
+                          setHasChanges(true);
+                        }}
                         className="mt-1"
                       />
                     </div>
@@ -160,9 +236,10 @@ export default function SettingsPage() {
                         <Input
                           id="email"
                           value={profileData.email}
-                          onChange={(e) =>
-                            setProfileData((prev) => ({ ...prev, email: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            setProfileData((prev) => ({ ...prev, email: e.target.value }));
+                            setHasChanges(true);
+                          }}
                           className="flex-1"
                         />
                         <div className="flex items-center text-green-600 text-sm">
@@ -255,12 +332,40 @@ export default function SettingsPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="UTC-8">UTC-8 Pacific</SelectItem>
-                          <SelectItem value="UTC-5">UTC-5 Eastern</SelectItem>
-                          <SelectItem value="UTC+0">UTC+0 GMT</SelectItem>
-                          <SelectItem value="UTC+1">UTC+1 CET</SelectItem>
+                          <SelectItem value={detectTimezone()}>
+                            {formatTimezone(detectTimezone())} (Auto-detected)
+                          </SelectItem>
+                          <SelectItem value="America/New_York">
+                            {formatTimezone('America/New_York')}
+                          </SelectItem>
+                          <SelectItem value="America/Chicago">
+                            {formatTimezone('America/Chicago')}
+                          </SelectItem>
+                          <SelectItem value="America/Denver">
+                            {formatTimezone('America/Denver')}
+                          </SelectItem>
+                          <SelectItem value="America/Los_Angeles">
+                            {formatTimezone('America/Los_Angeles')}
+                          </SelectItem>
+                          <SelectItem value="Europe/London">
+                            {formatTimezone('Europe/London')}
+                          </SelectItem>
+                          <SelectItem value="Europe/Paris">
+                            {formatTimezone('Europe/Paris')}
+                          </SelectItem>
+                          <SelectItem value="Europe/Berlin">
+                            {formatTimezone('Europe/Berlin')}
+                          </SelectItem>
+                          <SelectItem value="Asia/Tokyo">{formatTimezone('Asia/Tokyo')}</SelectItem>
+                          <SelectItem value="Asia/Shanghai">
+                            {formatTimezone('Asia/Shanghai')}
+                          </SelectItem>
+                          <SelectItem value="UTC">UTC</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Auto-detected: {formatTimezone(detectTimezone())}
+                      </p>
                     </div>
                   </div>
 
@@ -557,7 +662,11 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-            <Button onClick={handleSave} disabled={isSaving} className="min-w-[120px]">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || !hasChanges}
+              className="min-w-[120px]"
+            >
               {isSaving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -566,7 +675,7 @@ export default function SettingsPage() {
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  {hasChanges ? 'Save Changes' : 'No Changes'}
                 </>
               )}
             </Button>
