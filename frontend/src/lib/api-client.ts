@@ -238,6 +238,7 @@ export const api = {
     validate: (data: { dataset_id: number; validation_rule_ids: number[] }) =>
       apiClient.post('/data-validation/validate', data),
   },
+
 };
 
 export default apiClient;

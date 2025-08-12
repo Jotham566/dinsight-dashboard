@@ -219,6 +219,12 @@ export interface RecentAnalysis {
   created_at: string;
 }
 
+export interface SystemHealth {
+  uptime: number;
+  status: 'healthy' | 'warning' | 'critical';
+  lastUpdate: string;
+}
+
 // Navigation Types
 export interface NavItem {
   label: string;
