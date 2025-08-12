@@ -106,8 +106,8 @@ export default function DataSummaryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const datasetsPerPage = 4; // Increased for better UX
 
-  // View mode state for switching between different views
-  const [viewMode, setViewMode] = useState<'upload' | 'library' | 'stats'>('upload');
+  // View mode state for switching between different views - Config first for better UX
+  const [viewMode, setViewMode] = useState<'config' | 'upload' | 'library' | 'stats'>('config');
 
   // Query for processing configuration
   const {
@@ -499,9 +499,21 @@ export default function DataSummaryPage() {
           </div>
         </div>
 
-        {/* View Mode Tabs */}
+        {/* View Mode Tabs - Reorganized for better workflow */}
         <div className="mt-6 border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setViewMode('config')}
+              className={cn(
+                'py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap',
+                viewMode === 'config'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              )}
+            >
+              <Settings className="w-4 h-4 mr-2 inline" />
+              1. Configuration
+            </button>
             <button
               onClick={() => setViewMode('upload')}
               className={cn(
@@ -512,7 +524,7 @@ export default function DataSummaryPage() {
               )}
             >
               <Upload className="w-4 h-4 mr-2 inline" />
-              Data Upload
+              2. Data Upload
             </button>
             <button
               onClick={() => setViewMode('library')}
@@ -524,7 +536,7 @@ export default function DataSummaryPage() {
               )}
             >
               <Database className="w-4 h-4 mr-2 inline" />
-              Dataset Library
+              3. Dataset Library
             </button>
             <button
               onClick={() => setViewMode('stats')}
@@ -536,13 +548,267 @@ export default function DataSummaryPage() {
               )}
             >
               <BarChart3 className="w-4 h-4 mr-2 inline" />
-              Statistics & Config
+              4. Statistics
             </button>
           </nav>
         </div>
       </div>
 
       {/* Content based on selected view */}
+      {viewMode === 'config' && (
+        <div className="space-y-6">
+          {/* Configuration Instructions */}
+          <Card className="border-l-4 border-l-blue-500 bg-blue-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Configure Processing Parameters
+                  </h3>
+                  <p className="text-gray-700 mb-4">
+                    Set up your analysis parameters before uploading data. These settings will be
+                    applied to all baseline and monitoring datasets during processing.
+                  </p>
+                  <div className="bg-blue-100 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800">
+                      <strong>💡 Tip:</strong> Configure these settings first, then proceed to
+                      upload your data. You can always come back to adjust parameters if needed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Processing Configuration */}
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+              <div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-blue-600" />
+                  Processing Configuration
+                </CardTitle>
+                <CardDescription>Analysis parameters and algorithm settings</CardDescription>
+              </div>
+              {isEditingConfig ? (
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleSaveConfig}
+                    disabled={isSavingConfig}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Save className="w-4 h-4 mr-1" />
+                    {isSavingConfig ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    disabled={isSavingConfig}
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEditConfig}
+                  className="border-blue-200 hover:bg-blue-50"
+                >
+                  <Settings className="w-4 h-4 mr-1" />
+                  Edit Configuration
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-6">
+              {configLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : isEditingConfig ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="optimizer" className="text-sm font-medium text-gray-700">
+                        Optimizer Algorithm
+                      </Label>
+                      <Select
+                        value={editedConfig?.optimizer || ''}
+                        onValueChange={(value) => handleConfigFieldChange('optimizer', value)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select optimizer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="adam">Adam (Recommended)</SelectItem>
+                          <SelectItem value="sgd">SGD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Optimization algorithm for training
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="alpha" className="text-sm font-medium text-gray-700">
+                        Alpha Learning Rate
+                      </Label>
+                      <Input
+                        id="alpha"
+                        type="number"
+                        step="0.01"
+                        min="0.001"
+                        max="1.0"
+                        className="mt-1"
+                        value={editedConfig?.alpha || ''}
+                        onChange={(e) =>
+                          handleConfigFieldChange('alpha', parseFloat(e.target.value))
+                        }
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Learning rate (0.001 - 1.0)</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="gamma0" className="text-sm font-medium text-gray-700">
+                        Gamma0 Initial Value
+                      </Label>
+                      <Input
+                        id="gamma0"
+                        type="number"
+                        step="0.0000001"
+                        className="mt-1"
+                        value={editedConfig?.gamma0 || ''}
+                        onChange={(e) =>
+                          handleConfigFieldChange('gamma0', parseFloat(e.target.value))
+                        }
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Initial gamma parameter</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="end_meta" className="text-sm font-medium text-gray-700">
+                        End Meta Column
+                      </Label>
+                      <Input
+                        id="end_meta"
+                        type="text"
+                        className="mt-1"
+                        placeholder="e.g., participant"
+                        value={editedConfig?.end_meta || ''}
+                        onChange={(e) => handleConfigFieldChange('end_meta', e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Last metadata column name</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="start_dim" className="text-sm font-medium text-gray-700">
+                        Start Dimension
+                      </Label>
+                      <Input
+                        id="start_dim"
+                        type="text"
+                        className="mt-1"
+                        placeholder="e.g., f_0"
+                        value={editedConfig?.start_dim || ''}
+                        onChange={(e) => handleConfigFieldChange('start_dim', e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">First feature column name</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="end_dim" className="text-sm font-medium text-gray-700">
+                        End Dimension
+                      </Label>
+                      <Input
+                        id="end_dim"
+                        type="text"
+                        className="mt-1"
+                        placeholder="e.g., f_1023"
+                        value={editedConfig?.end_dim || ''}
+                        onChange={(e) => handleConfigFieldChange('end_dim', e.target.value)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Last feature column name</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                      <span className="text-sm font-medium text-blue-700">Optimizer</span>
+                      <p className="text-lg font-semibold text-blue-900 capitalize">
+                        {config?.optimizer}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                      <span className="text-sm font-medium text-green-700">Alpha</span>
+                      <p className="text-lg font-semibold text-green-900">{config?.alpha}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                      <span className="text-sm font-medium text-purple-700">Gamma0</span>
+                      <p className="text-lg font-semibold text-purple-900">{config?.gamma0}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
+                      <span className="text-sm font-medium text-orange-700">End Meta</span>
+                      <p className="text-lg font-semibold text-orange-900">{config?.end_meta}</p>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-lg border border-indigo-200">
+                        <span className="text-sm font-medium text-indigo-700">Start Dim</span>
+                        <p className="text-lg font-semibold text-indigo-900">{config?.start_dim}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-4 rounded-lg border border-teal-200">
+                        <span className="text-sm font-medium text-teal-700">End Dim</span>
+                        <p className="text-lg font-semibold text-teal-900">{config?.end_dim}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Next Steps Card */}
+          <Card className="border-green-200 bg-green-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div>
+                    <h3 className="font-semibold text-green-800">Configuration Complete</h3>
+                    <p className="text-sm text-green-700">
+                      Ready to proceed with data upload using these settings
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setViewMode('upload')}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Proceed to Upload
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {viewMode === 'upload' && (
         <div className="space-y-6">
           {/* Workflow Progress - Compact Header */}
@@ -1057,314 +1323,160 @@ export default function DataSummaryPage() {
 
       {viewMode === 'stats' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Processing Configuration */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">Processing Configuration</CardTitle>
-                  <CardDescription>Analysis parameters and settings</CardDescription>
+          {/* Current Configuration Summary */}
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Settings className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <h3 className="font-semibold text-blue-800">Current Configuration</h3>
+                    <p className="text-sm text-blue-700">
+                      Optimizer: {config?.optimizer || 'Loading...'} | Alpha:{' '}
+                      {config?.alpha || 'Loading...'}
+                    </p>
+                  </div>
                 </div>
-                {isEditingConfig ? (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleSaveConfig}
-                      disabled={isSavingConfig}
-                    >
-                      <Save className="w-4 h-4 mr-1" />
-                      {isSavingConfig ? 'Saving...' : 'Save'}
+                <Button
+                  onClick={() => setViewMode('config')}
+                  variant="outline"
+                  className="border-blue-200 hover:bg-blue-100 text-blue-700"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Configuration
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dataset Statistics */}
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl">Dataset Statistics</CardTitle>
+              <CardDescription>
+                {dinsightStats
+                  ? `Data overview for Dinsight ID ${dinsightStats.dinsightId}`
+                  : 'Data quality metrics and insights'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">Loading statistics...</span>
+                </div>
+              ) : dinsightStats ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                      <p className="text-2xl font-bold text-blue-900">
+                        {formatNumber(dinsightStats.totalRecords)}
+                      </p>
+                      <p className="text-sm font-medium text-blue-700">Total Records</p>
+                    </div>
+                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                      <p className="text-2xl font-bold text-green-900">
+                        {formatNumber(dinsightStats.features)}
+                      </p>
+                      <p className="text-sm font-medium text-green-700">Features</p>
+                    </div>
+                    <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                      <p className="text-2xl font-bold text-purple-900">
+                        {dinsightStats.missingValues.toFixed(1)}%
+                      </p>
+                      <p className="text-sm font-medium text-purple-700">Missing Values</p>
+                    </div>
+                    <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200">
+                      <p className="text-2xl font-bold text-orange-900">
+                        {dinsightStats.dataQuality.toFixed(1)}%
+                      </p>
+                      <p className="text-sm font-medium text-orange-700">Data Quality</p>
+                    </div>
+                  </div>
+
+                  {/* Data Quality Progress */}
+                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Data Quality Score</span>
+                      <span className="text-lg font-bold text-gray-900">
+                        {dinsightStats.dataQuality.toFixed(1)}%
+                      </span>
+                    </div>
+                    <Progress value={dinsightStats.dataQuality} className="h-3" />
+                    <p className="text-xs text-gray-600">
+                      {dinsightStats.dataQuality >= 95
+                        ? 'Excellent data quality'
+                        : dinsightStats.dataQuality >= 80
+                          ? 'Good data quality'
+                          : dinsightStats.dataQuality >= 60
+                            ? 'Fair data quality'
+                            : 'Poor data quality'}
+                    </p>
+                  </div>
+
+                  {/* Storage Usage */}
+                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Storage Used</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {formatBytes(dinsightStats.totalRecords * 4 * dinsightStats.features)}
+                      </span>
+                    </div>
+                    <Progress
+                      value={Math.min(
+                        ((dinsightStats.totalRecords * 4 * dinsightStats.features) /
+                          (1024 * 1024 * 1024)) *
+                          100,
+                        15
+                      )}
+                      className="h-2"
+                    />
+                    <p className="text-xs text-gray-600">of 1 GB limit</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-2xl font-bold text-gray-400">—</p>
+                      <p className="text-sm font-medium text-gray-500">Total Records</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-2xl font-bold text-gray-400">—</p>
+                      <p className="text-sm font-medium text-gray-500">Features</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-2xl font-bold text-gray-400">—</p>
+                      <p className="text-sm font-medium text-gray-500">Missing Values</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-2xl font-bold text-gray-400">—</p>
+                      <p className="text-sm font-medium text-gray-500">Data Quality</p>
+                    </div>
+                  </div>
+
+                  <div className="text-center py-8">
+                    <div className="mx-auto mb-4 w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                      <BarChart3 className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 mb-2">
+                      No statistics available
+                    </p>
+                    <p className="text-xs text-gray-600 mb-4">
+                      Upload and process data to see statistics
+                    </p>
+                    <Button onClick={() => setViewMode('upload')} size="sm">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Data
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                      disabled={isSavingConfig}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Cancel
-                    </Button>
                   </div>
-                ) : (
-                  <Button variant="outline" size="sm" onClick={handleEditConfig}>
-                    <Settings className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {configLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : isEditingConfig ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="optimizer" className="text-sm font-medium text-gray-700">
-                          Optimizer
-                        </Label>
-                        <Select
-                          value={editedConfig?.optimizer || ''}
-                          onValueChange={(value) => handleConfigFieldChange('optimizer', value)}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select optimizer" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="adam">Adam</SelectItem>
-                            <SelectItem value="sgd">SGD</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="alpha" className="text-sm font-medium text-gray-700">
-                          Alpha
-                        </Label>
-                        <Input
-                          id="alpha"
-                          type="number"
-                          step="0.01"
-                          className="mt-1"
-                          value={editedConfig?.alpha || ''}
-                          onChange={(e) =>
-                            handleConfigFieldChange('alpha', parseFloat(e.target.value))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="gamma0" className="text-sm font-medium text-gray-700">
-                          Gamma0
-                        </Label>
-                        <Input
-                          id="gamma0"
-                          type="number"
-                          step="0.0000001"
-                          className="mt-1"
-                          value={editedConfig?.gamma0 || ''}
-                          onChange={(e) =>
-                            handleConfigFieldChange('gamma0', parseFloat(e.target.value))
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="end_meta" className="text-sm font-medium text-gray-700">
-                          End Meta
-                        </Label>
-                        <Input
-                          id="end_meta"
-                          type="text"
-                          className="mt-1"
-                          value={editedConfig?.end_meta || ''}
-                          onChange={(e) => handleConfigFieldChange('end_meta', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="start_dim" className="text-sm font-medium text-gray-700">
-                          Start Dim
-                        </Label>
-                        <Input
-                          id="start_dim"
-                          type="text"
-                          className="mt-1"
-                          value={editedConfig?.start_dim || ''}
-                          onChange={(e) => handleConfigFieldChange('start_dim', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="end_dim" className="text-sm font-medium text-gray-700">
-                          End Dim
-                        </Label>
-                        <Input
-                          id="end_dim"
-                          type="text"
-                          className="mt-1"
-                          value={editedConfig?.end_dim || ''}
-                          onChange={(e) => handleConfigFieldChange('end_dim', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700">Optimizer</span>
-                        <p className="text-lg font-semibold text-gray-900 capitalize">
-                          {config?.optimizer}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700">Alpha</span>
-                        <p className="text-lg font-semibold text-gray-900">{config?.alpha}</p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700">Gamma0</span>
-                        <p className="text-lg font-semibold text-gray-900">{config?.gamma0}</p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700">End Meta</span>
-                        <p className="text-lg font-semibold text-gray-900">{config?.end_meta}</p>
-                      </div>
-                    </div>
-                    <div className="pt-4 border-t border-gray-200">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <span className="text-sm font-medium text-gray-700">Start Dim</span>
-                          <p className="text-lg font-semibold text-gray-900">{config?.start_dim}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <span className="text-sm font-medium text-gray-700">End Dim</span>
-                          <p className="text-lg font-semibold text-gray-900">{config?.end_dim}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Dataset Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Dataset Statistics</CardTitle>
-                <CardDescription>
-                  {dinsightStats
-                    ? `Data overview for Dinsight ID ${dinsightStats.dinsightId}`
-                    : 'Data quality metrics and insights'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {statsLoading ? (
-                  <div className="flex items-center justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span className="ml-3 text-gray-600">Loading statistics...</span>
-                  </div>
-                ) : dinsightStats ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                        <p className="text-2xl font-bold text-blue-900">
-                          {formatNumber(dinsightStats.totalRecords)}
-                        </p>
-                        <p className="text-sm font-medium text-blue-700">Total Records</p>
-                      </div>
-                      <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
-                        <p className="text-2xl font-bold text-green-900">
-                          {formatNumber(dinsightStats.features)}
-                        </p>
-                        <p className="text-sm font-medium text-green-700">Features</p>
-                      </div>
-                      <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                        <p className="text-2xl font-bold text-purple-900">
-                          {dinsightStats.missingValues.toFixed(1)}%
-                        </p>
-                        <p className="text-sm font-medium text-purple-700">Missing Values</p>
-                      </div>
-                      <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200">
-                        <p className="text-2xl font-bold text-orange-900">
-                          {dinsightStats.dataQuality.toFixed(1)}%
-                        </p>
-                        <p className="text-sm font-medium text-orange-700">Data Quality</p>
-                      </div>
-                    </div>
-
-                    {/* Data Quality Progress */}
-                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-700">
-                          Data Quality Score
-                        </span>
-                        <span className="text-lg font-bold text-gray-900">
-                          {dinsightStats.dataQuality.toFixed(1)}%
-                        </span>
-                      </div>
-                      <Progress value={dinsightStats.dataQuality} className="h-3" />
-                      <p className="text-xs text-gray-600">
-                        {dinsightStats.dataQuality >= 95
-                          ? 'Excellent data quality'
-                          : dinsightStats.dataQuality >= 80
-                            ? 'Good data quality'
-                            : dinsightStats.dataQuality >= 60
-                              ? 'Fair data quality'
-                              : 'Poor data quality'}
-                      </p>
-                    </div>
-
-                    {/* Storage Usage */}
-                    <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-700">Storage Used</span>
-                        <span className="text-sm font-semibold text-gray-900">
-                          {formatBytes(dinsightStats.totalRecords * 4 * dinsightStats.features)}
-                        </span>
-                      </div>
-                      <Progress
-                        value={Math.min(
-                          ((dinsightStats.totalRecords * 4 * dinsightStats.features) /
-                            (1024 * 1024 * 1024)) *
-                            100,
-                          15
-                        )}
-                        className="h-2"
-                      />
-                      <p className="text-xs text-gray-600">of 1 GB limit</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-2xl font-bold text-gray-400">—</p>
-                        <p className="text-sm font-medium text-gray-500">Total Records</p>
-                      </div>
-                      <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-2xl font-bold text-gray-400">—</p>
-                        <p className="text-sm font-medium text-gray-500">Features</p>
-                      </div>
-                      <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-2xl font-bold text-gray-400">—</p>
-                        <p className="text-sm font-medium text-gray-500">Missing Values</p>
-                      </div>
-                      <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-2xl font-bold text-gray-400">—</p>
-                        <p className="text-sm font-medium text-gray-500">Data Quality</p>
-                      </div>
-                    </div>
-
-                    <div className="text-center py-8">
-                      <div className="mx-auto mb-4 w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                        <BarChart3 className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-900 mb-2">
-                        No statistics available
-                      </p>
-                      <p className="text-xs text-gray-600 mb-4">
-                        Upload and process data to see statistics
-                      </p>
-                      <Button onClick={() => setViewMode('upload')} size="sm">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Data
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Quick Actions */}
-          <Card className="lg:col-span-2">
+          <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl">Quick Actions</CardTitle>
               <CardDescription>Common tasks and shortcuts</CardDescription>
