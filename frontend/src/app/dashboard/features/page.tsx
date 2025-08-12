@@ -19,6 +19,9 @@ import {
   Zap,
   ArrowRight,
   Camera,
+  Settings2,
+  Palette,
+  Dna,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -168,6 +171,9 @@ export default function FeatureAnalysisPage() {
     error: datasetsError,
   } = useQuery<Dataset[]>({
     queryKey: ['available-feature-datasets'],
+    refetchOnWindowFocus: true, // Automatically refetch when window regains focus to pick up new uploads
+    refetchInterval: 60 * 1000, // Poll every 60 seconds for new datasets
+    staleTime: 30 * 1000, // Reduce cache time to 30 seconds for faster refresh
     queryFn: async (): Promise<Dataset[]> => {
       try {
         const validDatasets: Dataset[] = [];
@@ -259,7 +265,6 @@ export default function FeatureAnalysisPage() {
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent repeated scans
     retry: 2, // Retry failed discovery attempts
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
   });
@@ -613,7 +618,7 @@ export default function FeatureAnalysisPage() {
   );
 
   // Calculate feature statistics
-  const totalFeatures = featureData?.[0]?.features.length || 1024;
+  const totalFeatures = featureData?.[0]?.features.length || 0;
   const totalSamples = rawFeatureData?.data.total_rows || featureData?.length || 0;
   const hasMetadata =
     rawFeatureData?.data.metadata &&
@@ -630,334 +635,342 @@ export default function FeatureAnalysisPage() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Notification */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+      {/* Notification Toast */}
       {notification && (
         <div
-          className={cn(
-            'p-4 rounded-lg border',
-            notification.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
-          )}
+          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform ${
+            notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === 'success' ? (
-              <CheckCircle className="w-5 h-5" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             ) : (
-              <AlertCircle className="w-5 h-5" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             )}
             <span className="font-medium">{notification.message}</span>
-            <button
-              onClick={() => setNotification(null)}
-              className="ml-auto text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
           </div>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white shadow-lg">
-            <BarChart3 className="w-6 h-6" />
+      {/* Modern Header with Glass Effect */}
+      <div className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-slate-200/50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Dna className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Feature Analysis
+                </h1>
+                <p className="text-sm text-slate-600">
+                  Raw feature data exploration and visualization
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => exportPlot('png')}
+                disabled={!plotElement || selectedSamples.length === 0}
+                className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Export PNG
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => refetchFeatureData()}
+                className="border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition-all duration-200 shadow-sm"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Feature Analysis</h1>
-            <p className="text-gray-600">Raw feature data exploration and visualization</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => exportPlot('png')}
-            disabled={!plotElement || selectedSamples.length === 0}
-          >
-            <Camera className="w-4 h-4 mr-2" />
-            Export PNG
-          </Button>
-          <Button variant="outline" onClick={() => refetchFeatureData()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left Sidebar - Compact Data Selection */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Dataset Selection */}
-          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg text-white">
-                  <Database className="w-3 h-3" />
-                </div>
-                Dataset
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Compact Status */}
-              {datasetsLoading ? (
-                <div className="text-center py-2">
-                  <RefreshCw className="w-4 h-4 mx-auto mb-1 text-blue-600 animate-spin" />
-                  <p className="text-xs text-blue-600">Scanning...</p>
-                </div>
-              ) : datasetsError ? (
-                <div className="text-center py-2">
-                  <AlertCircle className="w-4 h-4 mx-auto mb-1 text-red-500" />
-                  <p className="text-xs text-red-600">Discovery failed</p>
-                </div>
-              ) : availableDatasets && availableDatasets.length > 0 ? (
-                <div className="text-center py-2">
-                  <CheckCircle className="w-4 h-4 mx-auto mb-1 text-green-600" />
-                  <p className="text-xs text-green-600">
-                    {availableDatasets.length} datasets found
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center py-2">
-                  <AlertCircle className="w-4 h-4 mx-auto mb-1 text-yellow-500" />
-                  <p className="text-xs text-yellow-600">None found</p>
-                </div>
-              )}
-
-              {/* Simplified Dataset Selection */}
-              {idSelectionMethod === 'auto' ? (
-                <div>
-                  <select
-                    value={selectedFileUploadId || ''}
-                    onChange={(e) => setSelectedFileUploadId(Number(e.target.value))}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    disabled={!availableDatasets || availableDatasets.length === 0}
-                  >
-                    <option value="">Select dataset...</option>
-                    {availableDatasets?.map((dataset) => (
-                      <option key={dataset.file_upload_id} value={dataset.file_upload_id}>
-                        ID {dataset.file_upload_id} (
-                        {dataset.name.match(/\((\d+) samples\)/)?.[1] || 'N/A'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    value={manualId}
-                    onChange={(e) => setManualId(e.target.value)}
-                    placeholder="ID"
-                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      requestIdleCallback(() => {
-                        const id = parseInt(manualId);
-                        if (!isNaN(id)) {
-                          setSelectedFileUploadId(id);
-                        }
-                      });
-                    }}
-                    disabled={!manualId || isNaN(parseInt(manualId))}
-                  >
-                    Load
-                  </Button>
-                </div>
-              )}
-
-              {/* Toggle Method */}
-              <button
-                onClick={() =>
-                  setIdSelectionMethod(idSelectionMethod === 'auto' ? 'manual' : 'auto')
-                }
-                className="w-full text-xs text-blue-600 hover:text-blue-800 py-1"
-              >
-                {idSelectionMethod === 'auto' ? 'Enter manual ID' : 'Use auto-detected'}
-              </button>
-
-              {/* Load Button */}
-              <Button
-                onClick={handleLoadFeatureData}
-                disabled={isLoadingFeatures || !selectedFileUploadId}
-                size="sm"
-                className="w-full"
-              >
-                {isLoadingFeatures ? (
-                  <>
-                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-3 h-3 mr-1" />
-                    Load Data
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Compact Sample Selection */}
-          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <div className="p-1.5 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg text-white">
-                  <Eye className="w-3 h-3" />
-                </div>
-                Samples
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {featureDataLoading ? (
-                <div className="text-center py-4">
-                  <RefreshCw className="w-4 h-4 mx-auto mb-2 text-gray-400 animate-spin" />
-                  <p className="text-xs text-gray-500">Loading...</p>
-                </div>
-              ) : featureData && featureData.length > 0 ? (
-                <div className="space-y-3">
-                  {/* Quick Sample Buttons */}
-                  <div className="space-y-2">
-                    <p className="text-xs text-gray-600 font-medium">Quick Select:</p>
-                    <div className="grid grid-cols-1 gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedSamples([featureData[0].sample_id])}
-                        className="justify-start text-xs py-1 h-auto"
-                      >
-                        First Sample
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const samples = featureData.slice(0, 3).map((d) => d.sample_id);
-                          setSelectedSamples(samples);
-                        }}
-                        className="justify-start text-xs py-1 h-auto"
-                      >
-                        First 3 Samples
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const step = Math.floor(featureData.length / 3);
-                          const samples = [0, step, step * 2]
-                            .map((i) => featureData[i]?.sample_id)
-                            .filter(Boolean);
-                          setSelectedSamples(samples);
-                        }}
-                        className="justify-start text-xs py-1 h-auto"
-                      >
-                        Spread 3 Samples
-                      </Button>
-                    </div>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Modern Layout: Sidebar + Main Content */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Control Sidebar */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Dataset Selection Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                    <Database className="w-4 h-4 text-white" />
                   </div>
+                  Dataset
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Compact Status */}
+                {datasetsLoading ? (
+                  <div className="text-center py-2">
+                    <RefreshCw className="w-4 h-4 mx-auto mb-1 text-blue-600 animate-spin" />
+                    <p className="text-xs text-blue-600">Scanning...</p>
+                  </div>
+                ) : datasetsError ? (
+                  <div className="text-center py-2">
+                    <AlertCircle className="w-4 h-4 mx-auto mb-1 text-red-500" />
+                    <p className="text-xs text-red-600">Discovery failed</p>
+                  </div>
+                ) : availableDatasets && availableDatasets.length > 0 ? (
+                  <div className="text-center py-2">
+                    <CheckCircle className="w-4 h-4 mx-auto mb-1 text-green-600" />
+                    <p className="text-xs text-green-600">
+                      {availableDatasets.length} datasets found
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-2">
+                    <AlertCircle className="w-4 h-4 mx-auto mb-1 text-yellow-500" />
+                    <p className="text-xs text-yellow-600">None found</p>
+                  </div>
+                )}
 
-                  {/* Current Selection */}
-                  {selectedSamples.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-600 font-medium">
-                        Selected ({selectedSamples.length}/{maxSamples}):
-                      </p>
-                      <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {selectedSamples.map((sampleId, index) => {
-                          const sample = featureData.find((s) => s.sample_id === sampleId);
-                          const colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'];
-                          return (
-                            <div
-                              key={sampleId}
-                              className="flex items-center justify-between text-xs py-1 px-2 bg-gray-50 rounded"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-2 h-2 rounded-full"
-                                  style={{ backgroundColor: colors[index % colors.length] }}
-                                />
-                                <span className="font-mono">
-                                  {sample?.metadata?.segID || sampleId}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleSampleSelection(sampleId, false)}
-                                className="text-gray-400 hover:text-red-500"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          );
-                        })}
+                {/* Simplified Dataset Selection */}
+                {idSelectionMethod === 'auto' ? (
+                  <div>
+                    <select
+                      value={selectedFileUploadId || ''}
+                      onChange={(e) => setSelectedFileUploadId(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      disabled={!availableDatasets || availableDatasets.length === 0}
+                    >
+                      <option value="">Select dataset...</option>
+                      {availableDatasets?.map((dataset) => (
+                        <option key={dataset.file_upload_id} value={dataset.file_upload_id}>
+                          ID {dataset.file_upload_id} (
+                          {dataset.name.match(/\((\d+) samples\)/)?.[1] || 'N/A'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={manualId}
+                      onChange={(e) => setManualId(e.target.value)}
+                      placeholder="ID"
+                      className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        requestIdleCallback(() => {
+                          const id = parseInt(manualId);
+                          if (!isNaN(id)) {
+                            setSelectedFileUploadId(id);
+                          }
+                        });
+                      }}
+                      disabled={!manualId || isNaN(parseInt(manualId))}
+                    >
+                      Load
+                    </Button>
+                  </div>
+                )}
+
+                {/* Toggle Method */}
+                <button
+                  onClick={() =>
+                    setIdSelectionMethod(idSelectionMethod === 'auto' ? 'manual' : 'auto')
+                  }
+                  className="w-full text-xs text-blue-600 hover:text-blue-800 py-1"
+                >
+                  {idSelectionMethod === 'auto' ? 'Enter manual ID' : 'Use auto-detected'}
+                </button>
+
+                {/* Load Button */}
+                <Button
+                  onClick={handleLoadFeatureData}
+                  disabled={isLoadingFeatures || !selectedFileUploadId}
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  {isLoadingFeatures ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-3 h-3 mr-1" />
+                      Load Data
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Sample Selection Card */}
+            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-white" />
+                  </div>
+                  Samples
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {featureDataLoading ? (
+                  <div className="text-center py-4">
+                    <RefreshCw className="w-4 h-4 mx-auto mb-2 text-gray-400 animate-spin" />
+                    <p className="text-xs text-gray-500">Loading...</p>
+                  </div>
+                ) : featureData && featureData.length > 0 ? (
+                  <div className="space-y-3">
+                    {/* Quick Sample Buttons */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-gray-700 mb-3">Quick Select</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedSamples([featureData[0].sample_id])}
+                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                        >
+                          First Sample
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const samples = featureData.slice(0, 3).map((d) => d.sample_id);
+                            setSelectedSamples(samples);
+                          }}
+                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                        >
+                          First 3 Samples
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const step = Math.floor(featureData.length / 3);
+                            const samples = [0, step, step * 2]
+                              .map((i) => featureData[i]?.sample_id)
+                              .filter(Boolean);
+                            setSelectedSamples(samples);
+                          }}
+                          className="justify-start border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                        >
+                          Spread 3 Samples
+                        </Button>
                       </div>
                     </div>
-                  )}
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSamples([])}
-                    disabled={selectedSamples.length === 0}
-                    className="w-full text-xs"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <Database className="w-4 h-4 mx-auto mb-1 text-gray-300" />
-                  <p className="text-xs">Load data first</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    {/* Current Selection */}
+                    {selectedSamples.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-gray-700">
+                          Selected ({selectedSamples.length}/{maxSamples})
+                        </p>
+                        <div className="space-y-1 max-h-24 overflow-y-auto">
+                          {selectedSamples.map((sampleId, index) => {
+                            const sample = featureData.find((s) => s.sample_id === sampleId);
+                            const colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'];
+                            return (
+                              <div
+                                key={sampleId}
+                                className="flex items-center justify-between text-xs py-1 px-2 bg-gray-50 rounded"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: colors[index % colors.length] }}
+                                  />
+                                  <span className="font-mono">
+                                    {sample?.metadata?.segID || sampleId}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleSampleSelection(sampleId, false)}
+                                  className="text-gray-400 hover:text-red-500"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
-        {/* Main Content Area - Plot Focused */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Feature Plot - Center of Focus */}
-          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white shadow-lg">
-                    <BarChart3 className="w-6 h-6" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedSamples([])}
+                      disabled={selectedSamples.length === 0}
+                      className="w-full border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <Database className="w-4 h-4 mx-auto mb-1 text-gray-300" />
+                    <p className="text-xs">Load data first</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Visualization Area */}
+          <div className="xl:col-span-3">
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm min-h-[700px]">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Dna className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Feature Analysis</h2>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <CardTitle className="text-xl font-semibold text-gray-900">
+                      Feature Data Visualization
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600">
                       {selectedFileUploadId
                         ? `Dataset ID ${selectedFileUploadId}`
                         : 'No dataset selected'}
                       {totalSamples > 0 &&
                         ` • ${totalSamples.toLocaleString()} samples • ${totalFeatures} features`}
-                    </p>
+                    </CardDescription>
                   </div>
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportPlot('png')}
-                    disabled={!plotElement || selectedSamples.length === 0}
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Export
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => refetchFeatureData()}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh
-                  </Button>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Main Plot Area */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center gap-2">
+                  {selectedFileUploadId && (
+                    <div className="px-3 py-1.5 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">
+                      Dataset ID: {selectedFileUploadId}
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
                 {selectedSamples.length > 0 && featureData ? (
-                  <div className="h-[500px] w-full">
+                  <div className="relative h-[700px] w-full">
                     <Plot
                       data={plotData}
                       layout={plotLayout}
@@ -969,193 +982,147 @@ export default function FeatureAnalysisPage() {
                     />
                   </div>
                 ) : featureDataLoading ? (
-                  <div className="h-[500px] flex items-center justify-center text-gray-500">
+                  <div className="flex items-center justify-center h-[600px]">
                     <div className="text-center">
-                      <RefreshCw className="w-16 h-16 mx-auto mb-4 text-gray-300 animate-spin" />
-                      <p className="text-lg font-medium">Loading Feature Data...</p>
-                      <p className="text-sm">Please wait while we fetch the data</p>
+                      <div className="relative">
+                        <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Dna className="w-6 h-6 text-purple-600" />
+                        </div>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Loading Feature Data
+                      </h3>
+                      <p className="text-sm text-gray-600">Processing feature vectors...</p>
                     </div>
                   </div>
                 ) : !featureData ? (
-                  <div className="h-[500px] flex items-center justify-center text-gray-500">
+                  <div className="flex items-center justify-center h-[600px]">
                     <div className="text-center">
-                      <Database className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium">No Data Loaded</p>
-                      <p className="text-sm">Select a dataset and click "Load Data" to begin</p>
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Dna className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        No Data Available
+                      </h3>
+                      <p className="text-gray-600 mb-6 max-w-sm">
+                        Select a dataset and load feature data to begin visualization.
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="h-[500px] flex items-center justify-center text-gray-500">
+                  <div className="flex items-center justify-center h-[600px]">
                     <div className="text-center">
-                      <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium">No Samples Selected</p>
-                      <p className="text-sm">
-                        Use the sample selection panel to choose samples to visualize
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Eye className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        No Samples Selected
+                      </h3>
+                      <p className="text-gray-600 mb-6 max-w-sm">
+                        Choose samples from the sidebar to visualize feature patterns.
                       </p>
                     </div>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
 
-        {/* Right Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Statistics */}
-          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg text-white">
-                  <TrendingUp className="w-3 h-3" />
-                </div>
-                Statistics
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {featureDataLoading ? (
-                <div className="text-center py-2">
-                  <RefreshCw className="w-4 h-4 mx-auto mb-1 text-gray-400 animate-spin" />
-                  <p className="text-xs text-gray-500">Calculating...</p>
-                </div>
-              ) : featureStats ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="text-center p-2 bg-blue-50 rounded">
-                      <div className="text-lg font-bold text-blue-900">{totalFeatures}</div>
-                      <div className="text-xs text-blue-700">Features</div>
+            {/* Statistics Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-blue-900 mb-1">
+                    {totalFeatures.toLocaleString()}
+                  </div>
+                  <div className="text-sm font-medium text-blue-700">Total Features</div>
+                  <div className="text-xs text-blue-600 mt-1 opacity-80">
+                    Feature dimensions per sample
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <Database className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-green-900 mb-1">
+                    {totalSamples.toLocaleString()}
+                  </div>
+                  <div className="text-sm font-medium text-green-700">Total Samples</div>
+                  <div className="text-xs text-green-600 mt-1 opacity-80">
+                    Data points in dataset
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100/50 backdrop-blur-sm group hover:shadow-xl transition-all duration-200">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <BarChart3 className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-purple-900 mb-1">
+                    {highVarianceFeatures.toLocaleString()}
+                  </div>
+                  <div className="text-sm font-medium text-purple-700">High Variance</div>
+                  <div className="text-xs text-purple-600 mt-1 opacity-80">
+                    Features with variance &gt; 2
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Additional Info Cards */}
+            {mostVariableFeature && (
+              <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm mt-6">
+                <CardHeader className="border-b border-gray-100">
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    Feature Statistics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Most Variable Feature</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        f_{mostVariableFeature.feature_index}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Variance: {mostVariableFeature.variance.toFixed(4)}
+                      </p>
                     </div>
-                    <div className="text-center p-2 bg-green-50 rounded">
-                      <div className="text-lg font-bold text-green-900">
-                        {totalSamples.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-green-700">Samples</div>
-                    </div>
-                    <div className="text-center p-2 bg-purple-50 rounded">
-                      <div className="text-lg font-bold text-purple-900">
-                        {highVarianceFeatures}
-                      </div>
-                      <div className="text-xs text-purple-700">High Variance</div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Least Variable Feature</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        f_{leastVariableFeature?.feature_index}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Variance: {leastVariableFeature?.variance.toFixed(4)}
+                      </p>
                     </div>
                   </div>
 
-                  {mostVariableFeature && (
-                    <div className="text-xs text-gray-600 space-y-1 pt-2 border-t">
-                      <div>
-                        <span className="font-medium">Most Variable:</span> f_
-                        {mostVariableFeature.feature_index}
-                      </div>
-                      <div>
-                        <span className="font-medium">Least Variable:</span> f_
-                        {leastVariableFeature?.feature_index}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-2 text-gray-500">
-                  <TrendingUp className="w-4 h-4 mx-auto mb-1 text-gray-400" />
-                  <p className="text-xs">No data</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-cyan-600 rounded-lg text-white">
-                  <Zap className="w-3 h-3" />
-                </div>
-                Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="justify-start text-xs py-1 h-auto"
-                  onClick={() => exportPlot('png')}
-                  disabled={!plotElement || selectedSamples.length === 0}
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  Export Plot
-                </Button>
-                <Link href="/dashboard/analysis">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-xs py-1 h-auto"
-                  >
-                    <ArrowRight className="w-3 h-3 mr-1" />
-                    Advanced Analysis
-                  </Button>
-                </Link>
-                <Link href="/dashboard/visualization">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-xs py-1 h-auto"
-                  >
-                    <Settings className="w-3 h-3 mr-1" />
-                    View in D'insight
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data Info */}
-          <Card className="bg-white/70 backdrop-blur-sm shadow-xl border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg text-white">
-                  <CheckCircle className="w-3 h-3" />
-                </div>
-                Data Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedFileUploadId ? (
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Dataset ID</span>
-                    <span className="font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                      {selectedFileUploadId}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Metadata</span>
-                    <div className="flex items-center gap-1">
+                  {/* Data Quality Indicator */}
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
                       {hasMetadata ? (
-                        <CheckCircle className="w-3 h-3 text-green-500" />
+                        <CheckCircle className="w-4 h-4 text-green-500" />
                       ) : (
-                        <AlertCircle className="w-3 h-3 text-yellow-500" />
+                        <AlertCircle className="w-4 h-4 text-yellow-500" />
                       )}
-                      <span className="font-medium">{hasMetadata ? 'Available' : 'Missing'}</span>
+                      <span className="text-sm font-medium text-blue-800">Dataset Quality</span>
                     </div>
+                    <p className="text-sm text-blue-700">
+                      Metadata: {hasMetadata ? 'Available' : 'Missing'}
+                      {selectedFileUploadId && ` • Dataset ID: ${selectedFileUploadId}`}
+                    </p>
                   </div>
-
-                  {!hasMetadata && rawFeatureData && (
-                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                      <div className="text-yellow-800 text-xs">
-                        <div className="font-medium mb-1">Backend Issue</div>
-                        <div>Missing metadata in API response</div>
-                        <div className="mt-1 text-yellow-600">Using fallback sample names</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <Database className="w-4 h-4 mx-auto mb-1 text-gray-400" />
-                  <p className="text-xs">No dataset selected</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>

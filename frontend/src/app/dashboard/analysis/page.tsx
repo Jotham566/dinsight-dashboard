@@ -318,7 +318,14 @@ export default function AdvancedAnalysisPage() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [sensitivity, detectionMethod]); // Only depend on the parameters that should trigger re-runs
+  }, [
+    sensitivity,
+    detectionMethod,
+    anomalyResults,
+    baselineDataset,
+    monitoringDataset,
+    isAnalyzing,
+  ]);
 
   // Create the scatter plot visualization
   const createAnomalyVisualization = () => {
