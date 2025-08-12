@@ -86,8 +86,9 @@ export default function AdvancedAnalysisPage() {
   >({
     queryKey: ['available-monitoring-datasets'],
     retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true, // Automatically refetch when window regains focus to pick up new uploads
+    refetchInterval: 60 * 1000, // Poll every 60 seconds for new datasets
+    staleTime: 30 * 1000, // Reduce cache time to 30 seconds for faster refresh
     queryFn: async (): Promise<AvailableMonitoringDataset[]> => {
       try {
         const response = await api.monitoring.getAvailable();
@@ -110,8 +111,9 @@ export default function AdvancedAnalysisPage() {
   } = useQuery<DinsightDataset[]>({
     queryKey: ['available-dinsight-ids'],
     retry: false, // Don't retry failed requests automatically
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: true, // Automatically refetch when window regains focus to pick up new uploads
+    refetchInterval: 60 * 1000, // Poll every 60 seconds for new datasets
+    staleTime: 30 * 1000, // Reduce cache time to 30 seconds for faster refresh
     queryFn: async (): Promise<DinsightDataset[]> => {
       try {
         const validDatasets: DinsightDataset[] = [];
