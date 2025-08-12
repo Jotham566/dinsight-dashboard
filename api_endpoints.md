@@ -245,7 +245,7 @@ Get processed dinsight coordinates for visualization.
 
 ### **GET** `/feature/:file_upload_id`
 **Auth Required**: ✅ (License middleware)  
-Retrieve all feature values for a file upload - used for Feature Analysis visualization.
+Retrieve all feature values for a file upload - used for Feature Explorer visualization.
 
 **Path Parameters:**
 - **file_upload_id**: File upload ID
@@ -273,7 +273,7 @@ Retrieve all feature values for a file upload - used for Feature Analysis visual
 **Notes:**
 - Each array in `feature_values` represents one sample with all its feature values (f_0 to f_1023)
 - `metadata` array contains sample-level metadata for identification and labeling
-- Used by Feature Analysis page to plot raw feature values across samples
+- Used by Feature Explorer page to plot raw feature values across samples
 - Metadata helps create meaningful sample labels instead of generic "Sample X" names
 
 ### **GET** `/feature/:file_upload_id/range`

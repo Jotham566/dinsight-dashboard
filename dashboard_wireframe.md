@@ -124,16 +124,16 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 
 ### Sidebar Navigation
 ```
-┌─────────────────┐
-│ 🏠 Dashboard    │
-│ 📊 Data Summary │
-│ 📈 Visualization│
-│ 🔬 Analysis     │
-│ 🧬 Features     │
-│ 🏭 Machines     │
-│ 🏢 Organization │
-│ ⚙️  Settings    │
-└─────────────────┘
+┌──────────────────────┐
+│ 🏠 Dashboard         │
+│ 📊 Run Dinsight      │
+│ 📈 Data Comparison   │
+│ 🔬 Anomaly Detection │
+│ 🧬 Feature Explorer  │
+│ 🏭 Machines          │
+│ 🏢 Organization      │
+│ ⚙️  Settings         │
+└──────────────────────┘
 ```
 
 **Features:**
@@ -216,7 +216,7 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 
 ---
 
-## 📊 Data Summary Page (`/dashboard/data-summary`)
+## 📊 Run Dinsight Analysis Page (`/dashboard/data-summary`)
 
 ### File Upload Section
 ```
@@ -287,7 +287,7 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 
 ---
 
-## 📈 Visualization Page (`/dashboard/visualization`)
+## 📈 Data Comparison Page (`/dashboard/visualization`)
 
 ### Control Panel
 ```
@@ -345,7 +345,7 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 
 ---
 
-## 🔬 Advanced Analysis Page (`/dashboard/analysis`)
+## 🔬 Anomaly Detection Page (`/dashboard/analysis`)
 
 ### Anomaly Detection Control Panel
 ```
@@ -427,14 +427,14 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 
 ---
 
-## 🧬 Feature Analysis Page (`/dashboard/features`)
+## 🧬 Feature Explorer Page (`/dashboard/features`)
 
 **Based on Streamlit Implementation**: Visualizes raw feature data (f_0 to f_1023) from uploaded datasets, allowing detailed exploration of individual feature values across samples.
 
 ### Feature Data Loading Panel
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ 🧬 Feature Analysis: Database Feature Data             │
+│ 🧬 Feature Explorer: Database Feature Data            │
 ├─────────────────────────────────────────────────────────┤
 │ ✅ Auto-Detected File Upload IDs                        │
 │ Found 2 IDs from your current session.                 │
@@ -528,7 +528,7 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Key Features of Feature Analysis
+### Key Features of Feature Explorer
 **Raw Feature Data Visualization:**
 - **Multi-sample Comparison**: Plot feature values (f_0 to f_1023) for multiple selected samples
 - **Interactive Line Charts**: Each sample shows as a different colored line across all feature indices  

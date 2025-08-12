@@ -391,9 +391,9 @@ export default function DataSummaryPage() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="mb-4 sm:mb-0">
-            <h1 className="text-3xl font-bold text-gray-900">Data Upload & Configuration</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Run Dinsight Analysis</h1>
             <p className="mt-2 text-lg text-gray-600">
-              Configure processing settings and upload data for anomaly detection analysis
+              Configure processing settings and upload data for Dinsight analysis
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

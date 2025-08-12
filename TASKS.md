@@ -85,10 +85,10 @@
 - [ ] Add zoom/pan/export functionality
 
 #### Dashboard Pages
-- [ ] Data Summary page
-- [ ] Visualization page
-- [ ] Advanced Analysis page
-- [ ] Feature Analysis page
+- [ ] Run Dinsight Analysis page
+- [ ] Data Comparison page
+- [ ] Anomaly Detection page
+- [ ] Feature Explorer page
 - [ ] Organization Management page
 - [ ] Machine Management page
 - [ ] User Settings page

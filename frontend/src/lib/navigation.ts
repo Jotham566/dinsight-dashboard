@@ -29,11 +29,11 @@ export const mainNavItems: NavItem[] = [
     description: 'Overview of your predictive maintenance analytics',
   },
   {
-    label: 'Data Upload & Config',
+    label: 'Run Dinsight Analysis',
     href: '/dashboard/data-summary',
     icon: Upload,
     requiresAuth: true,
-    description: 'Upload data and configure processing settings',
+    description: 'Upload data and run Dinsight analysis with custom settings',
   },
   {
     label: 'Data Comparison',

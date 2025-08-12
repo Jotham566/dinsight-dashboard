@@ -87,7 +87,7 @@ frontend/
 - Quick actions panel
 - Dataset status overview
 
-### 3. Data Summary Page (`/dashboard/data-summary`)
+### 3. Run Dinsight Analysis Page (`/dashboard/data-summary`)
 
 **Features from Streamlit:**
 - File upload area (drag & drop)
@@ -102,7 +102,7 @@ frontend/
 - Dataset comparison tool
 - Export functionality
 
-### 4. Visualization Page (`/dashboard/visualization`)
+### 4. Data Comparison Page (`/dashboard/visualization`)
 
 **Core Visualizations:**
 - **Scatter Plot**: Interactive 2D/3D plots with Plotly
@@ -123,7 +123,7 @@ frontend/
 - Zoom/pan controls
 - Fullscreen mode
 
-### 5. Advanced Analysis Page (`/dashboard/analysis`)
+### 5. Anomaly Detection Page (`/dashboard/analysis`)
 
 **Anomaly Detection Section:**
 - Mahalanobis Distance calculator
@@ -145,7 +145,7 @@ frontend/
 - Feature importance chart
 - Export analysis report
 
-### 6. Feature Analysis Page (`/dashboard/features`)
+### 6. Feature Explorer Page (`/dashboard/features`)
 
 **Feature Explorer:**
 - Feature list with search
