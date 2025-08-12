@@ -70,6 +70,18 @@ export default function DataSummaryPage() {
   const [editedConfig, setEditedConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
+  // Default configuration values based on backend config.json
+  const defaultConfig = {
+    id: 1,
+    optimizer: 'adam',
+    alpha: 0.1,
+    gamma0: 1e-7,
+    end_meta: 'participant',
+    start_dim: 'f_0',
+    end_dim: 'f_1023',
+    created_at: new Date().toISOString(),
+  };
+
   // View mode state for switching between different views - Config first for better UX
   const [viewMode, setViewMode] = useState<'config' | 'upload' | 'stats'>('config');
 
@@ -321,6 +333,12 @@ export default function DataSummaryPage() {
     setEditedConfig(null);
   };
 
+  const handleRestoreDefaults = () => {
+    if (confirm('Are you sure you want to restore default configuration values? This will overwrite your current changes.')) {
+      setEditedConfig({ ...defaultConfig });
+    }
+  };
+
   const handleSaveConfig = async () => {
     if (!editedConfig) return;
 
@@ -503,6 +521,16 @@ export default function DataSummaryPage() {
                   >
                     <Save className="w-4 h-4 mr-1" />
                     {isSavingConfig ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRestoreDefaults}
+                    disabled={isSavingConfig}
+                    className="border-orange-200 hover:bg-orange-50 text-orange-700"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Restore Defaults
                   </Button>
                   <Button
                     variant="outline"
