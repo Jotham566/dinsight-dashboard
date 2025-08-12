@@ -1257,13 +1257,15 @@ export default function DataSummaryPage() {
         onOpenChange={setShowRestoreDialog}
         title="Restore Default Configuration"
         description={
-          <div className="space-y-2">
-            <p>Are you sure you want to restore the default configuration values?</p>
-            <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+          <>
+            Are you sure you want to restore the default configuration values?
+            <br />
+            <br />
+            <span className="text-sm text-amber-700 bg-amber-50 p-2 rounded border border-amber-200 block">
               <strong>Warning:</strong> This will overwrite your current changes and cannot be
               undone.
-            </p>
-          </div>
+            </span>
+          </>
         }
         confirmText="Restore Defaults"
         cancelText="Keep Current Values"
