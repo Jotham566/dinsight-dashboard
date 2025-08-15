@@ -175,7 +175,9 @@ export default function SettingsPage() {
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your account preferences and configuration</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
+          Manage your account preferences and configuration
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -261,7 +263,9 @@ export default function SettingsPage() {
                         disabled
                         className="mt-1 bg-gray-50/50 dark:bg-gray-800/50 glass-input opacity-60"
                       />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Assigned by organization admin</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Assigned by organization admin
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="organization">Organization</Label>
@@ -424,7 +428,9 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Communication</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    Communication
+                  </h3>
                   <div className="space-y-3">
                     {[
                       {
@@ -456,7 +462,9 @@ export default function SettingsPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{setting.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {setting.description}
+                          </p>
                         </div>
                         <input
                           type="checkbox"
@@ -479,7 +487,9 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Alert Types</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    Alert Types
+                  </h3>
                   <div className="space-y-3">
                     {[
                       {
@@ -503,7 +513,9 @@ export default function SettingsPage() {
                           <Label htmlFor={setting.key} className="font-medium">
                             {setting.label}
                           </Label>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{setting.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {setting.description}
+                          </p>
                         </div>
                         <input
                           type="checkbox"
@@ -583,7 +595,9 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Active Sessions</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                      Active Sessions
+                    </h3>
                     <div className="space-y-3">
                       {[
                         {
@@ -613,7 +627,9 @@ export default function SettingsPage() {
                           className="flex items-center justify-between p-4 glass-card border border-gray-200/50 dark:border-gray-700/50 rounded-xl card-hover"
                         >
                           <div>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{session.device}</p>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {session.device}
+                            </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
                               {session.browser} • {session.location}
                             </p>
