@@ -170,6 +170,16 @@ export default function FeatureAnalysisPage() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  // Auto-hide notification after 4 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
   const [plotElement, setPlotElement] = useState<any>(null);
 
   // **PERFORMANCE FIX**: Removed pagination - Streamlit approach limits samples at selection level instead
@@ -646,27 +656,30 @@ export default function FeatureAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      {/* Modern Notification Toast */}
+      {/* Improved Non-Intrusive Toast Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform backdrop-blur-sm border ${
+          className={`fixed top-20 right-4 z-40 max-w-sm px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform backdrop-blur-sm border ${
             notification.type === 'success'
-              ? 'bg-accent-teal-500/90 text-white border-accent-teal-400/20 shadow-accent-teal-500/25'
-              : 'bg-red-500/90 text-white border-red-400/20 shadow-red-500/25'
+              ? 'bg-accent-teal-500/95 text-white border-accent-teal-400/30 shadow-accent-teal-500/20'
+              : 'bg-red-500/95 text-white border-red-400/30 shadow-red-500/20'
           }`}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             {notification.type === 'success' ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+              <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             ) : (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium leading-5">{notification.message}</p>
+            </div>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-2 flex-shrink-0 p-0.5 rounded-md hover:bg-black/10 transition-colors"
+              aria-label="Dismiss notification"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -674,8 +687,7 @@ export default function FeatureAnalysisPage() {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            )}
-            <span className="font-semibold">{notification.message}</span>
+            </button>
           </div>
         </div>
       )}
@@ -1127,7 +1139,6 @@ export default function FeatureAnalysisPage() {
                 </CardContent>
               </Card>
             </div>
-
           </div>
         </div>
       </div>
