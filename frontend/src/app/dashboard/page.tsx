@@ -225,7 +225,9 @@ export default function DashboardPage() {
                       {action.title}
                       <ArrowUpRight className="w-5 h-5 ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{action.description}</p>
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {action.description}
+                    </p>
                   </Link>
                 );
               })}
@@ -254,7 +256,12 @@ export default function DashboardPage() {
                   <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                     Upload your baseline dataset to establish normal patterns
                   </p>
-                  <Button variant="outline" size="sm" asChild className="glass-card hover:shadow-lg">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="glass-card hover:shadow-lg"
+                  >
                     <Link href="/dashboard/dinsight-analysis">Get Started</Link>
                   </Button>
                 </div>
@@ -269,7 +276,12 @@ export default function DashboardPage() {
                   <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                     Upload monitoring data from your equipment
                   </p>
-                  <Button variant="outline" size="sm" asChild className="glass-card hover:shadow-lg">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="glass-card hover:shadow-lg"
+                  >
                     <Link href="/dashboard/visualization">Compare Data</Link>
                   </Button>
                 </div>
@@ -284,7 +296,12 @@ export default function DashboardPage() {
                   <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                     Run anomaly detection to identify potential issues
                   </p>
-                  <Button variant="outline" size="sm" asChild className="glass-card hover:shadow-lg">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="glass-card hover:shadow-lg"
+                  >
                     <Link href="/dashboard/analysis">Analyze Now</Link>
                   </Button>
                 </div>
@@ -297,7 +314,9 @@ export default function DashboardPage() {
         {data.config && (
           <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
             <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
-              <CardTitle className="text-2xl font-bold gradient-text">Current Configuration</CardTitle>
+              <CardTitle className="text-2xl font-bold gradient-text">
+                Current Configuration
+              </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
                 Analysis settings overview
               </CardDescription>

@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ConfigDialog } from '@/components/ui/config-dialog';
+import { ProcessingDialog } from '@/components/ui/processing-dialog';
 import { apiClient } from '@/lib/api-client';
 import { cn } from '@/utils/cn';
 
@@ -72,6 +73,15 @@ export default function DinsightAnalysisPage() {
   const [editedConfig, setEditedConfig] = useState<any>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+
+  // Processing dialog state
+  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
+  const [processingDialogType, setProcessingDialogType] = useState<
+    'uploading' | 'processing' | 'completed' | 'error'
+  >('uploading');
+  const [processingDialogStage, setProcessingDialogStage] = useState<
+    'baseline' | 'monitoring' | 'complete'
+  >('baseline');
 
   // Default configuration values based on backend config.json
   const defaultConfig = {
@@ -128,6 +138,12 @@ export default function DinsightAnalysisPage() {
               step: 'monitoring',
               pollCount: undefined,
             }));
+
+            // Show baseline completion dialog
+            setProcessingDialogType('completed');
+            setProcessingDialogStage('baseline');
+            setShowProcessingDialog(true);
+
             clearInterval(intervalId);
           }
         } catch (error: any) {
@@ -151,6 +167,11 @@ export default function DinsightAnalysisPage() {
                   'Processing timeout. Please try again or check if the file format is correct.',
                 pollCount: undefined,
               }));
+
+              // Show timeout error dialog
+              setProcessingDialogType('error');
+              setShowProcessingDialog(true);
+
               clearInterval(intervalId);
             }
           } else {
@@ -162,6 +183,11 @@ export default function DinsightAnalysisPage() {
               errorMessage: error.response?.data?.message || 'Error checking processing status',
               pollCount: undefined,
             }));
+
+            // Show processing error dialog
+            setProcessingDialogType('error');
+            setShowProcessingDialog(true);
+
             clearInterval(intervalId);
           }
         }
@@ -175,6 +201,11 @@ export default function DinsightAnalysisPage() {
 
   const handleBaselineUpload = async (uploadFiles: File[]) => {
     setProcessingState((prev) => ({ ...prev, status: 'uploading', errorMessage: undefined }));
+
+    // Show uploading dialog
+    setProcessingDialogType('uploading');
+    setProcessingDialogStage('baseline');
+    setShowProcessingDialog(true);
 
     try {
       // Create FormData for multipart upload
@@ -202,6 +233,9 @@ export default function DinsightAnalysisPage() {
         progress: 0,
       }));
 
+      // Switch to processing dialog
+      setProcessingDialogType('processing');
+
       // Clear baseline files after successful upload
       setBaselineFiles([]);
     } catch (error: any) {
@@ -220,6 +254,10 @@ export default function DinsightAnalysisPage() {
         status: 'error',
         errorMessage,
       }));
+
+      // Show error dialog
+      setProcessingDialogType('error');
+      setShowProcessingDialog(true);
     }
   };
 
@@ -234,6 +272,11 @@ export default function DinsightAnalysisPage() {
     }
 
     setProcessingState((prev) => ({ ...prev, status: 'uploading', errorMessage: undefined }));
+
+    // Show uploading dialog for monitoring
+    setProcessingDialogType('uploading');
+    setProcessingDialogStage('monitoring');
+    setShowProcessingDialog(true);
 
     try {
       // Create FormData for monitoring upload
@@ -257,6 +300,11 @@ export default function DinsightAnalysisPage() {
         step: 'complete',
       }));
 
+      // Show completion dialog
+      setProcessingDialogType('completed');
+      setProcessingDialogStage('complete');
+      setShowProcessingDialog(true);
+
       // Clear monitoring files after successful upload
       setMonitoringFiles([]);
     } catch (error: any) {
@@ -275,6 +323,10 @@ export default function DinsightAnalysisPage() {
         status: 'error',
         errorMessage,
       }));
+
+      // Show error dialog
+      setProcessingDialogType('error');
+      setShowProcessingDialog(true);
     }
   };
 
@@ -285,6 +337,7 @@ export default function DinsightAnalysisPage() {
     });
     setBaselineFiles([]);
     setMonitoringFiles([]);
+    setShowProcessingDialog(false);
   };
 
   const handleCancelEdit = () => {
@@ -332,7 +385,62 @@ export default function DinsightAnalysisPage() {
   const isMonitoringStep = processingState.step === 'monitoring';
   const isCompleteStep = processingState.step === 'complete';
   const isUploading = processingState.status === 'uploading';
-  const isProcessing = processingState.status === 'processing';
+
+  // Helper functions for dialog content
+  const getDialogTitle = () => {
+    switch (processingDialogType) {
+      case 'uploading':
+        return processingDialogStage === 'baseline'
+          ? 'Uploading Baseline Data'
+          : 'Uploading Monitoring Data';
+      case 'processing':
+        return 'Processing Baseline Data';
+      case 'completed':
+        if (processingDialogStage === 'complete') return 'Analysis Complete!';
+        return processingDialogStage === 'baseline'
+          ? 'Baseline Processing Complete'
+          : 'Monitoring Upload Complete';
+      case 'error':
+        return 'Upload Error';
+      default:
+        return 'Processing';
+    }
+  };
+
+  const getDialogDescription = () => {
+    switch (processingDialogType) {
+      case 'uploading':
+        return processingDialogStage === 'baseline'
+          ? 'Uploading your baseline dataset files to the server...'
+          : 'Uploading your monitoring data for anomaly detection...';
+      case 'processing':
+        return 'Analyzing data and generating dinsight coordinates. This may take a few minutes.';
+      case 'completed':
+        if (processingDialogStage === 'complete') {
+          return 'Your analysis workflow is complete! You can now visualize results or run anomaly detection.';
+        }
+        return processingDialogStage === 'baseline'
+          ? 'Your baseline data has been processed successfully. You can now upload monitoring data.'
+          : 'Your monitoring data has been uploaded successfully.';
+      case 'error':
+        return 'An error occurred during the process. Please review the details below.';
+      default:
+        return '';
+    }
+  };
+
+  const handleDialogClose = () => {
+    setShowProcessingDialog(false);
+    // Reset workflow if there was an error
+    if (processingDialogType === 'error') {
+      resetWorkflow();
+    }
+  };
+
+  const handleRetryUpload = () => {
+    setShowProcessingDialog(false);
+    resetWorkflow();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
@@ -550,45 +658,6 @@ export default function DinsightAnalysisPage() {
 
           {/* Main Content Area */}
           <div className="xl:col-span-3 space-y-8">
-            {/* Status Messages */}
-            {processingState.errorMessage && (
-              <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
-                    <div className="text-sm text-red-800 dark:text-red-200">
-                      <strong>Error:</strong> {processingState.errorMessage}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {isProcessing && (
-              <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-start">
-                    <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0 animate-pulse" />
-                    <div className="flex-1">
-                      <div className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
-                        Processing baseline data...
-                      </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-300 mb-2">
-                        Analyzing data and generating dinsight coordinates. This may take a few
-                        minutes.
-                        {processingState.pollCount && (
-                          <span className="ml-2 font-mono">
-                            (Check {processingState.pollCount}/100)
-                          </span>
-                        )}
-                      </div>
-                      <Progress value={undefined} className="h-2" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Upload Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Baseline Upload */}
@@ -852,6 +921,22 @@ export default function DinsightAnalysisPage() {
           </div>
         </div>
       </ConfigDialog>
+
+      {/* Processing Dialog */}
+      <ProcessingDialog
+        open={showProcessingDialog}
+        onOpenChange={setShowProcessingDialog}
+        type={processingDialogType}
+        stage={processingDialogStage}
+        title={getDialogTitle()}
+        description={getDialogDescription()}
+        pollCount={processingState.pollCount}
+        maxPolls={100}
+        errorMessage={processingState.errorMessage}
+        onClose={handleDialogClose}
+        onRetry={handleRetryUpload}
+        showActions={processingDialogType === 'completed' && processingDialogStage === 'complete'}
+      />
 
       {/* Confirmation Dialog */}
       <ConfirmationDialog
