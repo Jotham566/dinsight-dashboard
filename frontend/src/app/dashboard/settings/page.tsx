@@ -91,7 +91,6 @@ export default function SettingsPage() {
 
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
-    slackIntegration: true,
     smsNotifications: false,
     anomalyAlerts: true,
     systemUpdates: false,
@@ -510,15 +509,9 @@ export default function SettingsPage() {
                         description: 'Receive alerts and updates via email',
                       },
                       {
-                        key: 'slackIntegration',
-                        label: 'Slack integration',
-                        description: 'Send notifications to Slack channels',
-                      },
-                      {
                         key: 'smsNotifications',
                         label: 'SMS notifications',
-                        description: 'Receive critical alerts via SMS (Pro feature)',
-                        disabled: true,
+                        description: 'Receive critical alerts via SMS',
                       },
                     ].map((setting) => (
                       <div key={setting.key} className="flex items-center justify-between">
@@ -527,11 +520,6 @@ export default function SettingsPage() {
                             <Label htmlFor={setting.key} className="font-medium">
                               {setting.label}
                             </Label>
-                            {setting.disabled && (
-                              <span className="ml-2 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-1 rounded">
-                                Pro
-                              </span>
-                            )}
                           </div>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {setting.description}
@@ -543,14 +531,13 @@ export default function SettingsPage() {
                           checked={
                             notificationSettings[setting.key as keyof typeof notificationSettings]
                           }
-                          disabled={setting.disabled}
                           onChange={(e) =>
                             setNotificationSettings((prev) => ({
                               ...prev,
                               [setting.key]: e.target.checked,
                             }))
                           }
-                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                         />
                       </div>
                     ))}
