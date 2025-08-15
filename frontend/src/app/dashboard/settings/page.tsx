@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,18 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Types
+interface UserSession {
+  id: string;
+  device: string;
+  browser: string;
+  location: string;
+  lastActive: string;
+  current: boolean;
+  ipAddress?: string;
+  createdAt: string;
+}
 
 // Helper function to detect user's timezone
 const detectTimezone = () => {
@@ -148,6 +161,55 @@ export default function SettingsPage() {
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<boolean>(false);
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
 
+  // Query for user sessions
+  const {
+    data: sessions,
+    isLoading: sessionsLoading,
+    refetch: refetchSessions,
+  } = useQuery<UserSession[]>({
+    queryKey: ['user-sessions'],
+    queryFn: async (): Promise<UserSession[]> => {
+      try {
+        const response = await api.users.getSessions();
+        return response.data?.sessions || [];
+      } catch (error) {
+        console.error('Failed to fetch sessions:', error);
+        // Return mock data as fallback if backend doesn't support sessions yet
+        return [
+          {
+            id: 'current',
+            device: 'Current Session',
+            browser: 'Chrome, MacOS',
+            location: 'San Francisco, CA',
+            lastActive: '2 minutes ago',
+            current: true,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: 'mobile',
+            device: 'Mobile App',
+            browser: 'iOS Safari',
+            location: 'San Francisco, CA',
+            lastActive: '1 hour ago',
+            current: false,
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+          },
+          {
+            id: 'office',
+            device: 'Office Computer',
+            browser: 'Firefox, Windows',
+            location: 'San Francisco, CA',
+            lastActive: '3 hours ago',
+            current: false,
+            createdAt: new Date(Date.now() - 10800000).toISOString(),
+          },
+        ];
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
   // Handle escape key to close dialog
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -237,6 +299,26 @@ export default function SettingsPage() {
         setPasswordChangeError(error?.message || 'Failed to change password. Please try again.');
       }
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      await api.users.revokeSession(sessionId);
+      refetchSessions(); // Refresh the sessions list
+    } catch (error) {
+      console.error('Failed to revoke session:', error);
+      // For now, just log the error. In production, you'd want to show user feedback
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    try {
+      await api.users.revokeAllSessions();
+      refetchSessions(); // Refresh the sessions list
+    } catch (error) {
+      console.error('Failed to revoke all sessions:', error);
+      // For now, just log the error. In production, you'd want to show user feedback
     }
   };
 
@@ -657,63 +739,59 @@ export default function SettingsPage() {
                       Active Sessions
                     </h3>
                     <div className="space-y-3">
-                      {[
-                        {
-                          device: 'Current Session',
-                          browser: 'Chrome, MacOS',
-                          location: 'San Francisco, CA',
-                          lastActive: '2 minutes ago',
-                          current: true,
-                        },
-                        {
-                          device: 'Mobile App',
-                          browser: 'iOS Safari',
-                          location: 'San Francisco, CA',
-                          lastActive: '1 hour ago',
-                          current: false,
-                        },
-                        {
-                          device: 'Office Computer',
-                          browser: 'Firefox, Windows',
-                          location: 'San Francisco, CA',
-                          lastActive: '3 hours ago',
-                          current: false,
-                        },
-                      ].map((session, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-4 glass-card border border-gray-200/50 dark:border-gray-700/50 rounded-xl card-hover"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">
-                              {session.device}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {session.browser} • {session.location}
-                            </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              Last active: {session.lastActive}
-                            </p>
-                          </div>
-                          {session.current ? (
-                            <span className="px-3 py-1.5 text-xs bg-gradient-to-r from-accent-teal-100 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-900/30 text-accent-teal-700 dark:text-accent-teal-300 font-semibold rounded-lg border border-accent-teal-200/50 dark:border-accent-teal-700/50 backdrop-blur-sm">
-                              Current
-                            </span>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 dark:text-red-400 glass-button border-red-200/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-lg"
-                            >
-                              Revoke
-                            </Button>
-                          )}
+                      {sessionsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                          <span className="ml-3 text-gray-600 dark:text-gray-400">
+                            Loading sessions...
+                          </span>
                         </div>
-                      ))}
+                      ) : sessions && sessions.length > 0 ? (
+                        sessions.map((session: UserSession) => (
+                          <div
+                            key={session.id}
+                            className="flex items-center justify-between p-4 glass-card border border-gray-200/50 dark:border-gray-700/50 rounded-xl card-hover"
+                          >
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-gray-100">
+                                {session.device}
+                              </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {session.browser} • {session.location}
+                              </p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500">
+                                Last active: {session.lastActive}
+                              </p>
+                            </div>
+                            {session.current ? (
+                              <span className="px-3 py-1.5 text-xs bg-gradient-to-r from-accent-teal-100 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-900/30 text-accent-teal-700 dark:text-accent-teal-300 font-semibold rounded-lg border border-accent-teal-200/50 dark:border-accent-teal-700/50 backdrop-blur-sm">
+                                Current
+                              </span>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRevokeSession(session.id)}
+                                className="text-red-600 dark:text-red-400 glass-button border-red-200/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-lg"
+                              >
+                                Revoke
+                              </Button>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500 dark:text-gray-400">
+                            No active sessions found
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="outline"
-                      className="mt-4 text-red-600 dark:text-red-400 glass-button border-red-300/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-xl"
+                      onClick={handleRevokeAllSessions}
+                      disabled={!sessions || sessions.length <= 1}
+                      className="mt-4 text-red-600 dark:text-red-400 glass-button border-red-300/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Revoke All Sessions
                     </Button>

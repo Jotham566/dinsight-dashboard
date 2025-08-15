@@ -179,6 +179,9 @@ export const api = {
         current_password: currentPassword,
         new_password: newPassword,
       }),
+    getSessions: () => apiClient.get('/users/sessions'),
+    revokeSession: (sessionId: string) => apiClient.delete(`/users/sessions/${sessionId}`),
+    revokeAllSessions: () => apiClient.delete('/users/sessions'),
   },
 
   // Organization endpoints
