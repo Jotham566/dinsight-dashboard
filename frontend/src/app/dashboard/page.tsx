@@ -111,7 +111,7 @@ export default function DashboardPage() {
             Refresh
           </Button>
           <Button asChild className="rounded-lg">
-            <Link href="/dashboard/data-summary">
+            <Link href="/dashboard/dinsight-analysis">
               <Plus className="w-4 h-4 mr-2" />
               New Analysis
             </Link>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                   Upload your baseline dataset to establish normal patterns
                 </p>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/dashboard/data-summary">Get Started</Link>
+                  <Link href="/dashboard/dinsight-analysis">Get Started</Link>
                 </Button>
               </div>
 
