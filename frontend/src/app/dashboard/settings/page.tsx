@@ -149,24 +149,99 @@ export default function SettingsPage() {
     }
   };
 
+  const [passwordChangeError, setPasswordChangeError] = useState<string>('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<boolean>(false);
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+
+  // Handle escape key to close dialog
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showChangePasswordDialog) {
+        setShowChangePasswordDialog(false);
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setPasswordChangeError('');
+        setPasswordChangeSuccess(false);
+        setIsChangingPassword(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showChangePasswordDialog]);
+
   const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Passwords do not match');
+    if (isChangingPassword) return; // Prevent multiple simultaneous requests
+
+    setPasswordChangeError('');
+    setPasswordChangeSuccess(false);
+    setIsChangingPassword(true);
+
+    // Validation
+    if (!passwordData.currentPassword) {
+      setPasswordChangeError('Current password is required');
+      setIsChangingPassword(false);
+      return;
+    }
+
+    if (!passwordData.newPassword) {
+      setPasswordChangeError('New password is required');
+      setIsChangingPassword(false);
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      alert('Password must be at least 8 characters long');
+      setPasswordChangeError('Password must be at least 8 characters long');
+      setIsChangingPassword(false);
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordChangeError('Passwords do not match');
+      setIsChangingPassword(false);
       return;
     }
 
     try {
-      await api.users.changePassword(passwordData.currentPassword, passwordData.newPassword);
+      console.log('Attempting to change password...');
+      const response = await api.users.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+      console.log('Password change response:', response);
+
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      alert('Password changed successfully');
-    } catch (error) {
+      setPasswordChangeSuccess(true);
+      setTimeout(() => {
+        setShowChangePasswordDialog(false);
+        setPasswordChangeSuccess(false);
+        setIsChangingPassword(false);
+      }, 2000);
+    } catch (error: any) {
       console.error('Failed to change password:', error);
-      alert('Failed to change password. Please check your current password and try again.');
+      console.error('Error details:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        stack: error?.stack,
+        code: error?.code,
+      });
+
+      if (error?.response?.status === 401) {
+        setPasswordChangeError('Current password is incorrect');
+      } else if (error?.response?.status === 400) {
+        setPasswordChangeError('Password does not meet requirements');
+      } else if (error?.code === 'NETWORK_ERROR' || error?.code === 'ECONNREFUSED') {
+        setPasswordChangeError(
+          'Unable to connect to server. Please check if the backend is running.'
+        );
+      } else if (error?.response?.status === 404) {
+        setPasswordChangeError('Password change endpoint not found. Please contact support.');
+      } else if (error?.response?.status >= 500) {
+        setPasswordChangeError('Server error occurred. Please try again later.');
+      } else {
+        setPasswordChangeError(error?.message || 'Failed to change password. Please try again.');
+      }
+      setIsChangingPassword(false);
     }
   };
 
@@ -737,68 +812,129 @@ export default function SettingsPage() {
       </div>
 
       {/* Change Password Dialog */}
-      <ConfirmationDialog
-        open={showChangePasswordDialog}
-        onOpenChange={setShowChangePasswordDialog}
-        title="Change Password"
-        description={
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <div className="relative mt-1">
-                <Input
-                  id="currentPassword"
-                  type={isPasswordVisible ? 'text' : 'password'}
-                  value={passwordData.currentPassword}
-                  onChange={(e) =>
-                    setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
-                  }
-                  className="glass-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+      {showChangePasswordDialog && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowChangePasswordDialog(false);
+              setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              setPasswordChangeError('');
+              setPasswordChangeSuccess(false);
+              setIsChangingPassword(false);
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-gray-300 dark:border-gray-600 w-full max-w-md mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Change Password
+              </h3>
+              <div className="space-y-4">
+                {passwordChangeError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                    <span className="text-sm text-red-700 dark:text-red-300">
+                      {passwordChangeError}
+                    </span>
+                  </div>
+                )}
+
+                {passwordChangeSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <span className="text-sm text-green-700 dark:text-green-300">
+                      Password changed successfully!
+                    </span>
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="currentPassword"
+                      type={isPasswordVisible ? 'text' : 'password'}
+                      value={passwordData.currentPassword}
+                      onChange={(e) =>
+                        setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))
+                      }
+                      className="glass-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
+                    }
+                    className="mt-1 glass-input"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Must be at least 8 characters long
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    }
+                    className="mt-1 glass-input"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowChangePasswordDialog(false);
+                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    setPasswordChangeError('');
+                    setPasswordChangeSuccess(false);
+                    setIsChangingPassword(false);
+                  }}
+                  className="flex-1"
                 >
-                  {isPasswordVisible ? (
-                    <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Changing...
+                    </>
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    'Change Password'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
-            <div>
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) =>
-                  setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))
-                }
-                className="mt-1 glass-input"
-              />
-            </div>
-            <div>
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) =>
-                  setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))
-                }
-                className="mt-1 glass-input"
-              />
-            </div>
           </div>
-        }
-        confirmText="Change Password"
-        cancelText="Cancel"
-        variant="default"
-        onConfirm={handleChangePassword}
-      />
+        </div>
+      )}
     </div>
   );
 }
