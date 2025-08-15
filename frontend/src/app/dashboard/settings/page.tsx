@@ -171,7 +171,8 @@ export default function SettingsPage() {
     queryFn: async (): Promise<UserSession[]> => {
       try {
         const response = await api.users.getSessions();
-        return response.data?.sessions || [];
+        console.log('Sessions API response:', response.data);
+        return response.data?.data?.sessions || [];
       } catch (error) {
         console.error('Failed to fetch sessions:', error);
         // Return mock data as fallback if backend doesn't support sessions yet
