@@ -19,7 +19,6 @@ import {
   User,
   Bell,
   Shield,
-  Key,
   Palette,
   Globe,
   Save,
@@ -58,9 +57,7 @@ const formatTimezone = (timezone: string) => {
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'api'>(
-    'profile'
-  );
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -111,7 +108,6 @@ export default function SettingsPage() {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'api', label: 'API Keys', icon: Key },
   ] as const;
 
   const handleSave = async () => {
@@ -738,41 +734,6 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             </div>
-          )}
-
-          {/* API Keys Tab */}
-          {activeTab === 'api' && (
-            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50">
-              <CardHeader className="bg-gradient-to-br from-accent-teal-50 via-white to-accent-teal-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 rounded-t-2xl">
-                <CardTitle className="flex items-center gap-3 text-gray-900 dark:text-gray-100">
-                  <div className="w-10 h-10 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-teal-500/25">
-                    <Key className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="gradient-text font-bold">API Keys</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">
-                      Manage API keys for programmatic access to your data
-                    </div>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 bg-gradient-to-br from-accent-teal-100 to-accent-teal-200 dark:from-accent-teal-900/30 dark:to-accent-teal-800/30 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-                    <Key className="w-10 h-10 text-accent-teal-600 dark:text-accent-teal-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">
-                    No API Keys
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
-                    Create API keys to access DInsight programmatically
-                  </p>
-                  <Button className="bg-gradient-to-r from-accent-teal-500 to-accent-teal-600 hover:from-accent-teal-600 hover:to-accent-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl">
-                    Create API Key
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           {/* Save Button */}
