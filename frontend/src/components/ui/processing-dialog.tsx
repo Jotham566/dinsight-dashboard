@@ -121,11 +121,16 @@ export function ProcessingDialog({
               <Progress value={getProgressValue()} className="h-2" />
 
               {type === 'processing' && pollCount && (
-                <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                  <span>Processing data...</span>
-                  <span className="font-mono">
-                    {pollCount}/{maxPolls} checks
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                    <span>Processing data...</span>
+                    <span className="font-mono">
+                      {pollCount}/{maxPolls} checks
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                    Verifying coordinate generation is complete...
+                  </div>
                 </div>
               )}
 

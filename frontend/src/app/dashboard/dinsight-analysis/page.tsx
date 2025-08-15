@@ -122,29 +122,54 @@ export default function DinsightAnalysisPage() {
         pollCount++;
 
         try {
-          // Check if dinsight data is available
+          // Check if dinsight data is available and properly processed
           const response = await apiClient.get(`/dinsight/${processingState.fileUploadId}`);
           if (response.data.success && response.data.data) {
-            // Processing is complete, we have dinsight coordinates
-            console.log('Processing completed! Dinsight data available:', response.data.data);
+            const dinsightData = response.data.data;
 
-            // Extract the actual dinsight_id from the response
-            const actualDinsightId = response.data.data.dinsight_id;
+            // Verify that the processing is actually complete by checking for valid coordinates
+            const hasValidCoordinates =
+              dinsightData.dinsight_x &&
+              dinsightData.dinsight_y &&
+              Array.isArray(dinsightData.dinsight_x) &&
+              Array.isArray(dinsightData.dinsight_y) &&
+              dinsightData.dinsight_x.length > 0 &&
+              dinsightData.dinsight_y.length > 0;
 
-            setProcessingState((prev) => ({
-              ...prev,
-              status: 'completed',
-              dinsightId: actualDinsightId, // Use the actual dinsight_data.id
-              step: 'monitoring',
-              pollCount: undefined,
-            }));
+            if (hasValidCoordinates) {
+              // Processing is truly complete, we have valid dinsight coordinates
+              console.log(
+                'Processing completed! Valid dinsight coordinates available:',
+                dinsightData
+              );
 
-            // Show baseline completion dialog
-            setProcessingDialogType('completed');
-            setProcessingDialogStage('baseline');
-            setShowProcessingDialog(true);
+              // Extract the actual dinsight_id from the response
+              const actualDinsightId = dinsightData.dinsight_id;
 
-            clearInterval(intervalId);
+              setProcessingState((prev) => ({
+                ...prev,
+                status: 'completed',
+                dinsightId: actualDinsightId,
+                step: 'monitoring',
+                pollCount: undefined,
+              }));
+
+              // Show baseline completion dialog
+              setProcessingDialogType('completed');
+              setProcessingDialogStage('baseline');
+              setShowProcessingDialog(true);
+
+              clearInterval(intervalId);
+            } else {
+              // Data exists but coordinates aren't ready yet, continue polling
+              console.log(
+                `Processing still in progress... coordinates not ready yet (attempt ${pollCount}/${maxPolls})`
+              );
+              setProcessingState((prev) => ({
+                ...prev,
+                pollCount: pollCount,
+              }));
+            }
           }
         } catch (error: any) {
           // Update poll count in state for user feedback
@@ -268,6 +293,53 @@ export default function DinsightAnalysisPage() {
         status: 'error',
         errorMessage: 'No dinsight ID available. Please upload baseline data first.',
       }));
+      return;
+    }
+
+    // Double-check that baseline processing is actually complete before allowing monitoring upload
+    try {
+      const baselineCheck = await apiClient.get(`/dinsight/${processingState.dinsightId}`);
+      if (!baselineCheck.data.success || !baselineCheck.data.data) {
+        setProcessingState((prev) => ({
+          ...prev,
+          status: 'error',
+          errorMessage: 'Baseline data not found. Please upload baseline data first.',
+        }));
+        setProcessingDialogType('error');
+        setShowProcessingDialog(true);
+        return;
+      }
+
+      const dinsightData = baselineCheck.data.data;
+      const hasValidCoordinates =
+        dinsightData.dinsight_x &&
+        dinsightData.dinsight_y &&
+        Array.isArray(dinsightData.dinsight_x) &&
+        Array.isArray(dinsightData.dinsight_y) &&
+        dinsightData.dinsight_x.length > 0 &&
+        dinsightData.dinsight_y.length > 0;
+
+      if (!hasValidCoordinates) {
+        setProcessingState((prev) => ({
+          ...prev,
+          status: 'error',
+          errorMessage:
+            'Baseline data is still processing. Please wait for baseline processing to complete before uploading monitoring data.',
+        }));
+        setProcessingDialogType('error');
+        setShowProcessingDialog(true);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking baseline readiness:', error);
+      setProcessingState((prev) => ({
+        ...prev,
+        status: 'error',
+        errorMessage:
+          'Unable to verify baseline data. Please ensure baseline processing is complete.',
+      }));
+      setProcessingDialogType('error');
+      setShowProcessingDialog(true);
       return;
     }
 
@@ -414,13 +486,13 @@ export default function DinsightAnalysisPage() {
           ? 'Uploading your baseline dataset files to the server...'
           : 'Uploading your monitoring data for anomaly detection...';
       case 'processing':
-        return 'Analyzing data and generating dinsight coordinates. This may take a few minutes.';
+        return 'Analyzing data and generating dinsight coordinates. This process involves complex calculations and may take several minutes to complete.';
       case 'completed':
         if (processingDialogStage === 'complete') {
           return 'Your analysis workflow is complete! You can now visualize results or run anomaly detection.';
         }
         return processingDialogStage === 'baseline'
-          ? 'Your baseline data has been processed successfully. You can now upload monitoring data.'
+          ? 'Your baseline data has been fully processed and coordinate generation is complete. You can now safely upload monitoring data.'
           : 'Your monitoring data has been uploaded successfully.';
       case 'error':
         return 'An error occurred during the process. Please review the details below.';
