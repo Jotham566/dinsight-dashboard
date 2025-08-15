@@ -32,7 +32,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
     const lastSegment = segments[segments.length - 1] || 'dashboard';
     return lastSegment
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -40,10 +40,10 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl">
       <div className="flex h-16 items-center px-4 sm:px-6">
         {/* Mobile menu button */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="mr-2 md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mr-2 md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
@@ -63,19 +63,19 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               <span className="font-display font-bold text-lg bg-gradient-to-r from-primary-600 to-accent-purple-600 dark:from-primary-400 dark:to-accent-purple-400 bg-clip-text text-transparent">
                 D'insight
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Predictive Analytics
-              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Predictive Analytics</span>
             </div>
           </Link>
         </div>
 
         {/* Search Bar */}
         <div className="flex-1 max-w-2xl mx-4 hidden md:flex">
-          <div className={cn(
-            "relative w-full transition-all duration-300",
-            searchFocused && "scale-[1.02]"
-          )}>
+          <div
+            className={cn(
+              'relative w-full transition-all duration-300',
+              searchFocused && 'scale-[1.02]'
+            )}
+          >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="search"
@@ -85,12 +85,12 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               className={cn(
-                "w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-sm",
-                "focus:border-primary-500 focus:bg-white dark:focus:bg-gray-900",
-                "focus:outline-none focus:ring-2 focus:ring-primary-500/20",
-                "transition-all duration-200",
-                "placeholder:text-gray-400 dark:placeholder:text-gray-500",
-                "border-gray-200 dark:border-gray-800"
+                'w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-sm',
+                'focus:border-primary-500 focus:bg-white dark:focus:bg-gray-900',
+                'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+                'transition-all duration-200',
+                'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+                'border-gray-200 dark:border-gray-800'
               )}
             />
             {searchQuery && (
@@ -109,9 +109,9 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
         {/* Right side actions */}
         <div className="flex items-center space-x-2">
           {/* Mobile search button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             <Search className="h-5 w-5" />
@@ -124,9 +124,9 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="relative hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <Bell className="h-5 w-5" />
@@ -143,7 +143,9 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
             <DropdownMenuContent align="right" className="w-80 rounded-xl">
               <div className="px-4 py-3 border-b dark:border-gray-800">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">You have 3 unread notifications</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  You have 3 unread notifications
+                </p>
               </div>
               <div className="py-2">
                 <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -152,8 +154,12 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                       <div className="h-2 w-2 bg-red-500 rounded-full mt-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">High Anomaly Detected</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Dataset analysis - 18.5% anomaly rate</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        High Anomaly Detected
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Dataset analysis - 18.5% anomaly rate
+                      </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">2 minutes ago</p>
                     </div>
                   </div>
@@ -164,8 +170,12 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                       <div className="h-2 w-2 bg-green-500 rounded-full mt-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Analysis Complete</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Baseline data processing finished</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Analysis Complete
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Baseline data processing finished
+                      </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">1 hour ago</p>
                     </div>
                   </div>
@@ -176,8 +186,12 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                       <div className="h-2 w-2 bg-yellow-500 rounded-full mt-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Maintenance Due</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">System maintenance scheduled</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Maintenance Due
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        System maintenance scheduled
+                      </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">3 hours ago</p>
                     </div>
                   </div>
@@ -197,15 +211,18 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="h-10 px-2 sm:px-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <div className="flex items-center space-x-2">
                   <div className="relative">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-purple-500 flex items-center justify-center shadow-md">
                       <span className="text-sm font-semibold text-white">
-                        {user?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                        {user?.full_name
+                          ?.split(' ')
+                          .map((n) => n[0])
+                          .join('') || 'U'}
                       </span>
                     </div>
                     <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full" />
@@ -215,7 +232,9 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                       {user?.full_name || 'User'}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Member'}
+                      {user?.role
+                        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                        : 'Member'}
                     </span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -224,7 +243,9 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="right" className="w-56 rounded-xl">
               <div className="px-3 py-2 border-b dark:border-gray-800">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.full_name}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {user?.full_name}
+                </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
               </div>
               <div className="py-2">
@@ -238,7 +259,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 </DropdownMenuItem>
               </div>
               <div className="border-t dark:border-gray-800 py-2">
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={logout}
                   className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                 >

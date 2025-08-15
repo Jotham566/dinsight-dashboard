@@ -21,13 +21,15 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   // Handle responsive sidebar behavior
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
+      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
         setSidebarOpen(false);
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
   }, []);
 
   if (isLoading) {

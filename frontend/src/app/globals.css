@@ -6,18 +6,20 @@
   * {
     border-color: theme('colors.gray.200');
   }
-  
+
   .dark * {
     border-color: theme('colors.gray.800');
   }
-  
+
   body {
     @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   html {
     @apply scroll-smooth;
   }
@@ -29,24 +31,24 @@
     @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50;
     @apply shadow-lg hover:shadow-xl transition-all duration-300;
   }
-  
+
   /* Gradient Text */
   .gradient-text {
     @apply bg-gradient-to-r from-primary-600 to-accent-purple-600 bg-clip-text text-transparent;
   }
-  
+
   /* Card Hover Effects */
   .card-hover {
     @apply transition-all duration-300;
     @apply hover:shadow-xl hover:-translate-y-1;
     @apply hover:border-primary-500/20;
   }
-  
+
   /* Skeleton Loading */
   .skeleton {
     @apply relative overflow-hidden bg-gray-200 dark:bg-gray-800;
   }
-  
+
   .skeleton::after {
     @apply absolute inset-0 -translate-x-full animate-pulse;
     @apply bg-gradient-to-r from-transparent via-white/20 to-transparent;
@@ -59,12 +61,12 @@
   .scrollbar-thin {
     scrollbar-width: thin;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }

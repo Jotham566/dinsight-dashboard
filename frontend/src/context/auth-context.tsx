@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { api, tokenManager } from '@/lib/api-client';
 import { User, LoginRequest, RegisterRequest } from '@/types';
 
@@ -53,8 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
 
       // Redirect to dashboard or return URL
-      const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-      router.push(returnUrl || '/dashboard');
+      let returnUrl = '/dashboard';
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        returnUrl = urlParams.get('returnUrl') || '/dashboard';
+      }
+      router.push(returnUrl);
     } catch (error: any) {
       console.error('Login failed:', error);
       throw new Error(error.response?.data?.error?.message || 'Login failed');
@@ -123,17 +127,18 @@ export function withAuth<P extends object>(
   return function AuthenticatedComponent(props: P) {
     const { user, isLoading, isAuthenticated } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
       if (!isLoading && !isAuthenticated) {
-        const currentPath = window.location.pathname;
+        const currentPath = pathname;
         router.push(options?.redirectTo || `/login?returnUrl=${encodeURIComponent(currentPath)}`);
       }
 
       if (user && options?.requiredRoles && !options.requiredRoles.includes(user.role)) {
         router.push('/dashboard');
       }
-    }, [isLoading, isAuthenticated, user, router]);
+    }, [isLoading, isAuthenticated, user, router, pathname]);
 
     if (isLoading) {
       return (

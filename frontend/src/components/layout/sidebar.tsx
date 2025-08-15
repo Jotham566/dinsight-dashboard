@@ -63,15 +63,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span className="font-display font-bold text-xl bg-gradient-to-r from-primary-600 to-accent-purple-600 dark:from-primary-400 dark:to-accent-purple-400 bg-clip-text text-transparent">
                   D'insight
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Analytics Platform
-                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Analytics Platform</span>
               </div>
             </Link>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               onClick={onClose}
             >
               <X className="h-5 w-5" />
@@ -103,12 +101,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     )}
                     title={item.description}
                   >
-                    <div className={cn(
-                      'mr-3 rounded-lg p-1.5 transition-colors',
-                      isActive 
-                        ? 'bg-gradient-to-br from-primary-500 to-accent-purple-500 text-white shadow-md' 
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
-                    )}>
+                    <div
+                      className={cn(
+                        'mr-3 rounded-lg p-1.5 transition-colors',
+                        isActive
+                          ? 'bg-gradient-to-br from-primary-500 to-accent-purple-500 text-white shadow-md'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
+                      )}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="flex-1">{item.label}</span>
@@ -117,9 +117,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         {item.badge}
                       </span>
                     )}
-                    {isActive && (
-                      <ChevronRight className="h-4 w-4 text-primary-500" />
-                    )}
+                    {isActive && <ChevronRight className="h-4 w-4 text-primary-500" />}
                   </Link>
                 );
               })}
@@ -134,9 +132,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 Quick Actions
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   asChild
                   className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
@@ -144,9 +142,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <span className="mr-1">📊</span> Upload
                   </Link>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   asChild
                   className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
@@ -173,7 +171,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600 dark:text-gray-400">Processing</span>
-                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100">Ready</span>
+                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                      Ready
+                    </span>
                   </div>
                 </div>
               </div>
@@ -213,7 +213,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="relative">
                   <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary-500 to-accent-purple-500 flex items-center justify-center shadow-md">
                     <span className="text-sm font-semibold text-white">
-                      {user?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                      {user?.full_name
+                        ?.split(' ')
+                        .map((n) => n[0])
+                        .join('') || 'U'}
                     </span>
                   </div>
                   <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full" />

@@ -31,6 +31,16 @@ import { cn } from '@/utils/cn';
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
+// Safe wrapper for requestIdleCallback with fallback
+const safeRequestIdleCallback = (callback: () => void) => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(callback);
+  } else {
+    // Fallback to setTimeout if requestIdleCallback is not available
+    setTimeout(callback, 0);
+  }
+};
+
 // Declare Plotly global for export functionality
 declare global {
   interface Window {
@@ -252,8 +262,8 @@ export default function FeatureAnalysisPage() {
 
         // **IMPROVED**: Auto-select logic with better state handling
         if (validDatasets.length > 0 && !selectedFileUploadId) {
-          // Use requestIdleCallback to prevent state update during render
-          requestIdleCallback(() => {
+          // Use safeRequestIdleCallback to prevent state update during render
+          safeRequestIdleCallback(() => {
             setSelectedFileUploadId(validDatasets[0].file_upload_id);
           });
         }
@@ -386,8 +396,8 @@ export default function FeatureAnalysisPage() {
         const sampleCount = result.data.data.feature_values.length;
         const featureCount = result.data.data.feature_values[0]?.length || 0;
 
-        // Use requestIdleCallback for better performance - **MATCH STREAMLIT**: Default to 1 sample only
-        requestIdleCallback(() => {
+        // Use safeRequestIdleCallback for better performance - **MATCH STREAMLIT**: Default to 1 sample only
+        safeRequestIdleCallback(() => {
           // Only auto-select if we have valid transformed data
           if (featureData && featureData.length > 0) {
             setSelectedSamples([featureData[0].sample_id]); // Default to 1 sample like Streamlit
@@ -640,8 +650,8 @@ export default function FeatureAnalysisPage() {
       {notification && (
         <div
           className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform backdrop-blur-sm border ${
-            notification.type === 'success' 
-              ? 'bg-accent-teal-500/90 text-white border-accent-teal-400/20 shadow-accent-teal-500/25' 
+            notification.type === 'success'
+              ? 'bg-accent-teal-500/90 text-white border-accent-teal-400/20 shadow-accent-teal-500/25'
               : 'bg-red-500/90 text-white border-red-400/20 shadow-red-500/25'
           }`}
         >
@@ -679,9 +689,7 @@ export default function FeatureAnalysisPage() {
                 <Dna className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold gradient-text">
-                  Feature Explorer
-                </h1>
+                <h1 className="text-3xl font-bold gradient-text">Feature Explorer</h1>
                 <p className="text-gray-600 dark:text-gray-300 mt-1">
                   Explore raw feature data with interactive heatmap visualization
                 </p>
@@ -724,7 +732,9 @@ export default function FeatureAnalysisPage() {
                   </div>
                   <div>
                     <div className="gradient-text font-bold">Dataset Selection</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">Choose data source</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">
+                      Choose data source
+                    </div>
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -735,14 +745,18 @@ export default function FeatureAnalysisPage() {
                     <div className="w-8 h-8 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-accent-teal-500/25">
                       <RefreshCw className="w-4 h-4 text-white animate-spin" />
                     </div>
-                    <p className="text-xs font-medium text-accent-teal-600 dark:text-accent-teal-400">Scanning...</p>
+                    <p className="text-xs font-medium text-accent-teal-600 dark:text-accent-teal-400">
+                      Scanning...
+                    </p>
                   </div>
                 ) : datasetsError ? (
                   <div className="text-center py-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-red-500/25">
                       <AlertCircle className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-xs font-medium text-red-600 dark:text-red-400">Discovery failed</p>
+                    <p className="text-xs font-medium text-red-600 dark:text-red-400">
+                      Discovery failed
+                    </p>
                   </div>
                 ) : availableDatasets && availableDatasets.length > 0 ? (
                   <div className="text-center py-3">
@@ -758,7 +772,9 @@ export default function FeatureAnalysisPage() {
                     <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-yellow-500/25">
                       <AlertCircle className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">None found</p>
+                    <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
+                      None found
+                    </p>
                   </div>
                 )}
 
@@ -792,7 +808,7 @@ export default function FeatureAnalysisPage() {
                     <Button
                       size="sm"
                       onClick={() => {
-                        requestIdleCallback(() => {
+                        safeRequestIdleCallback(() => {
                           const id = parseInt(manualId);
                           if (!isNaN(id)) {
                             setSelectedFileUploadId(id);
@@ -846,7 +862,9 @@ export default function FeatureAnalysisPage() {
                   </div>
                   <div>
                     <div className="gradient-text font-bold">Sample Selection</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">Choose samples to visualize</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">
+                      Choose samples to visualize
+                    </div>
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -856,7 +874,9 @@ export default function FeatureAnalysisPage() {
                     <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-accent-purple-500/25">
                       <RefreshCw className="w-5 h-5 text-white animate-spin" />
                     </div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading...</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Loading...
+                    </p>
                   </div>
                 ) : featureData && featureData.length > 0 ? (
                   <div className="space-y-3">
@@ -1015,7 +1035,9 @@ export default function FeatureAnalysisPage() {
                       <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">
                         Loading Feature Data
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Processing feature vectors...</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Processing feature vectors...
+                      </p>
                     </div>
                   </div>
                 ) : !featureData ? (
@@ -1060,7 +1082,9 @@ export default function FeatureAnalysisPage() {
                   <div className="text-3xl font-bold text-primary-900 dark:text-primary-100 mb-2 gradient-text">
                     {totalFeatures.toLocaleString()}
                   </div>
-                  <div className="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-1">Total Features</div>
+                  <div className="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-1">
+                    Total Features
+                  </div>
                   <div className="text-xs text-primary-600 dark:text-primary-400 opacity-80">
                     Feature dimensions per sample
                   </div>
@@ -1074,7 +1098,9 @@ export default function FeatureAnalysisPage() {
                   <div className="text-3xl font-bold text-accent-teal-900 dark:text-accent-teal-100 mb-2 gradient-text">
                     {totalSamples.toLocaleString()}
                   </div>
-                  <div className="text-sm font-semibold text-accent-teal-700 dark:text-accent-teal-300 mb-1">Total Samples</div>
+                  <div className="text-sm font-semibold text-accent-teal-700 dark:text-accent-teal-300 mb-1">
+                    Total Samples
+                  </div>
                   <div className="text-xs text-accent-teal-600 dark:text-accent-teal-400 opacity-80">
                     Data points in dataset
                   </div>
@@ -1088,7 +1114,9 @@ export default function FeatureAnalysisPage() {
                   <div className="text-3xl font-bold text-accent-purple-900 dark:text-accent-purple-100 mb-2 gradient-text">
                     {highVarianceFeatures.toLocaleString()}
                   </div>
-                  <div className="text-sm font-semibold text-accent-purple-700 dark:text-accent-purple-300 mb-1">High Variance</div>
+                  <div className="text-sm font-semibold text-accent-purple-700 dark:text-accent-purple-300 mb-1">
+                    High Variance
+                  </div>
                   <div className="text-xs text-accent-purple-600 dark:text-accent-purple-400 opacity-80">
                     Features with variance &gt; 2
                   </div>
@@ -1110,7 +1138,9 @@ export default function FeatureAnalysisPage() {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-gray-800/50 dark:to-primary-900/20 rounded-xl">
-                      <p className="text-sm font-semibold text-primary-600 dark:text-primary-400 mb-2">Most Variable Feature</p>
+                      <p className="text-sm font-semibold text-primary-600 dark:text-primary-400 mb-2">
+                        Most Variable Feature
+                      </p>
                       <p className="text-xl font-bold text-primary-900 dark:text-primary-100 gradient-text">
                         f_{mostVariableFeature.feature_index}
                       </p>
@@ -1119,7 +1149,9 @@ export default function FeatureAnalysisPage() {
                       </p>
                     </div>
                     <div className="glass-card p-4 bg-gradient-to-br from-accent-teal-50/50 to-accent-teal-100/30 dark:from-gray-800/50 dark:to-accent-teal-900/20 rounded-xl">
-                      <p className="text-sm font-semibold text-accent-teal-600 dark:text-accent-teal-400 mb-2">Least Variable Feature</p>
+                      <p className="text-sm font-semibold text-accent-teal-600 dark:text-accent-teal-400 mb-2">
+                        Least Variable Feature
+                      </p>
                       <p className="text-xl font-bold text-accent-teal-900 dark:text-accent-teal-100 gradient-text">
                         f_{leastVariableFeature?.feature_index}
                       </p>
@@ -1132,18 +1164,22 @@ export default function FeatureAnalysisPage() {
                   {/* Data Quality Indicator */}
                   <div className="mt-6 p-4 glass-card bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-gray-800/50 dark:to-primary-900/20 rounded-xl border border-primary-200/50 dark:border-primary-700/50">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        hasMetadata 
-                          ? 'bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 shadow-lg shadow-accent-teal-500/25' 
-                          : 'bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-lg shadow-yellow-500/25'
-                      }`}>
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          hasMetadata
+                            ? 'bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 shadow-lg shadow-accent-teal-500/25'
+                            : 'bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-lg shadow-yellow-500/25'
+                        }`}
+                      >
                         {hasMetadata ? (
                           <CheckCircle className="w-4 h-4 text-white" />
                         ) : (
                           <AlertCircle className="w-4 h-4 text-white" />
                         )}
                       </div>
-                      <span className="text-sm font-semibold text-primary-800 dark:text-primary-200">Dataset Quality</span>
+                      <span className="text-sm font-semibold text-primary-800 dark:text-primary-200">
+                        Dataset Quality
+                      </span>
                     </div>
                     <p className="text-sm text-primary-700 dark:text-primary-300">
                       Metadata: {hasMetadata ? 'Available' : 'Missing'}

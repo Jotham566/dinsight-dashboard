@@ -91,38 +91,40 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [selectedTimeRange, setSelectedTimeRange] = useState('24h');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const [data, setData] = useState<DashboardData>({
     organizations: [],
     config: null,
     totalUploads: 0,
     recentActivity: [],
   });
-  
+
   const [loading, setLoading] = useState<LoadingState>({
     organizations: true,
     config: true,
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch dashboard data using existing endpoints
   const fetchDashboardData = async () => {
     try {
       const promises = [
-        api.organizations.list().catch(() => ({ data: { data: [] } })),
+        // Organizations endpoint not implemented yet - using empty array
+        Promise.resolve({ data: { data: [] } }),
         api.analysis.getConfig().catch(() => null),
       ];
-      
+
       const [orgRes, configRes] = await Promise.allSettled(promises);
-      
+
       setData({
         organizations: orgRes.status === 'fulfilled' && orgRes.value ? orgRes.value.data.data : [],
-        config: configRes.status === 'fulfilled' && configRes.value ? configRes.value.data.data : null,
+        config:
+          configRes.status === 'fulfilled' && configRes.value ? configRes.value.data.data : null,
         totalUploads: 0,
         recentActivity: [],
       });
-      
+
       setErrors({});
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -135,16 +137,16 @@ export default function DashboardPage() {
       setIsRefreshing(false);
     }
   };
-  
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
-  
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchDashboardData();
   };
-  
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -157,7 +159,7 @@ export default function DashboardPage() {
         return <Clock className="h-5 w-5 text-gray-500" />;
     }
   };
-  
+
   const isLoading = Object.values(loading).some(Boolean);
 
   return (
@@ -177,11 +179,17 @@ export default function DashboardPage() {
               <div className="flex items-center gap-4 mt-4">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">All systems operational</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    All systems operational
+                  </span>
                 </div>
                 <span className="text-sm text-gray-400 dark:text-gray-500">•</span>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                 </span>
               </div>
             </div>
@@ -195,7 +203,10 @@ export default function DashboardPage() {
                 <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
                 Refresh
               </Button>
-              <Button asChild className="rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all">
+              <Button
+                asChild
+                className="rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all"
+              >
                 <Link href="/dashboard/data-summary">
                   <Plus className="w-4 h-4 mr-2" />
                   New Analysis
@@ -211,7 +222,9 @@ export default function DashboardPage() {
         <Card className="group relative overflow-hidden border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Organizations</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Organizations
+            </CardTitle>
             <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-md">
               <Users className="h-4 w-4 text-white" />
             </div>
@@ -240,15 +253,15 @@ export default function DashboardPage() {
         <Card className="group relative overflow-hidden border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">System Health</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              System Health
+            </CardTitle>
             <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg shadow-md">
               <Activity className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-              98.5%
-            </div>
+            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">98.5%</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center">
               <CheckCircle className="h-3 w-3 mr-1 text-emerald-500" />
               All systems operational
@@ -259,7 +272,9 @@ export default function DashboardPage() {
         <Card className="group relative overflow-hidden border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Analyses</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Active Analyses
+            </CardTitle>
             <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-md">
               <Cpu className="h-4 w-4 text-white" />
             </div>
@@ -286,21 +301,24 @@ export default function DashboardPage() {
         <Card className="group relative overflow-hidden border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Storage Used</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Storage Used
+            </CardTitle>
             <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg shadow-md">
               <HardDrive className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              2.4GB
-            </div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">2.4GB</div>
             <div className="mt-2">
               <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                 <span>24% of 10GB</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1.5">
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 h-1.5 rounded-full" style={{ width: '24%' }} />
+                <div
+                  className="bg-gradient-to-r from-orange-500 to-red-500 h-1.5 rounded-full"
+                  style={{ width: '24%' }}
+                />
               </div>
             </div>
           </CardContent>
@@ -309,7 +327,9 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          Quick Actions
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -319,16 +339,20 @@ export default function DashboardPage() {
                 href={action.href}
                 className="group relative overflow-hidden rounded-xl border border-gray-200/50 dark:border-gray-800/50 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
-                <div className={cn(
-                  'absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity',
-                  action.gradient
-                )} />
+                <div
+                  className={cn(
+                    'absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity',
+                    action.gradient
+                  )}
+                />
                 <div className="relative">
-                  <div className={cn(
-                    'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-lg',
-                    action.gradient,
-                    action.hoverGradient
-                  )}>
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-lg',
+                      action.gradient,
+                      action.hoverGradient
+                    )}
+                  >
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
@@ -353,7 +377,12 @@ export default function DashboardPage() {
                 <CardTitle className="text-xl">Recent Activity</CardTitle>
                 <CardDescription>Latest system activity and analysis results</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" asChild className="rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
                 <Link href="/dashboard/analysis">
                   View All
                   <ArrowUpRight className="w-4 h-4 ml-1" />
@@ -368,11 +397,16 @@ export default function DashboardPage() {
                       <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-purple-500 rounded-full blur-2xl opacity-20" />
                       <BarChart3 className="relative w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Recent Activity</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      No Recent Activity
+                    </h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
                       Start by uploading your data to begin analysis and see activity here.
                     </p>
-                    <Button asChild className="rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white">
+                    <Button
+                      asChild
+                      className="rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
+                    >
                       <Link href="/dashboard/data-summary">
                         <Upload className="w-4 h-4 mr-2" />
                         Upload Your First Dataset
@@ -386,9 +420,7 @@ export default function DashboardPage() {
                       className="flex items-center justify-between p-4 rounded-xl border border-gray-200/50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group"
                     >
                       <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          {getStatusIcon(activity.status)}
-                        </div>
+                        <div className="flex-shrink-0">{getStatusIcon(activity.status)}</div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {activity.action}
@@ -398,7 +430,12 @@ export default function DashboardPage() {
                           </p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" asChild className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                      >
                         <Link href="/dashboard/visualization">
                           <Eye className="h-4 w-4 mr-1" />
                           View
@@ -422,27 +459,33 @@ export default function DashboardPage() {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Optimizer</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Optimizer
+                  </span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {data.config?.optimizer || 'adam'}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Alpha</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Alpha
+                  </span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {data.config?.alpha || '0.1'}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-900/50">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Gamma0</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Gamma0
+                  </span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {data.config?.gamma0 || '1e-7'}
                   </span>
                 </div>
               </div>
-              
+
               <Button variant="outline" className="w-full rounded-xl" asChild>
                 <Link href="/dashboard/data-summary">
                   <Settings className="w-4 h-4 mr-2" />
@@ -480,7 +523,9 @@ export default function DashboardPage() {
       <Card className="border-gray-200/50 dark:border-gray-800/50 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-900 dark:to-gray-800/50">
         <CardHeader>
           <CardTitle className="text-2xl">Getting Started with DInsight</CardTitle>
-          <CardDescription>Follow these steps to begin your predictive maintenance analysis</CardDescription>
+          <CardDescription>
+            Follow these steps to begin your predictive maintenance analysis
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -496,18 +541,18 @@ export default function DashboardPage() {
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md">
                   1
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Upload Baseline</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Upload Baseline
+                </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Upload your baseline dataset to establish normal operational patterns
                 </p>
                 <Button variant="outline" size="sm" asChild className="rounded-lg">
-                  <Link href="/dashboard/data-summary">
-                    Get Started
-                  </Link>
+                  <Link href="/dashboard/data-summary">Get Started</Link>
                 </Button>
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="absolute left-1/2 top-12 w-px h-0 md:h-full bg-gradient-to-b from-emerald-500 to-transparent -translate-x-1/2 hidden md:block" />
               <div className="text-center">
@@ -520,18 +565,18 @@ export default function DashboardPage() {
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md">
                   2
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Add Monitoring</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Add Monitoring
+                </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Upload monitoring data from your equipment to compare
                 </p>
                 <Button variant="outline" size="sm" asChild className="rounded-lg">
-                  <Link href="/dashboard/visualization">
-                    Compare Data
-                  </Link>
+                  <Link href="/dashboard/visualization">Compare Data</Link>
                 </Button>
               </div>
             </div>
-            
+
             <div className="relative">
               <div className="text-center">
                 <div className="relative inline-block">
@@ -543,14 +588,14 @@ export default function DashboardPage() {
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-md">
                   3
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Detect Issues</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Detect Issues
+                </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Run anomaly detection to identify potential equipment issues
                 </p>
                 <Button variant="outline" size="sm" asChild className="rounded-lg">
-                  <Link href="/dashboard/analysis">
-                    Analyze Now
-                  </Link>
+                  <Link href="/dashboard/analysis">Analyze Now</Link>
                 </Button>
               </div>
             </div>

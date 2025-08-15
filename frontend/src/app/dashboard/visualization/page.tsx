@@ -401,8 +401,8 @@ export default function VisualizationPage() {
       {notification && (
         <div
           className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform backdrop-blur-sm border ${
-            notification.type === 'success' 
-              ? 'bg-accent-teal-500/90 text-white border-accent-teal-400/20 shadow-accent-teal-500/25' 
+            notification.type === 'success'
+              ? 'bg-accent-teal-500/90 text-white border-accent-teal-400/20 shadow-accent-teal-500/25'
               : 'bg-red-500/90 text-white border-red-400/20 shadow-red-500/25'
           }`}
         >
@@ -440,9 +440,7 @@ export default function VisualizationPage() {
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold gradient-text">
-                  Data Visualization
-                </h1>
+                <h1 className="text-3xl font-bold gradient-text">Data Visualization</h1>
                 <p className="text-gray-600 dark:text-gray-300 mt-1">
                   Interactive comparison between baseline and monitoring datasets
                 </p>
@@ -674,7 +672,9 @@ export default function VisualizationPage() {
                       <h3 className="text-2xl font-bold gradient-text mb-3">
                         Loading Visualization
                       </h3>
-                      <p className="text-gray-600 dark:text-gray-300">Processing coordinate data...</p>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        Processing coordinate data...
+                      </p>
                     </div>
                   </div>
                 ) : (

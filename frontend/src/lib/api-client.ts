@@ -19,12 +19,18 @@ export const tokenManager = {
   getRefreshToken: () => Cookies.get('refresh_token'),
   setTokens: (accessToken: string, refreshToken: string, expiresIn: number) => {
     const expiryDate = new Date(new Date().getTime() + expiresIn * 1000);
+    const isProduction = process.env.NODE_ENV === 'production';
+
     Cookies.set('access_token', accessToken, {
       expires: expiryDate,
-      secure: true,
+      secure: isProduction, // Only use secure in production
       sameSite: 'strict',
     });
-    Cookies.set('refresh_token', refreshToken, { expires: 30, secure: true, sameSite: 'strict' }); // 30 days
+    Cookies.set('refresh_token', refreshToken, {
+      expires: 30,
+      secure: isProduction, // Only use secure in production
+      sameSite: 'strict',
+    }); // 30 days
   },
   clearTokens: () => {
     Cookies.remove('access_token');
@@ -85,6 +91,7 @@ apiClient.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
+        console.log('Attempting token refresh...');
         const response = await axios.post(`${API_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         });
@@ -100,17 +107,41 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${access_token}`;
           }
 
+          console.log('Token refreshed successfully, retrying original request');
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
+        console.warn('Token refresh failed:', refreshError);
         tokenManager.clearTokens();
-        // Redirect to login
-        if (typeof window !== 'undefined') {
+
+        // Only redirect to login if we're not already there
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          console.log('Redirecting to login due to authentication failure');
           window.location.href = '/login';
         }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    // Log other API errors for debugging (but only in development)
+    if (error.response?.status && process.env.NODE_ENV === 'development') {
+      // Use a more gentle logging approach that won't trigger React error boundaries
+      const errorInfo = {
+        status: error.response.status,
+        url: error.config?.url,
+        data: error.response.data,
+      };
+
+      // Only log non-404 errors or 404s that aren't expected dataset checks
+      const isExpected404 =
+        error.response.status === 404 &&
+        (error.config?.url?.includes('/dinsight/') ||
+          error.config?.url?.includes('/organizations'));
+
+      if (!isExpected404) {
+        console.warn('API Error:', errorInfo);
       }
     }
 
@@ -205,7 +236,10 @@ export const api = {
 
   // Anomaly detection endpoints
   anomaly: {
-    detect: (data: any) => apiClient.post('/anomaly/detect', data),
+    detect: (data: any) => {
+      console.log('🔍 Calling anomaly detection API with data:', data);
+      return apiClient.post('/anomaly/detect', data);
+    },
     detectWithStorage: (data: any) => apiClient.post('/anomaly/detect-with-storage', data),
     getThreshold: (datasetId: number) => apiClient.get(`/anomaly/threshold/${datasetId}`),
   },
@@ -238,7 +272,6 @@ export const api = {
     validate: (data: { dataset_id: number; validation_rule_ids: number[] }) =>
       apiClient.post('/data-validation/validate', data),
   },
-
 };
 
 export default apiClient;

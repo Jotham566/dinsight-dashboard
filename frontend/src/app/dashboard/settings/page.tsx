@@ -538,7 +538,9 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <div className="gradient-text font-bold">Password & Security</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">Manage your password and security settings</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">
+                        Manage your password and security settings
+                      </div>
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -563,13 +565,18 @@ export default function SettingsPage() {
                           <AlertCircle className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-red-800 dark:text-red-200">2FA Disabled</p>
+                          <p className="font-semibold text-red-800 dark:text-red-200">
+                            2FA Disabled
+                          </p>
                           <p className="text-sm text-red-600 dark:text-red-300">
                             Enable two-factor authentication for enhanced security
                           </p>
                         </div>
                       </div>
-                      <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl">
+                      <Button
+                        size="sm"
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+                      >
                         Enable 2FA
                       </Button>
                     </div>
@@ -619,14 +626,21 @@ export default function SettingsPage() {
                               Current
                             </span>
                           ) : (
-                            <Button variant="outline" size="sm" className="text-red-600 dark:text-red-400 glass-button border-red-200/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-lg">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 dark:text-red-400 glass-button border-red-200/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-lg"
+                            >
                               Revoke
                             </Button>
                           )}
                         </div>
                       ))}
                     </div>
-                    <Button variant="outline" className="mt-4 text-red-600 dark:text-red-400 glass-button border-red-300/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-xl">
+                    <Button
+                      variant="outline"
+                      className="mt-4 text-red-600 dark:text-red-400 glass-button border-red-300/50 dark:border-red-700/50 hover:bg-red-50/50 dark:hover:bg-red-900/20 hover:border-red-300/50 transition-all duration-200 rounded-xl"
+                    >
                       Revoke All Sessions
                     </Button>
                   </div>
@@ -645,7 +659,9 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <div className="gradient-text font-bold">API Keys</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">Manage API keys for programmatic access to your data</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-0.5">
+                      Manage API keys for programmatic access to your data
+                    </div>
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -654,7 +670,9 @@ export default function SettingsPage() {
                   <div className="w-20 h-20 bg-gradient-to-br from-accent-teal-100 to-accent-teal-200 dark:from-accent-teal-900/30 dark:to-accent-teal-800/30 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
                     <Key className="w-10 h-10 text-accent-teal-600 dark:text-accent-teal-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">No API Keys</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">
+                    No API Keys
+                  </h3>
                   <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
                     Create API keys to access DInsight programmatically
                   </p>
@@ -680,10 +698,10 @@ export default function SettingsPage() {
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
               className={cn(
-                "min-w-[140px] rounded-xl shadow-lg hover:shadow-xl transition-all duration-200",
+                'min-w-[140px] rounded-xl shadow-lg hover:shadow-xl transition-all duration-200',
                 hasChanges
-                  ? "bg-gradient-to-r from-primary-500 to-accent-purple-600 hover:from-primary-600 hover:to-accent-purple-700 text-white"
-                  : "glass-button border-gray-200/50 dark:border-gray-700/50"
+                  ? 'bg-gradient-to-r from-primary-500 to-accent-purple-600 hover:from-primary-600 hover:to-accent-purple-700 text-white'
+                  : 'glass-button border-gray-200/50 dark:border-gray-700/50'
               )}
             >
               {isSaving ? (
