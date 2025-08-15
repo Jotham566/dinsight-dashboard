@@ -30,7 +30,7 @@ const quickActions = [
   {
     title: 'Upload Dataset',
     description: 'Upload baseline or monitoring data',
-    href: '/dashboard/data-summary',
+    href: '/dashboard/dinsight-analysis',
     icon: Upload,
     color: 'bg-blue-500 hover:bg-blue-600',
   },

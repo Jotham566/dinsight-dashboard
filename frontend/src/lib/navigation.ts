@@ -30,7 +30,7 @@ export const mainNavItems: NavItem[] = [
   },
   {
     label: 'Run Dinsight Analysis',
-    href: '/dashboard/data-summary',
+    href: '/dashboard/dinsight-analysis',
     icon: Upload,
     requiresAuth: true,
     description: 'Upload data and run Dinsight analysis with custom settings',
@@ -75,7 +75,7 @@ export const userMenuItems = [
 ];
 
 export const quickActions = [
-  { label: 'Upload Data', href: '/dashboard/data-summary', icon: Upload },
+  { label: 'Upload Data', href: '/dashboard/dinsight-analysis', icon: Upload },
   { label: 'Detect Anomalies', href: '/dashboard/analysis', icon: Microscope },
   { label: 'View Alerts', href: '/dashboard/alerts', icon: Bell },
 ];
