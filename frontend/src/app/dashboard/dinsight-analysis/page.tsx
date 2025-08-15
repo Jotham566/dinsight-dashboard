@@ -15,6 +15,7 @@ import {
   Activity,
   Plus,
   ArrowRight,
+  Settings2,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -329,7 +330,6 @@ export default function DinsightAnalysisPage() {
     }));
   };
 
-
   const isBaselineStep = processingState.step === 'baseline';
   const isMonitoringStep = processingState.step === 'monitoring';
   const isCompleteStep = processingState.step === 'complete';
@@ -337,443 +337,490 @@ export default function DinsightAnalysisPage() {
   const isProcessing = processingState.status === 'processing';
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header - Consistent with dashboard */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Run DInsight Analysis
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Configure settings and upload data for anomaly detection
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={resetWorkflow}
-            className="rounded-lg"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reset
-          </Button>
-          <Button 
-            className="rounded-lg"
-            onClick={() => setIsEditingConfig(true)}
-            disabled={isEditingConfig}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Configure
-          </Button>
-        </div>
-      </div>
-
-      {/* Workflow Status - Clean card design */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className={cn(
-          isBaselineStep || processingState.status === 'processing' || isMonitoringStep || isCompleteStep
-            ? 'ring-2 ring-blue-500'
-            : ''
-        )}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Step 1: Baseline</CardTitle>
-            <Upload className={cn(
-              "h-4 w-4",
-              isBaselineStep || processingState.status === 'processing' || isMonitoringStep || isCompleteStep
-                ? 'text-blue-500'
-                : 'text-gray-400'
-            )} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm font-medium">
-              {isBaselineStep ? 'In Progress' : 
-               processingState.status === 'processing' ? 'Processing...' :
-               (isMonitoringStep || isCompleteStep) ? 'Completed' : 'Pending'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cn(
-          isMonitoringStep ? 'ring-2 ring-blue-500' : '',
-          isCompleteStep ? 'ring-2 ring-emerald-500' : ''
-        )}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Step 2: Monitoring</CardTitle>
-            <Activity className={cn(
-              "h-4 w-4",
-              isMonitoringStep || isCompleteStep ? 'text-blue-500' : 'text-gray-400'
-            )} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm font-medium">
-              {isMonitoringStep ? 'In Progress' : 
-               isCompleteStep ? 'Completed' : 'Pending'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={cn(
-          isCompleteStep ? 'ring-2 ring-emerald-500' : ''
-        )}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Step 3: Complete</CardTitle>
-            <CheckCircle className={cn(
-              "h-4 w-4",
-              isCompleteStep ? 'text-emerald-500' : 'text-gray-400'
-            )} />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {isCompleteStep ? (
-                <>
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                    Analysis Ready
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm font-medium text-gray-500">Pending</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Status Messages */}
-      {processingState.errorMessage && (
-        <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-          <CardContent className="pt-6">
-            <div className="flex items-start">
-              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
-              <div className="text-sm text-red-800 dark:text-red-200">
-                <strong>Error:</strong> {processingState.errorMessage}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Modern Header with Enhanced Gradient */}
+      <div className="sticky top-0 z-10 glass-card backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                <Upload className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold gradient-text">Run DInsight Analysis</h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
+                  Configure settings and upload data for anomaly detection
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {isProcessing && (
-        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-          <CardContent className="pt-6">
-            <div className="flex items-start">
-              <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0 animate-pulse" />
-              <div className="flex-1">
-                <div className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
-                  Processing baseline data...
-                </div>
-                <div className="text-xs text-blue-600 dark:text-blue-300 mb-2">
-                  Analyzing data and generating dinsight coordinates. This may take a few minutes.
-                  {processingState.pollCount && (
-                    <span className="ml-2 font-mono">
-                      (Check {processingState.pollCount}/100)
-                    </span>
-                  )}
-                </div>
-                <Progress value={undefined} className="h-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Configuration Section - Show when editing */}
-      {isEditingConfig && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Processing Configuration</CardTitle>
-              <CardDescription>
-                Configure analysis parameters for optimal performance
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleSaveConfig}
-                disabled={isSavingConfig}
-              >
-                <Save className="w-4 h-4 mr-1" />
-                {isSavingConfig ? 'Saving...' : 'Save'}
-              </Button>
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                size="sm"
-                onClick={handleRestoreDefaults}
-                disabled={isSavingConfig}
+                onClick={resetWorkflow}
+                className="glass-card hover:shadow-lg transition-all duration-200"
               >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Defaults
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelEdit}
-                disabled={isSavingConfig}
-              >
-                <X className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reset Workflow
               </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="optimizer">Optimizer Algorithm</Label>
-                <Select
-                  value={editedConfig?.optimizer || ''}
-                  onValueChange={(value) => handleConfigFieldChange('optimizer', value)}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select optimizer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="adam">Adam</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="alpha">Alpha Learning Rate</Label>
-                <Input
-                  id="alpha"
-                  type="number"
-                  step="0.01"
-                  min="0.001"
-                  max="1.0"
-                  className="mt-1"
-                  value={editedConfig?.alpha || ''}
-                  onChange={(e) =>
-                    handleConfigFieldChange('alpha', parseFloat(e.target.value))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="gamma0">Gamma0 Initial Value</Label>
-                <Input
-                  id="gamma0"
-                  type="number"
-                  step="0.0000001"
-                  className="mt-1"
-                  value={editedConfig?.gamma0 || ''}
-                  onChange={(e) =>
-                    handleConfigFieldChange('gamma0', parseFloat(e.target.value))
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="end_meta">End Meta Column</Label>
-                <Input
-                  id="end_meta"
-                  type="text"
-                  className="mt-1"
-                  placeholder="e.g., participant"
-                  value={editedConfig?.end_meta || ''}
-                  onChange={(e) => handleConfigFieldChange('end_meta', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="start_dim">Start Dimension</Label>
-                <Input
-                  id="start_dim"
-                  type="text"
-                  className="mt-1"
-                  placeholder="e.g., f_0"
-                  value={editedConfig?.start_dim || ''}
-                  onChange={(e) => handleConfigFieldChange('start_dim', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="end_dim">End Dimension</Label>
-                <Input
-                  id="end_dim"
-                  type="text"
-                  className="mt-1"
-                  placeholder="e.g., f_1023"
-                  value={editedConfig?.end_dim || ''}
-                  onChange={(e) => handleConfigFieldChange('end_dim', e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Configuration Display */}
-      {!isEditingConfig && config && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Current Configuration</CardTitle>
-            <CardDescription>
-              These settings will be applied to your analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                  Optimizer
-                </span>
-                <p className="font-medium capitalize">{config?.optimizer}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                  Alpha
-                </span>
-                <p className="font-medium">{config?.alpha}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                  Gamma0
-                </span>
-                <p className="font-medium">{config?.gamma0}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                  End Meta
-                </span>
-                <p className="font-medium">{config?.end_meta}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                  Start Dim
-                </span>
-                <p className="font-medium font-mono">{config?.start_dim}</p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                  End Dim
-                </span>
-                <p className="font-medium font-mono">{config?.end_dim}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Upload Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Baseline Upload */}
-        <Card className={cn(
-          isBaselineStep ? 'ring-2 ring-blue-500' : '',
-          isMonitoringStep || isCompleteStep ? 'opacity-60' : ''
-        )}>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <div className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center mr-3',
-                isBaselineStep || processingState.status === 'processing' || isMonitoringStep || isCompleteStep
-                  ? 'bg-blue-500'
-                  : 'bg-gray-300 dark:bg-gray-700'
-              )}>
-                <span className="text-sm font-semibold text-white">1</span>
-              </div>
-              Baseline Data
-            </CardTitle>
-            <CardDescription>
-              Upload CSV files for initial analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FileUpload
-              onFilesChange={setBaselineFiles}
-              onUpload={handleBaselineUpload}
-              maxFiles={10}
-              maxSize={100 * 1024 * 1024} // 100MB
-              disabled={!isBaselineStep || isUploading}
-              uploadText={isUploading ? 'Uploading...' : 'Upload Baseline Data'}
-            />
-            {processingState.fileUploadId && (
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-center text-sm text-blue-800 dark:text-blue-200">
-                  <FileText className="h-4 w-4 mr-2" />
-                  <span className="font-medium">Upload ID:</span>
-                  <span className="ml-1 font-mono">{processingState.fileUploadId}</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Monitoring Upload */}
-        <Card className={cn(
-          isMonitoringStep ? 'ring-2 ring-blue-500' : '',
-          !isMonitoringStep ? 'opacity-60' : ''
-        )}>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <div className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center mr-3',
-                isMonitoringStep || isCompleteStep
-                  ? 'bg-blue-500'
-                  : 'bg-gray-300 dark:bg-gray-700'
-              )}>
-                <span className="text-sm font-semibold text-white">2</span>
-              </div>
-              Monitoring Data
-            </CardTitle>
-            <CardDescription>
-              Upload data for anomaly detection
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {processingState.dinsightId && (
-              <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                <div className="flex items-center text-sm text-emerald-800 dark:text-emerald-200">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  <span className="font-medium">Dinsight ID:</span>
-                  <span className="ml-1 font-mono">{processingState.dinsightId}</span>
-                </div>
-              </div>
-            )}
-            <FileUpload
-              onFilesChange={setMonitoringFiles}
-              onUpload={handleMonitoringUpload}
-              maxFiles={1}
-              maxSize={100 * 1024 * 1024} // 100MB
-              disabled={!isMonitoringStep || isUploading || !processingState.dinsightId}
-              uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
-            />
-            {!processingState.dinsightId && isMonitoringStep && (
-              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Waiting for baseline processing to complete...
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Completion Status */}
-      {isCompleteStep && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Analysis Complete!</CardTitle>
-            <CardDescription>
-              Your data has been successfully processed and is ready for analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild>
-                <a href="/dashboard/visualization">
-                  <ArrowRight className="w-4 h-4 mr-2" />
-                  View Visualization
-                </a>
-              </Button>
-              <Button asChild variant="outline">
-                <a href="/dashboard/analysis">
-                  <PlayCircle className="w-4 h-4 mr-2" />
-                  Run Anomaly Detection
-                </a>
-              </Button>
-              <Button onClick={resetWorkflow} variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                New Analysis
-              </Button>
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Modern Layout: Sidebar + Main Content */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Control Sidebar */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Workflow Status Card */}
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                    <Activity className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="gradient-text">Workflow</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Step 1: Baseline */}
+                <div className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg border transition-all duration-200",
+                  isBaselineStep || processingState.status === 'processing' || isMonitoringStep || isCompleteStep
+                    ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+                    : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/20'
+                )}>
+                  <div className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold',
+                    isBaselineStep || processingState.status === 'processing' || isMonitoringStep || isCompleteStep
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-300 dark:bg-gray-700 text-gray-500'
+                  )}>
+                    1
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">Baseline Upload</div>
+                    <div className="text-xs text-gray-500">
+                      {isBaselineStep ? 'In Progress' : 
+                       processingState.status === 'processing' ? 'Processing...' :
+                       (isMonitoringStep || isCompleteStep) ? 'Completed' : 'Pending'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2: Monitoring */}
+                <div className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg border transition-all duration-200",
+                  isMonitoringStep || isCompleteStep
+                    ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+                    : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/20'
+                )}>
+                  <div className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold',
+                    isMonitoringStep || isCompleteStep
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-300 dark:bg-gray-700 text-gray-500'
+                  )}>
+                    2
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">Monitoring Upload</div>
+                    <div className="text-xs text-gray-500">
+                      {isMonitoringStep ? 'In Progress' : 
+                       isCompleteStep ? 'Completed' : 'Pending'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3: Complete */}
+                <div className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg border transition-all duration-200",
+                  isCompleteStep
+                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20'
+                    : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/20'
+                )}>
+                  <div className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold',
+                    isCompleteStep
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-gray-300 dark:bg-gray-700 text-gray-500'
+                  )}>
+                    ✓
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">Analysis Ready</div>
+                    <div className="text-xs text-gray-500">
+                      {isCompleteStep ? 'Analysis Complete' : 'Pending'}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Configuration Card */}
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-4 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                    <Settings2 className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="gradient-text">Configuration</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!isEditingConfig && config && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-gray-500 block">Optimizer</span>
+                        <span className="font-medium capitalize">{config?.optimizer}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block">Alpha</span>
+                        <span className="font-medium">{config?.alpha}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block">Gamma0</span>
+                        <span className="font-medium">{config?.gamma0}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block">End Meta</span>
+                        <span className="font-medium">{config?.end_meta}</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingConfig(true);
+                        setEditedConfig({ ...config });
+                      }}
+                      className="w-full"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Edit Configuration
+                    </Button>
+                  </>
+                )}
+
+                {isEditingConfig && (
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveConfig}
+                        disabled={isSavingConfig}
+                        className="flex-1"
+                      >
+                        <Save className="w-4 h-4 mr-1" />
+                        {isSavingConfig ? 'Saving...' : 'Save'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        disabled={isSavingConfig}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="xl:col-span-3 space-y-8">
+            {/* Status Messages */}
+            {processingState.errorMessage && (
+              <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
+                    <div className="text-sm text-red-800 dark:text-red-200">
+                      <strong>Error:</strong> {processingState.errorMessage}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {isProcessing && (
+              <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-start">
+                    <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0 animate-pulse" />
+                    <div className="flex-1">
+                      <div className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-2">
+                        Processing baseline data...
+                      </div>
+                      <div className="text-xs text-blue-600 dark:text-blue-300 mb-2">
+                        Analyzing data and generating dinsight coordinates. This may take a few minutes.
+                        {processingState.pollCount && (
+                          <span className="ml-2 font-mono">
+                            (Check {processingState.pollCount}/100)
+                          </span>
+                        )}
+                      </div>
+                      <Progress value={undefined} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Configuration Section - Show when editing */}
+            {isEditingConfig && (
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+                <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
+                  <CardTitle className="text-2xl font-bold gradient-text">
+                    Processing Configuration
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+                    Configure analysis parameters for optimal performance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="optimizer">Optimizer Algorithm</Label>
+                      <Select
+                        value={editedConfig?.optimizer || ''}
+                        onValueChange={(value) => handleConfigFieldChange('optimizer', value)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select optimizer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="adam">Adam</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="alpha">Alpha Learning Rate</Label>
+                      <Input
+                        id="alpha"
+                        type="number"
+                        step="0.01"
+                        min="0.001"
+                        max="1.0"
+                        className="mt-1"
+                        value={editedConfig?.alpha || ''}
+                        onChange={(e) =>
+                          handleConfigFieldChange('alpha', parseFloat(e.target.value))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="gamma0">Gamma0 Initial Value</Label>
+                      <Input
+                        id="gamma0"
+                        type="number"
+                        step="0.0000001"
+                        className="mt-1"
+                        value={editedConfig?.gamma0 || ''}
+                        onChange={(e) =>
+                          handleConfigFieldChange('gamma0', parseFloat(e.target.value))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="end_meta">End Meta Column</Label>
+                      <Input
+                        id="end_meta"
+                        type="text"
+                        className="mt-1"
+                        placeholder="e.g., participant"
+                        value={editedConfig?.end_meta || ''}
+                        onChange={(e) => handleConfigFieldChange('end_meta', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="start_dim">Start Dimension</Label>
+                      <Input
+                        id="start_dim"
+                        type="text"
+                        className="mt-1"
+                        placeholder="e.g., f_0"
+                        value={editedConfig?.start_dim || ''}
+                        onChange={(e) => handleConfigFieldChange('start_dim', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="end_dim">End Dimension</Label>
+                      <Input
+                        id="end_dim"
+                        type="text"
+                        className="mt-1"
+                        placeholder="e.g., f_1023"
+                        value={editedConfig?.end_dim || ''}
+                        onChange={(e) => handleConfigFieldChange('end_dim', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      onClick={handleSaveConfig}
+                      disabled={isSavingConfig}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {isSavingConfig ? 'Saving...' : 'Save Configuration'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleRestoreDefaults}
+                      disabled={isSavingConfig}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Restore Defaults
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSavingConfig}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Upload Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Baseline Upload */}
+              <Card className={cn(
+                'glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover',
+                isBaselineStep && 'ring-2 ring-blue-500',
+                isMonitoringStep || isCompleteStep && 'opacity-60'
+              )}>
+                <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
+                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                    <div className={cn(
+                      'w-10 h-10 rounded-xl flex items-center justify-center shadow-lg',
+                      isBaselineStep || processingState.status === 'processing' || isMonitoringStep || isCompleteStep
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25'
+                        : 'bg-gray-300 dark:bg-gray-700'
+                    )}>
+                      <span className="text-sm font-semibold text-white">1</span>
+                    </div>
+                    <span className="gradient-text">Baseline Data</span>
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    Upload CSV files for initial analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <FileUpload
+                    onFilesChange={setBaselineFiles}
+                    onUpload={handleBaselineUpload}
+                    maxFiles={10}
+                    maxSize={100 * 1024 * 1024} // 100MB
+                    disabled={!isBaselineStep || isUploading}
+                    uploadText={isUploading ? 'Uploading...' : 'Upload Baseline Data'}
+                  />
+                  {processingState.fileUploadId && (
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center text-sm text-blue-800 dark:text-blue-200">
+                        <FileText className="h-4 w-4 mr-2" />
+                        <span className="font-medium">Upload ID:</span>
+                        <span className="ml-1 font-mono">{processingState.fileUploadId}</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Monitoring Upload */}
+              <Card className={cn(
+                'glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover',
+                isMonitoringStep && 'ring-2 ring-blue-500',
+                !isMonitoringStep && 'opacity-60'
+              )}>
+                <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
+                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                    <div className={cn(
+                      'w-10 h-10 rounded-xl flex items-center justify-center shadow-lg',
+                      isMonitoringStep || isCompleteStep
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25'
+                        : 'bg-gray-300 dark:bg-gray-700'
+                    )}>
+                      <span className="text-sm font-semibold text-white">2</span>
+                    </div>
+                    <span className="gradient-text">Monitoring Data</span>
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    Upload data for anomaly detection
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {processingState.dinsightId && (
+                    <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                      <div className="flex items-center text-sm text-emerald-800 dark:text-emerald-200">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <span className="font-medium">Dinsight ID:</span>
+                        <span className="ml-1 font-mono">{processingState.dinsightId}</span>
+                      </div>
+                    </div>
+                  )}
+                  <FileUpload
+                    onFilesChange={setMonitoringFiles}
+                    onUpload={handleMonitoringUpload}
+                    maxFiles={1}
+                    maxSize={100 * 1024 * 1024} // 100MB
+                    disabled={!isMonitoringStep || isUploading || !processingState.dinsightId}
+                    uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
+                  />
+                  {!processingState.dinsightId && isMonitoringStep && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                        Waiting for baseline processing to complete...
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            {/* Completion Status */}
+            {isCompleteStep && (
+              <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+                <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-emerald-50/30 via-white/50 to-accent-teal-50/30 dark:from-emerald-900/50 dark:via-gray-950/50 dark:to-accent-teal-900/50 backdrop-blur-sm rounded-t-xl">
+                  <CardTitle className="text-2xl font-bold gradient-text flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    Analysis Complete!
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+                    Your data has been successfully processed and is ready for analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button asChild className="glass-card hover:shadow-lg">
+                      <a href="/dashboard/visualization">
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        View Visualization
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" className="glass-card hover:shadow-lg">
+                      <a href="/dashboard/analysis">
+                        <PlayCircle className="w-4 h-4 mr-2" />
+                        Run Anomaly Detection
+                      </a>
+                    </Button>
+                    <Button onClick={resetWorkflow} variant="outline" className="glass-card hover:shadow-lg">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Analysis
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Confirmation Dialog */}
       <ConfirmationDialog
