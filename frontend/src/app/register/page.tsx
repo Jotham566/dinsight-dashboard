@@ -133,8 +133,8 @@ export default function RegisterPage() {
                 <span className="text-white text-2xl font-bold">D</span>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Account</h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               Get started with your free D'insight account
             </p>
           </div>
@@ -152,7 +152,10 @@ export default function RegisterPage() {
             <div className="space-y-4">
               {/* Full Name Field */}
               <div>
-                <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="full_name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Full Name
                 </label>
                 <input
@@ -176,7 +179,10 @@ export default function RegisterPage() {
 
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Email Address
                 </label>
                 <input
@@ -200,7 +206,10 @@ export default function RegisterPage() {
 
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Password
                 </label>
                 <div className="mt-1 relative">
@@ -224,9 +233,9 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400" />
+                      <EyeOff className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400" />
+                      <Eye className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     )}
                   </button>
                 </div>
@@ -264,9 +273,15 @@ export default function RegisterPage() {
                       {req.met ? (
                         <Check className="h-4 w-4 text-green-500" />
                       ) : (
-                        <X className="h-4 w-4 text-gray-300" />
+                        <X className="h-4 w-4 text-gray-300 dark:text-gray-600" />
                       )}
-                      <span className={req.met ? 'text-green-700' : 'text-gray-500'}>
+                      <span
+                        className={
+                          req.met
+                            ? 'text-green-700 dark:text-green-400'
+                            : 'text-gray-500 dark:text-gray-400'
+                        }
+                      >
                         {req.text}
                       </span>
                     </div>
@@ -285,7 +300,10 @@ export default function RegisterPage() {
                 type="checkbox"
                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-0.5"
               />
-              <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-700">
+              <label
+                htmlFor="agree-terms"
+                className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+              >
                 I agree to the{' '}
                 <Link href="/terms" className="text-primary-600 hover:text-primary-500">
                   Terms of Service
@@ -326,7 +344,7 @@ export default function RegisterPage() {
 
             {/* Sign in link */}
             <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Already have an account?{' '}
                 <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500">
                   Sign in

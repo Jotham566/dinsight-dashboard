@@ -74,7 +74,7 @@ export function getMachineStatusColor(status: string): string {
     case 'inactive':
       return 'text-red-600 bg-red-100';
     default:
-      return 'text-gray-600 bg-gray-100';
+      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
   }
 }
 
@@ -89,7 +89,7 @@ export function getAlertSeverityColor(severity: string): string {
     case 'critical':
       return 'text-red-600 bg-red-100';
     default:
-      return 'text-gray-600 bg-gray-100';
+      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
   }
 }
 
@@ -104,7 +104,7 @@ export function getAnalysisStatusColor(status: string): string {
     case 'failed':
       return 'text-red-600 bg-red-100';
     default:
-      return 'text-gray-600 bg-gray-100';
+      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
   }
 }
 

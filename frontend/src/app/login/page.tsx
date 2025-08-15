@@ -71,8 +71,10 @@ function LoginForm() {
                 <span className="text-white text-2xl font-bold">D</span>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
-            <p className="mt-2 text-sm text-gray-600">Sign in to your D'insight account</p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Welcome back</h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Sign in to your D'insight account
+            </p>
           </div>
 
           {/* Success message for new registration */}
@@ -97,7 +99,10 @@ function LoginForm() {
             <div className="space-y-4">
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Email Address
                 </label>
                 <input
@@ -105,12 +110,12 @@ function LoginForm() {
                   type="email"
                   autoComplete="email"
                   className={cn(
-                    'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm',
+                    'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
                     'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
                     'transition-colors duration-200',
                     errors.email
                       ? 'border-red-300 text-red-900 placeholder-red-300'
-                      : 'border-gray-300'
+                      : 'border-gray-300 dark:border-gray-600'
                   )}
                   placeholder="you@example.com"
                 />
@@ -121,7 +126,10 @@ function LoginForm() {
 
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Password
                 </label>
                 <div className="mt-1 relative">
@@ -130,12 +138,12 @@ function LoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     className={cn(
-                      'block w-full px-3 py-2 pr-10 border rounded-lg shadow-sm',
+                      'block w-full px-3 py-2 pr-10 border rounded-lg shadow-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
                       'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
                       'transition-colors duration-200',
                       errors.password
                         ? 'border-red-300 text-red-900 placeholder-red-300'
-                        : 'border-gray-300'
+                        : 'border-gray-300 dark:border-gray-600'
                     )}
                     placeholder="Enter your password"
                   />
@@ -145,9 +153,9 @@ function LoginForm() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400" />
+                      <EyeOff className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400" />
+                      <Eye className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     )}
                   </button>
                 </div>
@@ -166,7 +174,10 @@ function LoginForm() {
                   type="checkbox"
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                >
                   Remember me
                 </label>
               </div>
@@ -207,7 +218,7 @@ function LoginForm() {
 
             {/* Sign up link */}
             <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Don't have an account?{' '}
                 <Link
                   href="/register"

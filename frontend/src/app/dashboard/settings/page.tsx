@@ -174,8 +174,8 @@ export default function SettingsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your account preferences and configuration</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your account preferences and configuration</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -191,8 +191,8 @@ export default function SettingsPage() {
                   className={cn(
                     'w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                     activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
                   )}
                 >
                   <Icon className="mr-3 h-5 w-5" />
@@ -261,7 +261,7 @@ export default function SettingsPage() {
                         disabled
                         className="mt-1 bg-gray-50/50 dark:bg-gray-800/50 glass-input opacity-60"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Assigned by organization admin</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Assigned by organization admin</p>
                     </div>
                     <div>
                       <Label htmlFor="organization">Organization</Label>
@@ -365,7 +365,7 @@ export default function SettingsPage() {
                           <SelectItem value="UTC">UTC</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Auto-detected: {formatTimezone(detectTimezone())}
                       </p>
                     </div>
@@ -401,7 +401,7 @@ export default function SettingsPage() {
                           showAdvancedFeatures: e.target.checked,
                         }))
                       }
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                     />
                     <Label htmlFor="showAdvancedFeatures">Show advanced features</Label>
                   </div>
@@ -424,7 +424,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Communication</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Communication</h3>
                   <div className="space-y-3">
                     {[
                       {
@@ -451,12 +451,12 @@ export default function SettingsPage() {
                               {setting.label}
                             </Label>
                             {setting.disabled && (
-                              <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                              <span className="ml-2 text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-1 rounded">
                                 Pro
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">{setting.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{setting.description}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -471,7 +471,7 @@ export default function SettingsPage() {
                               [setting.key]: e.target.checked,
                             }))
                           }
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
                         />
                       </div>
                     ))}
@@ -479,7 +479,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Alert Types</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Alert Types</h3>
                   <div className="space-y-3">
                     {[
                       {
@@ -503,7 +503,7 @@ export default function SettingsPage() {
                           <Label htmlFor={setting.key} className="font-medium">
                             {setting.label}
                           </Label>
-                          <p className="text-sm text-gray-500">{setting.description}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{setting.description}</p>
                         </div>
                         <input
                           type="checkbox"
@@ -517,7 +517,7 @@ export default function SettingsPage() {
                               [setting.key]: e.target.checked,
                             }))
                           }
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                         />
                       </div>
                     ))}
@@ -556,7 +556,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
                       Two-Factor Authentication
                     </h3>
                     <div className="flex items-center justify-between p-6 glass-card bg-gradient-to-br from-red-50/80 to-red-100/50 dark:from-red-900/20 dark:to-red-900/10 border border-red-200/50 dark:border-red-700/50 rounded-xl">
@@ -583,7 +583,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Active Sessions</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Active Sessions</h3>
                     <div className="space-y-3">
                       {[
                         {
@@ -613,11 +613,11 @@ export default function SettingsPage() {
                           className="flex items-center justify-between p-4 glass-card border border-gray-200/50 dark:border-gray-700/50 rounded-xl card-hover"
                         >
                           <div>
-                            <p className="font-medium text-gray-900">{session.device}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{session.device}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {session.browser} • {session.location}
                             </p>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
                               Last active: {session.lastActive}
                             </p>
                           </div>
@@ -745,9 +745,9 @@ export default function SettingsPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {isPasswordVisible ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )}
                 </button>
               </div>

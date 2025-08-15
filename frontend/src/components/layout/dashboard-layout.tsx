@@ -41,7 +41,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 dark:bg-gray-950">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -51,7 +51,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         <Header onMenuClick={() => setSidebarOpen(true)} isSidebarOpen={sidebarOpen} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="container mx-auto px-4 py-6 max-w-7xl">{children}</div>
         </main>
       </div>

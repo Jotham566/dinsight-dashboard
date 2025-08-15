@@ -128,7 +128,7 @@ export function FileUpload({
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
       case 'pending':
-        return <File className="h-4 w-4 text-gray-400" />;
+        return <File className="h-4 w-4 text-gray-400 dark:text-gray-500" />;
       case 'uploading':
         return <Upload className="h-4 w-4 text-blue-500 animate-pulse" />;
       case 'success':
@@ -136,7 +136,7 @@ export function FileUpload({
       case 'error':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <File className="h-4 w-4 text-gray-400" />;
+        return <File className="h-4 w-4 text-gray-400 dark:text-gray-500" />;
     }
   };
 
@@ -149,7 +149,7 @@ export function FileUpload({
       case 'uploading':
         return 'text-blue-600 bg-blue-50 border-blue-200';
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -170,7 +170,7 @@ export function FileUpload({
         <Upload
           className={cn(
             'mx-auto h-12 w-12 mb-4',
-            isDragActive ? 'text-primary-500' : 'text-gray-400'
+            isDragActive ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'
           )}
         />
         {isDragActive ? (
@@ -180,13 +180,13 @@ export function FileUpload({
           </div>
         ) : (
           <div>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
               Drag & drop CSV files here, or click to browse
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Maximum file size: {formatBytes(maxSize)} • Maximum {maxFiles} files
             </p>
-            <p className="text-sm text-gray-500">Supported formats: CSV</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Supported formats: CSV</p>
           </div>
         )}
       </div>
@@ -195,7 +195,9 @@ export function FileUpload({
       {files.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Uploaded Files ({files.length})</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Uploaded Files ({files.length})
+            </h3>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={clearAll}>
                 Clear All
@@ -236,7 +238,7 @@ export function FileUpload({
                   {getStatusIcon(uploadedFile.status)}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatBytes(uploadedFile.file.size)} • {uploadedFile.file.type || 'CSV'}
                     </p>
                     {uploadedFile.error && (
@@ -251,7 +253,8 @@ export function FileUpload({
                       uploadedFile.status === 'success' && 'bg-green-100 text-green-800',
                       uploadedFile.status === 'error' && 'bg-red-100 text-red-800',
                       uploadedFile.status === 'uploading' && 'bg-blue-100 text-blue-800',
-                      uploadedFile.status === 'pending' && 'bg-gray-100 text-gray-800'
+                      uploadedFile.status === 'pending' &&
+                        'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                     )}
                   >
                     {uploadedFile.status === 'success' && 'Uploaded'}
