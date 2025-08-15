@@ -509,7 +509,8 @@ export default function AdvancedAnalysisPage() {
           xanchor: 'right' as any,
           x: 1,
         },
-        plot_bgcolor: 'rgba(240, 242, 246, 0.3)',
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
         showlegend: true,
         hovermode: 'closest' as any,
       },
@@ -875,13 +876,15 @@ export default function AdvancedAnalysisPage() {
                     </div>
                   ) : (
                     <div className="relative h-[700px] w-full p-6">
-                      <Plot
-                        data={createAnomalyVisualization()?.data || []}
-                        layout={createAnomalyVisualization()?.layout || {}}
-                        config={createAnomalyVisualization()?.config || {}}
-                        style={{ width: '100%', height: '100%' }}
-                        useResizeHandler={true}
-                      />
+                      <div className="bg-white rounded-lg border border-gray-200 dark:border-gray-600 p-2 h-full">
+                        <Plot
+                          data={createAnomalyVisualization()?.data || []}
+                          layout={createAnomalyVisualization()?.layout || {}}
+                          config={createAnomalyVisualization()?.config || {}}
+                          style={{ width: '100%', height: '100%' }}
+                          useResizeHandler={true}
+                        />
+                      </div>
                     </div>
                   )}
                 </CardContent>

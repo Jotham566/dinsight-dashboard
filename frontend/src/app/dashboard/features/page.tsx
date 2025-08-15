@@ -542,8 +542,8 @@ export default function FeatureAnalysisPage() {
       },
       showlegend: true,
       hovermode: 'closest' as const,
-      plot_bgcolor: 'rgba(0,0,0,0)',
-      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'white',
+      paper_bgcolor: 'white',
       font: { family: 'Inter, sans-serif', size: 12 },
       legend: {
         orientation: 'h' as const,
@@ -882,7 +882,9 @@ export default function FeatureAnalysisPage() {
                   <div className="space-y-3">
                     {/* Quick Sample Buttons */}
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-gray-700 mb-3">Quick Select</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Quick Select
+                      </p>
                       <div className="grid grid-cols-1 gap-2">
                         <Button
                           variant="outline"
@@ -923,7 +925,7 @@ export default function FeatureAnalysisPage() {
                     {/* Current Selection */}
                     {selectedSamples.length > 0 && (
                       <div className="space-y-3">
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Selected ({selectedSamples.length}/{maxSamples})
                         </p>
                         <div className="space-y-1 max-h-24 overflow-y-auto">
@@ -933,20 +935,20 @@ export default function FeatureAnalysisPage() {
                             return (
                               <div
                                 key={sampleId}
-                                className="flex items-center justify-between text-xs py-1 px-2 bg-gray-50 rounded"
+                                className="flex items-center justify-between text-xs py-1 px-2 bg-gray-50 dark:bg-gray-800 rounded"
                               >
                                 <div className="flex items-center gap-2">
                                   <div
                                     className="w-2 h-2 rounded-full"
                                     style={{ backgroundColor: colors[index % colors.length] }}
                                   />
-                                  <span className="font-mono">
+                                  <span className="font-mono text-gray-900 dark:text-gray-100">
                                     {sample?.metadata?.segID || sampleId}
                                   </span>
                                 </div>
                                 <button
                                   onClick={() => handleSampleSelection(sampleId, false)}
-                                  className="text-gray-400 hover:text-red-500"
+                                  className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
                                 >
                                   ✕
                                 </button>
@@ -1010,16 +1012,18 @@ export default function FeatureAnalysisPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {selectedSamples.length > 0 && featureData ? (
-                  <div className="relative h-[700px] w-full">
-                    <Plot
-                      data={plotData}
-                      layout={plotLayout}
-                      config={plotConfig}
-                      style={{ width: '100%', height: '100%' }}
-                      useResizeHandler={true}
-                      onInitialized={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
-                      onUpdate={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
-                    />
+                  <div className="relative h-[700px] w-full p-6">
+                    <div className="bg-white rounded-lg border border-gray-200 dark:border-gray-600 p-2 h-full">
+                      <Plot
+                        data={plotData}
+                        layout={plotLayout}
+                        config={plotConfig}
+                        style={{ width: '100%', height: '100%' }}
+                        useResizeHandler={true}
+                        onInitialized={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
+                        onUpdate={(figure, graphDiv) => setPlotElement({ el: graphDiv })}
+                      />
+                    </div>
                   </div>
                 ) : featureDataLoading ? (
                   <div className="flex items-center justify-center h-[600px]">

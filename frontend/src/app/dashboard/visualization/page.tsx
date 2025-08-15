@@ -337,8 +337,8 @@ export default function VisualizationPage() {
       title: { text: '' }, // Remove title since we have it in the card header
       showlegend: true,
       hovermode: 'closest' as const,
-      plot_bgcolor: 'rgba(240, 242, 246, 0.3)',
-      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'white',
+      paper_bgcolor: 'white',
       font: { family: 'Inter, sans-serif' },
       template: 'plotly_white' as any,
       legend: {
@@ -706,7 +706,7 @@ export default function VisualizationPage() {
                         );
                       }
                       return (
-                        <div className="relative h-full w-full">
+                        <div className="relative h-full w-full bg-white rounded-lg border border-gray-200 dark:border-gray-600 p-2">
                           <Plot
                             data={plotData}
                             layout={plotLayout}
