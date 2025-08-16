@@ -49,11 +49,7 @@ export function DropdownMenuTrigger({
   }
 
   return (
-    <button
-      className={cn('flex items-center', className)}
-      onClick={handleClick}
-      type="button"
-    >
+    <button className={cn('flex items-center', className)} onClick={handleClick} type="button">
       {children}
     </button>
   );
