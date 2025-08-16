@@ -1,13 +1,13 @@
 # 🎨 Dashboard Wireframe & UI Specification
 
 > **Complete UI/UX specification for the D'insight Dashboard**  
-> **Framework**: Next.js 14+ with TypeScript & Tailwind CSS  
-> **Design System**: Modern, responsive, production-ready  
-> **Status**: ✅ IMPLEMENTED - This document reflects the current frontend implementation
+> **Framework**: Next.js 15.4.5 with TypeScript & Tailwind CSS  
+> **Design System**: Modern, responsive, production-ready with glass morphism  
+> **Status**: ✅ FULLY IMPLEMENTED - This document reflects the current frontend implementation
 
 ## 📋 Overview
 
-The D'insight Dashboard is a comprehensive web application for predictive maintenance analytics, built with modern web technologies. The dashboard provides a complete workflow from data upload through anomaly detection, featuring real-time visualizations and comprehensive analytics capabilities.
+The D'insight Dashboard is a comprehensive web application for predictive maintenance analytics, built with modern web technologies. The dashboard provides a complete workflow from data upload through anomaly detection, featuring real-time visualizations, comprehensive analytics capabilities, and a sophisticated user management system with dark mode support.
 
 ## 🏗️ Architecture & Layout
 
@@ -146,142 +146,178 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 ### Header Bar
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ [☰] D'insight Dashboard    [🔍 Search...]    [🔔] [👤▼] │
+│ [☰] ✨ D'insight     [🔍 Search...]    [🌙] [🔔] [👤▼] │
+│     Predictive Analytics                                │
 └─────────────────────────────────────────────────────────┘
 ```
 
 **✅ Implemented Components:**
-- **Hamburger menu** (mobile) - X icon for close, responsive behavior
-- **Logo and title** - "D" logo with "D'insight Dashboard" text
-- **Global search bar** - Hidden on mobile, functional search input
-- **Notifications dropdown** - Bell icon with badge count (3), full dropdown with sample notifications
-- **User profile dropdown** - Avatar, user name, email, profile/settings/logout options
+- **Hamburger menu** (mobile) - X icon for close, responsive behavior with backdrop blur
+- **Logo and branding** - Sparkles icon with gradient background, "D'insight" with "Predictive Analytics" subtitle
+- **Global search bar** - Hidden on mobile, intelligent search with placeholder text, ESC to clear
+- **Theme toggle** - Light/Dark/Auto mode toggle with fixed browser compatibility (Safari, Chrome, Edge)
+- **Notifications dropdown** - Bell icon with animated badge (3), comprehensive dropdown with color-coded notifications
+- **User profile dropdown** - Avatar with initials, user name/role, profile/settings/logout options with proper navigation
 
 ### Sidebar Navigation
 ```
 ┌──────────────────────┐
+│ ✨ D'insight         │
+│    Analytics Platform│
+│ ────────────────────  │
+│ MAIN MENU            │
 │ 🏠 Dashboard         │
-│ 📁 Run Dinsight      │
+│ 📤 Run Dinsight Anal│
 │ 📈 Data Comparison   │
 │ 🔬 Anomaly Detection │
 │ 🧬 Feature Explorer  │
 │ ────────────────────  │
-│ Quick Actions        │
-│ [📁 Upload] [🔬 Det] │
+│ QUICK ACTIONS        │
+│ [📊 Upload] [🔬 Anal]│
+│ ────────────────────  │
+│ SYSTEM STATUS        │
+│ API Status: ●Online  │
+│ Processing: Ready    │
 │ ────────────────────  │
 │ ⚙️  Settings         │
 │ ────────────────────  │
-│ 👤 User Profile      │
-│    John Doe          │
-│    User              │
+│ 👤 John Doe          │
+│    User | ●          │
 └──────────────────────┘
 ```
 
 **✅ Implemented Features:**
-- **Active page highlighting** - Uses pathname to determine active links
-- **Role-based menu items** - Filters navigation based on user permissions
-- **Responsive behavior** - Overlay on mobile, fixed on desktop
-- **Quick action buttons** - Upload Data and Detect Anomalies shortcuts
-- **User info panel** - Shows user avatar, name, and role
-- **Mobile overlay** - Dark overlay with click-to-close functionality
+- **Modern branding** - Sparkles logo with gradient effects and "Analytics Platform" subtitle
+- **Organized sections** - "MAIN MENU", "QUICK ACTIONS", "SYSTEM STATUS" with proper typography
+- **Active page highlighting** - Gradient background with border and chevron indicator for active links
+- **Role-based menu items** - Permission-based navigation filtering with hasPermission function
+- **Responsive behavior** - Mobile overlay with backdrop blur, smooth transitions
+- **Quick action shortcuts** - Upload and Analyze buttons with emoji icons
+- **System status widget** - Real-time API status with animated pulse indicators
+- **User info panel** - Avatar with initials, name, role, and online status indicator
+- **Mobile interactions** - Click-to-close overlay, proper touch targets
 
 ### Navigation Items (Actual Implementation):
-1. **Dashboard** - `/dashboard` (Home icon)
-2. **Run Dinsight Analysis** - `/dashboard/data-summary` (Upload icon)
-3. **Data Comparison** - `/dashboard/visualization` (LineChart icon)
-4. **Anomaly Detection** - `/dashboard/analysis` (Microscope icon)
-5. **Feature Explorer** - `/dashboard/features` (Dna icon)
-6. **Settings** - `/dashboard/settings` (Settings icon)
+1. **Dashboard** - `/dashboard` (Home icon) - Overview and getting started
+2. **Run Dinsight Analysis** - `/dashboard/dinsight-analysis` (Upload icon) - Full workflow with configuration
+3. **Data Comparison** - `/dashboard/visualization` (LineChart icon) - Interactive Plotly visualizations
+4. **Anomaly Detection** - `/dashboard/analysis` (Microscope icon) - ML-powered anomaly detection
+5. **Feature Explorer** - `/dashboard/features` (Dna icon) - Raw feature data exploration
+6. **Settings** - `/dashboard/settings` (Settings icon) - User preferences and security
 
 ---
 
 ## 🏠 Dashboard Home (`/dashboard`)
 
-### Overview Cards Section
+### Modern Header with Welcome Message
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │
-│ │    2    │ │ Online  │ │  Set    │ │    0    │       │
-│ │ Orgs    │ │ System  │ │ Config  │ │Activity │       │
-│ │ 📊      │ │ ✅      │ │ ⚙️      │ │ 📊      │       │
-│ └─────────┘ └─────────┘ └─────────┘ └─────────┘       │
+│ 🏠 Welcome back, John!           [🔄 Refresh] [+ New]  │
+│    Predictive maintenance dashboard                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**✅ Implemented Features:**
-- **Organizations Card** - Shows count from API, loading skeleton
-- **System Status Card** - Shows "Online" with green indicator
-- **Configuration Card** - Shows "Set" or "Default" based on config
-- **Recent Activity Card** - Shows count of recent actions
-- **Real API Integration** - Uses api.organizations.list() and api.analysis.getConfig()
-- **Loading States** - Animated skeleton placeholders during data fetch
+**✅ Implemented Header:**
+- **Personalized greeting** - "Welcome back, {firstName}!" with gradient text
+- **Home icon** - Gradient background with shadow effects
+- **Action buttons** - Refresh and "New Analysis" with glass morphism effects
+- **Subtitle** - "Predictive maintenance dashboard" descriptive text
+- **Responsive design** - Stacked layout on mobile devices
+
+### System Status Cards
+```
+┌─────────────────────────────────────────────────────────┐
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐                    │
+│ │ ✅ ⚡   │ │ ⚙️ 📊    │ │ 📊 📈    │                    │
+│ │ System  │ │Config-  │ │Recent   │                    │
+│ │ Status  │ │uration  │ │Activity │                    │
+│ │Operat'l │ │Config'd │ │No recent│                    │
+│ └─────────┘ └─────────┘ └─────────┘                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Status Cards:**
+- **System Status Card** - "Operational" with checkmark, gradient background
+- **Configuration Card** - Shows "Configured"/"Default Settings" based on API config
+- **Recent Activity Card** - Dynamic based on hasActivity from analysis config
+- **Glass morphism design** - Backdrop blur, borders, shadows with hover effects
+- **Real API Integration** - Uses api.analysis.getConfig() for live status
+- **Loading States** - Skeleton animations during data fetch
 - **Error Handling** - Graceful fallbacks for failed API calls
 
 ### Quick Actions Section
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Quick Actions                                           │
+│ Quick Actions                                    ↗      │
+│ Get started with your predictive maintenance analysis   │
 ├─────────────────────────────────────────────────────────┤
 │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │
-│ │📁 Upload    │ │📊 Compare   │ │🔬 Detect    │        │
+│ │📤 Upload    │ │📈 Compare   │ │🔬 Detect    │        │
 │ │   Dataset   │ │   Data      │ │  Anomalies  │        │
-│ │ Upload and  │ │ Visualize   │ │ Run anomaly │        │
-│ │ analyze...  │ │ and comp... │ │ detection.. │        │
+│ │ Upload base │ │ Visualize   │ │ Run anomaly │        │
+│ │ line/monit  │ │ dataset comp│ │ detection   │        │
 │ └─────────────┘ └─────────────┘ └─────────────┘        │
 │ ┌─────────────┐                                        │
 │ │🧬 Explore   │                                        │
 │ │  Features   │                                        │
 │ │ Examine raw │                                        │
-│ │ feature...  │                                        │
+│ │ feature data│                                        │
 │ └─────────────┘                                        │
 └─────────────────────────────────────────────────────────┘
 ```
 
 **✅ Implemented Quick Actions:**
-1. **Upload Dataset** - Links to `/dashboard/data-summary`, blue color scheme
-2. **Compare Data** - Links to `/dashboard/visualization`, green color scheme  
-3. **Detect Anomalies** - Links to `/dashboard/analysis`, purple color scheme
-4. **Explore Features** - Links to `/dashboard/features`, orange color scheme
+1. **Upload Dataset** - Links to `/dashboard/dinsight-analysis`, primary blue gradient with shadow
+2. **Compare Data** - Links to `/dashboard/visualization`, teal gradient with hover effects  
+3. **Detect Anomalies** - Links to `/dashboard/analysis`, purple gradient with animations
+4. **Explore Features** - Links to `/dashboard/features`, orange gradient with transform effects
+- **Card animations** - Hover lift effect (-translate-y-1), scale transforms, shadow changes
+- **Arrow indicators** - Animated arrow on hover (↗)
+- **Glass morphism** - Backdrop blur effects, semi-transparent borders
+- **Responsive grid** - 1-4 columns based on screen size
 
-### Recent Activity Section
+### Getting Started Guide (Conditional)
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Recent Activity                               [View All] │
+│ Getting Started with DInsight                           │
 ├─────────────────────────────────────────────────────────┤
-│                   📊                                    │
-│              No Recent Activity                         │
-│      Start by uploading your data to begin analysis    │
-│                                                         │
-│                [+ Upload Data]                          │
+│ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │
+│ │ 1 📤 Upload │ │ 2 📊 Add    │ │ 3 🔬 Detect │        │
+│ │   Baseline  │ │  Monitoring │ │  Issues     │        │
+│ │   Data      │ │   Data      │ │             │        │
+│ │ Upload your │ │ Upload mon. │ │ Run anomaly │        │
+│ │[Get Started]│ │[Compare...] │ │ [Analyze]   │        │
+│ └─────────────┘ └─────────────┘ └─────────────┘        │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**✅ Implemented Features:**
-- **Empty State** - Shows when no activity exists (current implementation)
-- **Call-to-Action** - Upload Data button to start workflow
-- **View All Link** - Links to analysis page
-- **Status Icons** - Ready for different activity states (completed, processing, failed)
-- **No Mock Data** - Removed all fake activity data per requirements
+**✅ Implemented Getting Started:**
+- **Conditional display** - Only shows when `!data.hasActivity` (no recent activity)
+- **Step-by-step guide** - 3 numbered steps with gradient icons
+- **Interactive buttons** - Each step links to appropriate workflow page
+- **Visual progression** - Numbered badges (1, 2, 3) with color-coded backgrounds
+- **Hover animations** - Scale transforms and shadow effects on icons
+- **Responsive layout** - 1-3 columns based on screen size
 
-### System Information Panel
+### Current Configuration (Conditional)
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ System Information                                      │
+│ Current Configuration                                   │
+│ Analysis settings overview                              │
 ├─────────────────────────────────────────────────────────┤
-│ Analysis Engine          ✅ Active                      │
-│ Optimizer               adam                            │
-│ Alpha Value             0.1                             │
-│ Gamma0 Value            1e-7                            │
-│                                                         │
-│              [⚙️ Configure Analysis]                    │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐                    │
+│ │Optimizer│ │ Alpha   │ │ Gamma0  │                    │
+│ │  adam   │ │  0.1    │ │  1e-7   │                    │
+│ └─────────┘ └─────────┘ └─────────┘                    │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**✅ Implemented Features:**
-- **Analysis Engine Status** - Shows active status with green checkmark
-- **Configuration Values** - Shows optimizer, alpha, gamma0 from API
-- **Default Values** - Falls back to defaults when config not set
-- **Configure Button** - Links to data-summary page for configuration
+**✅ Implemented Configuration Display:**
+- **Conditional display** - Only shows when `data.config` exists
+- **Color-coded cards** - Each parameter has unique gradient background
+- **Real API data** - Shows actual configuration from api.analysis.getConfig()
+- **Responsive grid** - 1-3 columns based on screen size
+- **Glass morphism** - Semi-transparent backgrounds with borders and shadows
 
 ### Getting Started Guide
 ```
@@ -307,33 +343,73 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 
 ---
 
-## 📊 Run Dinsight Analysis Page (`/dashboard/data-summary`)
+## 📊 Run Dinsight Analysis Page (`/dashboard/dinsight-analysis`)
 
-### File Upload Section
+### Modern Header with Workflow Actions
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Data Upload & Management                                │
-├─────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │        📁 Drag & Drop CSV Files Here               │ │
-│ │                                                     │ │
-│ │        Or click to browse files                     │ │
-│ │                                                     │ │
-│ │        Maximum file size: 100MB                     │ │
-│ │        Supported formats: CSV                       │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                                                         │
-│ Workflow Step: ● Baseline  ○ Monitoring               │
+│ 📤 Run DInsight Analysis     [🔄 Reset] [+ New Analysis]│
+│    Configure settings and upload data for anomaly...   │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**✅ Implemented Features:**
-- **Drag & Drop Upload** - Full drag and drop functionality with FileUpload component
-- **File Validation** - CSV format and size validation
-- **Workflow Steps** - Clear baseline → monitoring → complete workflow
-- **Progress Tracking** - Visual indicators for each workflow step
-- **File Type Restrictions** - Only accepts CSV files
-- **Error Handling** - Comprehensive error states and messages
+**✅ Implemented Header:**
+- **Upload icon** - Gradient background with shadow effects
+- **Action buttons** - Reset Workflow and direct link to new analysis
+- **Descriptive subtitle** - Clear explanation of page purpose
+- **Glass morphism design** - Backdrop blur with border effects
+
+### Sidebar Workflow Tracker
+```
+┌─────────────────────────────────────────────────────────┐
+│ ⚡ Workflow                                             │
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────┐                                        │
+│ │ ● 1 Baseline│ ← Current step                        │
+│ │   In Progress│                                        │
+│ └─────────────┘                                        │
+│ ┌─────────────┐                                        │
+│ │ ○ 2 Monitoring│                                       │
+│ │   Pending    │                                        │
+│ └─────────────┘                                        │
+│ ┌─────────────┐                                        │
+│ │ ○ ✓ Complete │                                        │
+│ │   Pending    │                                        │
+│ └─────────────┘                                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Workflow Sidebar:**
+- **Visual step indicators** - Numbered badges with status colors
+- **Dynamic state** - Active, completed, pending states with appropriate styling
+- **Progress feedback** - "In Progress", "Processing...", "Completed", "Pending" labels
+- **Configuration panel** - Compact view with edit functionality
+- **Glass morphism** - Backdrop blur effects and hover animations
+
+### Dual Upload Layout
+```
+┌─────────────────────────────────────────────────────────┐
+│ ┌─────────────┐ ┌─────────────┐                        │
+│ │ 1 Baseline  │ │ 2 Monitoring│                        │
+│ │   Upload    │ │   Upload    │                        │
+│ │ ┌─────────┐ │ │ ┌─────────┐ │                        │
+│ │ │📁 Drag &│ │ │ │📁 Drag &│ │                        │
+│ │ │  Drop   │ │ │ │  Drop   │ │                        │
+│ │ │CSV Files│ │ │ │CSV Files│ │                        │
+│ │ │Max 100MB│ │ │ │Max 100MB│ │                        │
+│ │ └─────────┘ │ │ └─────────┘ │                        │
+│ │[Upload Data]│ │[Upload Data]│                        │
+│ └─────────────┘ └─────────────┘                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Upload System:**
+- **Dual upload panels** - Side-by-side baseline and monitoring sections
+- **State-based UI** - Active step highlighting with ring borders
+- **Drag & Drop** - Full FileUpload component with validation
+- **File constraints** - 100MB limit, CSV only, multiple files for baseline, single for monitoring
+- **Upload progress** - Real-time status with Upload ID and Dinsight ID tracking
+- **Error handling** - Comprehensive error states with retry functionality
 
 ### Configuration Panel
 ```
@@ -349,28 +425,50 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 ```
 
 **✅ Implemented Configuration:**
-- **Optimizer Selection** - Dropdown with options (adam, sgd, lbfgs, rmsprop)
-- **Numeric Parameters** - Alpha and Gamma0 input fields
-- **Feature Range** - Start and End feature selection
-- **Metadata Column** - End meta column specification
-- **Save/Reset Actions** - Persistent configuration storage
-- **Real API Integration** - Saves configuration via api.analysis.saveConfig()
+- **Compact sidebar display** - Current settings overview with color-coded cards
+- **Modal editor** - Full ConfigDialog with organized form fields
+- **Parameter validation** - Input constraints (Alpha: 0.001-1.0, Gamma0: scientific notation)
+- **Default restoration** - Factory reset with confirmation dialog
+- **Real API Integration** - GET/POST to `/config` endpoint with proper error handling
+- **Loading states** - Skeleton animations during config fetch
 
-### File Processing & Results
+### Completion Status
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Processing Status                                       │
+│ 🎉 Analysis Complete!                                   │
+│ Your data has been successfully processed and is ready  │
+│ for analysis                                            │
 ├─────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ ✅ Baseline Upload Complete                         │ │
-│ │    File: baseline_data.csv                          │ │
-│ │    Records: 1,000 | Features: 1,024               │ │
-│ │    [View Results] [Start Monitoring]               │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                                                         │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ 🔄 Processing Monitoring Data...                    │ │
-│ │    Progress: ████████░░ 80%                        │ │
+│ [📊 View Visualization] [🔬 Run Anomaly Detection]     │
+│ [+ New Analysis]                                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Completion:**
+- **Success celebration** - Emoji and congratulatory message
+- **Action buttons** - Direct links to visualization and analysis
+- **New workflow option** - Reset button to start fresh
+- **Glass morphism styling** - Gradient backgrounds with shadows
+
+---
+
+## 📊 Data Summary Analysis Page (`/dashboard/dinsight-analysis/data-summary`)
+
+### Tabbed Navigation Interface
+```
+┌─────────────────────────────────────────────────────────┐
+│ Run DInsight Analysis                                   │
+│ Configure processing settings and upload data for...   │
+├─────────────────────────────────────────────────────────┤
+│ [1. Configuration] [2. Data Upload] [3. Statistics]    │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Tabs:**
+- **Modern tab navigation** - Glass morphism design with gradient active states
+- **Sequential workflow** - Configuration → Upload → Statistics flow
+- **Active state styling** - Primary gradient with shadow effects for current tab
+- **Responsive design** - Horizontal scroll on mobile devices
 │ │    Estimated time: 30 seconds                      │ │
 │ │    [Cancel]                                        │ │
 │ └─────────────────────────────────────────────────────┘ │
@@ -799,25 +897,6 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 - **Session Controls** - Individual revoke buttons and revoke all option
 - **Visual Indicators** - Icons for different device types
 
-### API Keys Tab
-```
-┌─────────────────────────────────────────────────────────┐
-│ API Keys                                                │
-├─────────────────────────────────────────────────────────┤
-│                        🔑                               │
-│                   No API Keys                           │
-│        Create API keys to access DInsight              │
-│             programmatically                            │
-│                                                         │
-│                 [Create API Key]                        │
-└─────────────────────────────────────────────────────────┘
-```
-
-**✅ Implemented API Keys:**
-- **Empty State** - Clear message when no API keys exist
-- **Create Button** - Ready for API key generation
-- **Placeholder UI** - Foundation for future API key management
-
 ---
 
 ## 🎨 UI Component Implementation Status
@@ -939,12 +1018,280 @@ The D'insight Dashboard is a comprehensive web application for predictive mainte
 - Loading states and error handling
 - Form validation and user feedback
 
-### ✅ Technical Foundation:
-- Next.js 14+ with TypeScript
-- Tailwind CSS styling
-- React Query for data management
-- React Hook Form with Zod validation
-- Plotly.js for advanced visualizations
-- Real API integration throughout
+---
 
-This wireframe document now accurately reflects the current state of the implemented D'insight Dashboard frontend application, showing a fully functional, production-ready application with comprehensive data analysis capabilities.
+## 👤 Profile Page (`/dashboard/profile`)
+
+### Personal Information Section
+```
+┌─────────────────────────────────────────────────────────┐
+│ 👤 Profile Information                                  │
+│    Manage your personal information and preferences     │
+├─────────────────────────────────────────────────────────┤
+│ Personal Information                                    │
+│ Full Name:     [John Doe                          ]    │
+│ Email:         [john.doe@example.com              ]    │
+│ Role:          [User           ▼]                      │
+│ Organization:  ACME Manufacturing                       │
+│                                                         │
+│ Preferences                                            │
+│ Theme:         [Auto           ▼] (Light/Dark/Auto)    │
+│ Language:      [English        ▼]                      │
+│ Timezone:      [America/New_York ▼]                    │
+│ Items/Page:    [50             ▼]                      │
+│ □ Show Advanced Features                               │
+│                                                         │
+│                [Update Profile] [Reset Changes]        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Profile Page:**
+- **Consistent with Settings** - Exactly matches Settings/Profile tab layout and functionality
+- **Personal information** - Full name, email, role selection, organization display
+- **User preferences** - Theme, language, timezone, items per page, advanced features toggle
+- **Auto-detection** - Timezone detection with Intl.DateTimeFormat
+- **Form validation** - Required field validation and proper data types
+- **State management** - Local state with proper update handling
+- **Visual consistency** - Same styling as Settings page with Tabs, Avatar, Alert components
+
+---
+
+## ⚙️ Settings Page (`/dashboard/settings`)
+
+### Three-Tab Settings Interface
+```
+┌─────────────────────────────────────────────────────────┐
+│ ⚙️ Settings                                             │
+│    Manage your account preferences and configuration    │
+├─────────────────────────────────────────────────────────┤
+│ [Profile] [Notifications] [Security]                   │
+├─────────────────────────────────────────────────────────┤
+│ Profile Tab (Active):                                  │
+│                                                         │
+│ Personal Information                                    │
+│ Full Name:     [John Doe                          ]    │
+│ Email:         [john.doe@example.com] ✓ Verified      │
+│ Role:          User (Assigned by organization admin)   │
+│ Organization:  ACME Manufacturing                       │
+│                                                         │
+│ Preferences                                            │
+│ Theme:         [Auto           ▼] (Light/Dark/Auto)    │
+│ Language:      [English        ▼]                      │
+│ Timezone:      [America/New_York ▼] (Auto-detected)    │
+│ Items/Page:    [50             ▼]                      │
+│ □ Show Advanced Features                               │
+│                                                         │
+│                [Save Changes] [No Changes]             │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Notifications Tab
+```
+┌─────────────────────────────────────────────────────────┐
+│ Notification Preferences                                │
+│ Choose how you want to receive notifications and alerts│
+├─────────────────────────────────────────────────────────┤
+│ Communication                                          │
+│ ☑ Email notifications        ☐ SMS notifications      │
+│                                                         │
+│ Alert Types                                            │
+│ ☑ Anomaly detection alerts   ☐ System updates         │
+│ ☑ Weekly reports                                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Security Tab
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🛡️ Password & Security                                  │
+│    Manage your password and security settings          │
+├─────────────────────────────────────────────────────────┤
+│ [Change Password]                                      │
+│                                                         │
+│ Two-Factor Authentication                              │
+│ ⚠️ 2FA Disabled                          [Enable 2FA] │
+│    Enable two-factor authentication for enhanced...    │
+│                                                         │
+│ Active Sessions                                        │
+│ 🖥️ Current Session        |  Current                   │
+│    Chrome on macOS        |                            │
+│    Last active: Just now  |                            │
+│                                                         │
+│ 📱 Mobile Session         |  [Revoke]                  │
+│    Safari on iPhone       |                            │
+│    Last active: 2 hours   |                            │
+│                                                         │
+│                          [Revoke All Sessions]         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Settings (Actual):**
+- **Three-tab interface** - Profile, Notifications, Security only (NO Privacy tab)
+- **Profile tab** - Personal info (full name, email with verification badge, read-only role/org), preferences (theme, language, timezone with auto-detection, items per page, advanced features checkbox)
+- **Notifications tab** - Communication settings (email/SMS toggles), alert types (anomaly detection, system updates, weekly reports)
+- **Security tab** - Password change dialog, 2FA status (currently disabled), active sessions management with revoke functionality
+- **NO API Keys** - API key management is NOT implemented
+- **NO Privacy tab** - Privacy settings are NOT implemented  
+- **Form controls** - Controlled inputs with proper state management and change detection
+- **Save functionality** - Dynamic save button that only enables when changes are detected
+- **Glass morphism styling** - Consistent with dashboard design system
+
+---
+
+## 🔍 User Session Management
+
+### Active Sessions Display
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🔒 Active Sessions                                      │
+│    Monitor and manage your login sessions              │
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 🖥️ Current Session                                  │ │
+│ │    Location: New York, US                           │ │
+│ │    Device: Chrome on macOS                          │ │
+│ │    Last Active: Just now                            │ │
+│ │    IP: 192.168.1.100                                │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ 📱 Mobile Session                                   │ │
+│ │    Location: New York, US                           │ │
+│ │    Device: Safari on iPhone                         │ │
+│ │    Last Active: 2 hours ago                         │ │
+│ │    [Revoke Session]                                 │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│                      [Revoke All Sessions]             │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Session Management:**
+- **Real-time session tracking** - Shows current and historical sessions with proper state
+- **Session details** - Location, device, browser, last activity, IP address display
+- **Security actions** - Individual session revocation and bulk revoke all functionality
+- **Current session identification** - Highlights the active session with visual indicators
+- **Auto-refresh** - Updates session information automatically via useQuery
+- **Database integration** - Stores and retrieves session data from user_sessions table
+
+---
+
+## 📊 Data Visualization Pages
+
+### Visualization Page (`/dashboard/visualization`)
+```
+┌─────────────────────────────────────────────────────────┐
+│ 📈 Data Comparison & Visualization                      │
+│    Interactive comparison between datasets              │
+├─────────────────────────────────────────────────────────┤
+│ Dataset Selection:                                      │
+│ Dinsight ID: [Select Dataset ▼]                       │
+│                                                         │
+│ Visualization Options:                                  │
+│ Point Size: [••••••○○○○] (6px)                        │
+│ □ Show Contours  □ Side by Side View                  │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │              Plotly.js Interactive Chart            │ │
+│ │                                                     │ │
+│ │    •  •    •      Baseline Data                    │ │
+│ │  •      •     •   Monitoring Data                  │ │
+│ │     •  •   •      Overlaid Visualization           │ │
+│ │                                                     │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ [📷 Export PNG] [📊 Export SVG] [💾 Export Data]      │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Analysis Page (`/dashboard/analysis`)
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🔬 Anomaly Detection Analysis                           │
+│    Detect anomalies using ML algorithms                │
+├─────────────────────────────────────────────────────────┤
+│ Dataset Selection:                                      │
+│ Baseline:    [Select Dinsight Dataset ▼]              │
+│ Monitoring:  [Select Monitoring Data ▼]               │
+│                                                         │
+│ Algorithm Settings:                                     │
+│ Method: [Mahalanobis Distance ▼]                       │
+│ Threshold: [Auto-detect ▼]                            │
+│                                                         │
+│              [🔬 Run Anomaly Detection]                │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ Results: 15 anomalies detected out of 1,000 points │ │
+│ │                                                     │ │
+│ │ Anomaly Visualization:                              │ │
+│ │   •   •     Normal Points                          │ │
+│ │     🔴 🔴   Anomalies (red)                        │ │
+│ │   •       • Interactive plot                       │ │
+│ │                                                     │ │
+│ └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+**✅ Implemented Visualization & Analysis:**
+- **Interactive Plotly charts** - Real-time 2D scatter plots with zoom, pan, hover
+- **Dynamic data loading** - Fetches dinsight data and monitoring data from APIs
+- **Export functionality** - PNG, SVG, and raw data export capabilities
+- **Customization options** - Point size, contours, side-by-side view modes
+- **ML-powered analysis** - Mahalanobis distance anomaly detection with configurable thresholds
+- **Real-time results** - Live anomaly detection with visual highlighting
+
+---
+
+## 🎨 Complete UI Design System
+
+### Glass Morphism Implementation
+```css
+/* Core glass effect classes */
+.glass-card {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.glass-sidebar {
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.95);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+```
+
+### Color System
+- **Primary gradients** - `from-primary-500 to-primary-600` (Blue)
+- **Accent gradients** - Teal, purple, orange, pink for categorization
+- **Status indicators** - Success (green), error (red), warning (yellow), info (blue)
+- **Dark mode** - Complete theme with `dark:` prefixes and proper contrast
+
+### Component Library
+- **Cards** - Glass morphism with hover effects and proper shadows
+- **Buttons** - Multiple variants (primary, outline, ghost) with animations
+- **Forms** - Controlled inputs with validation states and error handling
+- **Navigation** - Responsive sidebar and header with proper mobile interactions
+- **Modals** - Backdrop blur with proper focus management
+- **Notifications** - Toast-style with color coding and auto-dismiss
+
+### Responsive Breakpoints
+- **Mobile first** - Base styles for mobile (320px+)
+- **Tablet** - `sm:` prefix (640px+)
+- **Desktop** - `md:` prefix (768px+) and `lg:` prefix (1024px+)
+- **Large screens** - `xl:` prefix (1280px+) and `2xl:` prefix (1536px+)
+
+---
+
+## ✅ Technical Foundation Update:
+- **Next.js 15.4.5** with TypeScript and App Router
+- **Tailwind CSS** with custom configuration and dark mode
+- **Radix UI primitives** for accessible components (Avatar, Tabs, Select, etc.)
+- **React Query (TanStack Query)** for data management and caching
+- **React Hook Form** with Zod validation schemas
+- **Plotly.js** for advanced interactive visualizations
+- **Real API integration** throughout all pages and workflows
+- **Authentication system** with session management and role-based access
+- **Theme system** with Light/Dark/Auto modes and cross-browser compatibility
+
+This wireframe document now comprehensively reflects the current state of the fully implemented D'insight Dashboard frontend application, showing a production-ready application with complete data analysis workflows, user management, and modern UI design patterns.
