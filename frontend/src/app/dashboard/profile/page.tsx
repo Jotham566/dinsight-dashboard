@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Shield, Calendar, Building, MapPin, Phone, Globe, Camera } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -50,12 +49,12 @@ export default function ProfilePage() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Profile updated successfully');
+      alert('Profile updated successfully');
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error?.message || 'Failed to update profile');
+      alert(error?.response?.data?.error?.message || 'Failed to update profile');
     },
   });
 
