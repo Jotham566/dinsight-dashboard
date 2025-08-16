@@ -1,372 +1,328 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Mail, Shield, Calendar, Building, MapPin, Phone, Globe, Camera } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { User, CheckCircle, Globe, Clock, FileText, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+// Timezone detection helper
+const detectTimezone = () => {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
+
+const formatTimezone = (tz: string) => {
+  const parts = tz.split('/');
+  return parts[parts.length - 1].replace(/_/g, ' ');
+};
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
+  const { user, refreshUser } = useAuth();
+  const router = useRouter();
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
   const [profileData, setProfileData] = useState({
-    full_name: user?.full_name || '',
-    email: user?.email || '',
-    phone: '',
-    location: '',
-    organization: '',
-    website: '',
-    bio: '',
+    fullName: '',
+    email: '',
+    role: 'user' as 'admin' | 'user' | 'viewer',
+    organization: 'ACME Manufacturing',
+    theme: 'auto',
+    language: 'en',
+    timezone: detectTimezone(),
+    itemsPerPage: '50',
+    showAdvancedFeatures: false,
   });
 
-  // Fetch user profile data
-  const { data: userProfile, isLoading } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: async () => {
-      try {
-        const response = await api.users.getProfile();
-        return response.data;
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-        return null;
+  // Initialize profile data from user context
+  useEffect(() => {
+    if (user) {
+      setProfileData((prev) => ({
+        ...prev,
+        fullName: user.full_name || '',
+        email: user.email || '',
+        role: user.role || 'user',
+      }));
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!hasChanges) return;
+    setIsSaving(true);
+    
+    try {
+      // Only update fields that have changed
+      const updateData: any = {};
+      if (profileData.fullName !== user?.full_name) {
+        updateData.full_name = profileData.fullName;
       }
-    },
-    enabled: !!user,
-  });
+      if (profileData.email !== user?.email) {
+        updateData.email = profileData.email;
+      }
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: typeof profileData) => {
-      const response = await api.users.updateProfile(data);
-      return response.data;
-    },
-    onSuccess: () => {
-      alert('Profile updated successfully');
-      setIsEditing(false);
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-    },
-    onError: (error: any) => {
-      alert(error?.response?.data?.error?.message || 'Failed to update profile');
-    },
-  });
-
-  const handleSave = () => {
-    updateProfileMutation.mutate(profileData);
+      // Only make API call if there are actual changes
+      if (Object.keys(updateData).length > 0) {
+        await api.users.updateProfile(updateData);
+        // Refresh user data to get updated info
+        await refreshUser();
+      }
+      
+      setSaveSuccess(true);
+      setHasChanges(false);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Failed to save profile changes');
+    } finally {
+      setIsSaving(false);
+    }
   };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setProfileData({
-      full_name: userProfile?.full_name || user?.full_name || '',
-      email: userProfile?.email || user?.email || '',
-      phone: userProfile?.phone || '',
-      location: userProfile?.location || '',
-      organization: userProfile?.organization || '',
-      website: userProfile?.website || '',
-      bio: userProfile?.bio || '',
-    });
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const formatDate = (date: string | Date | undefined) => {
-    if (!date) return 'Not available';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      {/* Header Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Profile</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your personal information and account settings</p>
+    <div className="container max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      {/* Header with Back Button */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/dashboard/settings')}
+            className="hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Profile</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Manage your personal information and preferences
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {saveSuccess && (
+            <div className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-medium rounded-lg flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Changes saved
+            </div>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+            className="px-6"
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
-      {/* Profile Overview Card */}
+      {/* Personal Information Card */}
       <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            {/* Avatar Section */}
-            <div className="relative">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src="" alt={user?.full_name} />
-                <AvatarFallback className="bg-gradient-to-br from-primary-500 to-accent-purple-500 text-white text-2xl font-semibold">
-                  {getInitials(user?.full_name || 'User')}
-                </AvatarFallback>
-              </Avatar>
-              {isEditing && (
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-lg"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            {/* User Info */}
-            <div className="flex-1">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                {user?.full_name || 'User'}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
-              <div className="flex items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Shield className="h-4 w-4" />
-                  {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Member'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  Joined {formatDate(user?.created_at)}
-                </span>
-              </div>
-            </div>
-
-            {/* Edit Button */}
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Personal Information
+          </CardTitle>
+          <CardDescription>Update your personal details and preferences</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              {!isEditing ? (
-                <Button onClick={() => setIsEditing(true)} variant="default">
-                  Edit Profile
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button onClick={handleSave} disabled={updateProfileMutation.isPending}>
-                    {updateProfileMutation.isPending ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button onClick={handleCancel} variant="outline">
-                    Cancel
-                  </Button>
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={profileData.fullName}
+                onChange={(e) => {
+                  setProfileData((prev) => ({ ...prev, fullName: e.target.value }));
+                  setHasChanges(true);
+                }}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  id="email"
+                  value={profileData.email}
+                  onChange={(e) => {
+                    setProfileData((prev) => ({ ...prev, email: e.target.value }));
+                    setHasChanges(true);
+                  }}
+                  className="flex-1"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-1.5 bg-gradient-to-r from-accent-teal-100 to-accent-teal-100/50 dark:from-accent-teal-900/30 dark:to-accent-teal-900/30 text-accent-teal-700 dark:text-accent-teal-300 text-sm font-semibold rounded-lg border border-accent-teal-200/50 dark:border-accent-teal-700/50 backdrop-blur-sm flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    Verified
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs Section */}
-      <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="personal">Personal Info</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-        </TabsList>
+      {/* Preferences Card */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="w-5 h-5" />
+            Preferences
+          </CardTitle>
+          <CardDescription>Customize your application experience</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="theme">Theme</Label>
+              <Select
+                value={profileData.theme}
+                onValueChange={(value) => {
+                  setProfileData((prev) => ({ ...prev, theme: value }));
+                  setHasChanges(true);
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="language">Language</Label>
+              <Select
+                value={profileData.language}
+                onValueChange={(value) => {
+                  setProfileData((prev) => ({ ...prev, language: value }));
+                  setHasChanges(true);
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                  <SelectItem value="de">German</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="timezone">Timezone</Label>
+              <Select
+                value={profileData.timezone}
+                onValueChange={(value) => {
+                  setProfileData((prev) => ({ ...prev, timezone: value }));
+                  setHasChanges(true);
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={detectTimezone()}>
+                    {formatTimezone(detectTimezone())} (Auto-detected)
+                  </SelectItem>
+                  <SelectItem value="America/New_York">
+                    Eastern Time (New York)
+                  </SelectItem>
+                  <SelectItem value="America/Chicago">
+                    Central Time (Chicago)
+                  </SelectItem>
+                  <SelectItem value="America/Denver">
+                    Mountain Time (Denver)
+                  </SelectItem>
+                  <SelectItem value="America/Los_Angeles">
+                    Pacific Time (Los Angeles)
+                  </SelectItem>
+                  <SelectItem value="Europe/London">
+                    GMT (London)
+                  </SelectItem>
+                  <SelectItem value="Europe/Paris">
+                    CET (Paris)
+                  </SelectItem>
+                  <SelectItem value="Asia/Tokyo">
+                    JST (Tokyo)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Personal Information Tab */}
-        <TabsContent value="personal" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details and contact information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="full_name"
-                      value={profileData.full_name}
-                      onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                      disabled={!isEditing}
-                      className="pl-10"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-                </div>
+      {/* Display Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Display Settings
+          </CardTitle>
+          <CardDescription>Configure how data is displayed</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="itemsPerPage">Items per page</Label>
+            <Select
+              value={profileData.itemsPerPage}
+              onValueChange={(value) => {
+                setProfileData((prev) => ({ ...prev, itemsPerPage: value }));
+                setHasChanges(true);
+              }}
+            >
+              <SelectTrigger className="mt-1 max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showAdvancedFeatures"
+              checked={profileData.showAdvancedFeatures}
+              onChange={(e) => {
+                setProfileData((prev) => ({
+                  ...prev,
+                  showAdvancedFeatures: e.target.checked,
+                }));
+                setHasChanges(true);
+              }}
+              className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+            />
+            <Label htmlFor="showAdvancedFeatures">Show advanced features</Label>
+          </div>
+        </CardContent>
+      </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                      disabled={!isEditing}
-                      className="pl-10"
-                      placeholder="your@email.com"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phone"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                      disabled={!isEditing}
-                      className="pl-10"
-                      placeholder="+1 (555) 000-0000"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="location"
-                      value={profileData.location}
-                      onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                      disabled={!isEditing}
-                      className="pl-10"
-                      placeholder="City, Country"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="organization">Organization</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="organization"
-                      value={profileData.organization}
-                      onChange={(e) => setProfileData({ ...profileData, organization: e.target.value })}
-                      disabled={!isEditing}
-                      className="pl-10"
-                      placeholder="Company Name"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="website"
-                      value={profileData.website}
-                      onChange={(e) => setProfileData({ ...profileData, website: e.target.value })}
-                      disabled={!isEditing}
-                      className="pl-10"
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <textarea
-                  id="bio"
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full min-h-[100px] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Tell us about yourself..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Security Tab */}
-        <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Manage your account security and authentication</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  To change your password or manage security settings, please visit the{' '}
-                  <a href="/dashboard/settings" className="text-primary-600 hover:underline">
-                    Settings page
-                  </a>
-                  .
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-3 border-b dark:border-gray-800">
-                  <div>
-                    <p className="font-medium">Two-Factor Authentication</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Add an extra layer of security</p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Configure
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between py-3 border-b dark:border-gray-800">
-                  <div>
-                    <p className="font-medium">Login History</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">View recent login activity</p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    View History
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="font-medium">Active Sessions</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Manage your active login sessions</p>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="/dashboard/settings">Manage</a>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Activity Tab */}
-        <TabsContent value="activity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your recent actions and interactions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Activity items would go here */}
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                  No recent activity to display
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Quick Links */}
+      <div className="mt-6 text-sm text-gray-600 dark:text-gray-400">
+        For security settings, notifications, and more options, visit the{' '}
+        <button
+          onClick={() => router.push('/dashboard/settings')}
+          className="text-primary-600 hover:underline"
+        >
+          Settings page
+        </button>
+        .
+      </div>
     </div>
   );
 }
