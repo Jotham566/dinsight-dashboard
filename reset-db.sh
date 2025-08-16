@@ -11,7 +11,7 @@ echo "This includes:"
 echo "  - All uploaded files and processing results"
 echo "  - All dinsight data and coordinates" 
 echo "  - All monitoring data and anomaly classifications"
-echo "  - All user data (except default admin)"
+echo "  - All user data and active sessions (except default admin)"
 echo "  - All organization and machine data"
 echo ""
 
