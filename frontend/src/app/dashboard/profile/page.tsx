@@ -7,7 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { User, CheckCircle, Globe, Clock, FileText, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -27,7 +33,7 @@ export default function ProfilePage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
+
   const [profileData, setProfileData] = useState({
     fullName: '',
     email: '',
@@ -55,7 +61,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!hasChanges) return;
     setIsSaving(true);
-    
+
     try {
       // Only update fields that have changed
       const updateData: any = {};
@@ -72,7 +78,7 @@ export default function ProfilePage() {
         // Refresh user data to get updated info
         await refreshUser();
       }
-      
+
       setSaveSuccess(true);
       setHasChanges(false);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -104,7 +110,7 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {saveSuccess && (
             <div className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-medium rounded-lg flex items-center gap-2">
@@ -112,11 +118,7 @@ export default function ProfilePage() {
               Changes saved
             </div>
           )}
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-            className="px-6"
-          >
+          <Button onClick={handleSave} disabled={!hasChanges || isSaving} className="px-6">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
@@ -236,27 +238,13 @@ export default function ProfilePage() {
                   <SelectItem value={detectTimezone()}>
                     {formatTimezone(detectTimezone())} (Auto-detected)
                   </SelectItem>
-                  <SelectItem value="America/New_York">
-                    Eastern Time (New York)
-                  </SelectItem>
-                  <SelectItem value="America/Chicago">
-                    Central Time (Chicago)
-                  </SelectItem>
-                  <SelectItem value="America/Denver">
-                    Mountain Time (Denver)
-                  </SelectItem>
-                  <SelectItem value="America/Los_Angeles">
-                    Pacific Time (Los Angeles)
-                  </SelectItem>
-                  <SelectItem value="Europe/London">
-                    GMT (London)
-                  </SelectItem>
-                  <SelectItem value="Europe/Paris">
-                    CET (Paris)
-                  </SelectItem>
-                  <SelectItem value="Asia/Tokyo">
-                    JST (Tokyo)
-                  </SelectItem>
+                  <SelectItem value="America/New_York">Eastern Time (New York)</SelectItem>
+                  <SelectItem value="America/Chicago">Central Time (Chicago)</SelectItem>
+                  <SelectItem value="America/Denver">Mountain Time (Denver)</SelectItem>
+                  <SelectItem value="America/Los_Angeles">Pacific Time (Los Angeles)</SelectItem>
+                  <SelectItem value="Europe/London">GMT (London)</SelectItem>
+                  <SelectItem value="Europe/Paris">CET (Paris)</SelectItem>
+                  <SelectItem value="Asia/Tokyo">JST (Tokyo)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
