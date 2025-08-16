@@ -34,19 +34,16 @@ export function DropdownMenuTrigger({
 
   const { open, setOpen } = context;
 
-  const handleClick = () => setOpen(!open);
-  const handleBlur = (e: React.FocusEvent) => {
-    // Close dropdown when clicking outside
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setTimeout(() => setOpen(false), 100);
-    }
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!open);
   };
 
   if (asChild && React.isValidElement(children)) {
     const childProps = (children as React.ReactElement).props as any;
     return React.cloneElement(children as React.ReactElement<any>, {
       onClick: handleClick,
-      onBlur: handleBlur,
       className: cn(childProps.className, className),
     });
   }
@@ -55,7 +52,7 @@ export function DropdownMenuTrigger({
     <button
       className={cn('flex items-center', className)}
       onClick={handleClick}
-      onBlur={handleBlur}
+      type="button"
     >
       {children}
     </button>
@@ -75,17 +72,43 @@ export function DropdownMenuContent({
   if (!context) throw new Error('DropdownMenuContent must be used within DropdownMenu');
 
   const { open, setOpen } = context;
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  // Handle outside clicks
+  React.useEffect(() => {
+    if (!open) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, setOpen]);
 
   if (!open) return null;
 
   return (
     <div
+      ref={contentRef}
       className={cn(
         'absolute z-50 mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-xl backdrop-blur-sm animate-fade-in',
         align === 'right' ? 'right-0' : 'left-0',
         className
       )}
-      onBlur={() => setOpen(false)}
     >
       <div className="py-1" role="menu" aria-orientation="vertical">
         {children}
@@ -106,6 +129,21 @@ export function DropdownMenuItem({
   const context = React.useContext(DropdownMenuContext);
   const { setOpen } = context || {};
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Execute the onClick handler first
+    if (onClick) {
+      onClick();
+    }
+
+    // Close the dropdown immediately after action
+    if (setOpen) {
+      setOpen(false);
+    }
+  };
+
   return (
     <button
       className={cn(
@@ -113,10 +151,8 @@ export function DropdownMenuItem({
         className
       )}
       role="menuitem"
-      onClick={() => {
-        onClick?.();
-        setOpen?.(false);
-      }}
+      onClick={handleClick}
+      type="button"
     >
       {children}
     </button>
