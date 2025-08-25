@@ -61,7 +61,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </div>
               <div className="flex flex-col">
                 <span className="font-display font-bold text-xl bg-gradient-to-r from-primary-600 to-accent-purple-600 dark:from-primary-400 dark:to-accent-purple-400 bg-clip-text text-transparent">
-                  D'insight
+                  D'Insight
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Analytics Platform</span>
               </div>

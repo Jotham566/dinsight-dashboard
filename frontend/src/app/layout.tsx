@@ -6,7 +6,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "D'insight Dashboard - Predictive Maintenance Platform",
+  title: "D'Insight Dashboard - Predictive Maintenance Platform",
   description:
     'Advanced predictive maintenance analytics platform with real-time monitoring and anomaly detection',
   icons: {

@@ -73,7 +73,7 @@ function LoginForm() {
             </div>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Welcome back</h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Sign in to your D'insight account
+              Sign in to your D'Insight account
             </p>
           </div>
 
@@ -236,7 +236,7 @@ function LoginForm() {
       <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700">
         <div className="flex-1 flex items-center justify-center p-12">
           <div className="max-w-md text-white">
-            <h1 className="text-4xl font-bold mb-6">D'insight Dashboard</h1>
+            <h1 className="text-4xl font-bold mb-6">D'Insight Dashboard</h1>
             <p className="text-lg mb-8 text-primary-100">
               Advanced predictive maintenance analytics platform with real-time monitoring and
               anomaly detection.

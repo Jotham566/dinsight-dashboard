@@ -61,7 +61,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
             </div>
             <div className="hidden sm:flex flex-col">
               <span className="font-display font-bold text-lg bg-gradient-to-r from-primary-600 to-accent-purple-600 dark:from-primary-400 dark:to-accent-purple-400 bg-clip-text text-transparent">
-                D'insight
+                D'Insight
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400">Predictive Analytics</span>
             </div>

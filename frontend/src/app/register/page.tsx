@@ -80,7 +80,7 @@ export default function RegisterPage() {
       <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700">
         <div className="flex-1 flex items-center justify-center p-12">
           <div className="max-w-md text-white">
-            <h1 className="text-4xl font-bold mb-6">Join D'insight</h1>
+            <h1 className="text-4xl font-bold mb-6">Join D'Insight</h1>
             <p className="text-lg mb-8 text-primary-100">
               Start your journey to predictive maintenance excellence.
             </p>
@@ -135,7 +135,7 @@ export default function RegisterPage() {
             </div>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Account</h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Get started with your free D'insight account
+              Get started with your free D'Insight account
             </p>
           </div>
 
