@@ -6,19 +6,19 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
 // Icons
-import { 
-  Activity, 
-  Play, 
-  Pause, 
-  Square, 
-  RefreshCw, 
-  Settings, 
+import {
+  Activity,
+  Play,
+  Pause,
+  Square,
+  RefreshCw,
+  Settings,
   BarChart3,
   Zap,
   Clock,
   Eye,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
 
 // UI Components
@@ -82,7 +82,11 @@ export default function StreamingVisualizationPage() {
   } | null>(null);
 
   // Query for available dinsight datasets
-  const { data: availableDinsightIds, isLoading: datasetsLoading, refetch: refetchDatasets } = useQuery<Dataset[]>({
+  const {
+    data: availableDinsightIds,
+    isLoading: datasetsLoading,
+    refetch: refetchDatasets,
+  } = useQuery<Dataset[]>({
     queryKey: ['available-dinsight-ids'],
     queryFn: async (): Promise<Dataset[]> => {
       try {
@@ -284,34 +288,37 @@ export default function StreamingVisualizationPage() {
   }, [dinsightData, pointSize, showContours]);
 
   // Plot layout configuration
-  const plotLayout = useMemo(() => ({
-    title: { text: '' },
-    showlegend: true,
-    hovermode: 'closest' as const,
-    plot_bgcolor: 'white',
-    paper_bgcolor: 'white',
-    font: { family: 'Inter, sans-serif' },
-    template: 'plotly_white' as any,
-    legend: {
-      orientation: 'h' as any,
-      yanchor: 'bottom' as any,
-      y: 1.02,
-      xanchor: 'right' as any,
-      x: 1,
-    },
-    xaxis: {
-      title: { text: 'D\'insight X Coordinate' },
-      gridcolor: '#f1f5f9',
-      zerolinecolor: '#e2e8f0',
-    },
-    yaxis: {
-      title: { text: 'D\'insight Y Coordinate' },
-      gridcolor: '#f1f5f9',
-      zerolinecolor: '#e2e8f0',
-    },
-    height: 600,
-    margin: { l: 60, r: 30, t: 30, b: 60 },
-  }), []);
+  const plotLayout = useMemo(
+    () => ({
+      title: { text: '' },
+      showlegend: true,
+      hovermode: 'closest' as const,
+      plot_bgcolor: 'white',
+      paper_bgcolor: 'white',
+      font: { family: 'Inter, sans-serif' },
+      template: 'plotly_white' as any,
+      legend: {
+        orientation: 'h' as any,
+        yanchor: 'bottom' as any,
+        y: 1.02,
+        xanchor: 'right' as any,
+        x: 1,
+      },
+      xaxis: {
+        title: { text: "D'insight X Coordinate" },
+        gridcolor: '#f1f5f9',
+        zerolinecolor: '#e2e8f0',
+      },
+      yaxis: {
+        title: { text: "D'insight Y Coordinate" },
+        gridcolor: '#f1f5f9',
+        zerolinecolor: '#e2e8f0',
+      },
+      height: 600,
+      margin: { l: 60, r: 30, t: 30, b: 60 },
+    }),
+    []
+  );
 
   // Control functions
   const toggleStreaming = () => {
@@ -361,39 +368,44 @@ export default function StreamingVisualizationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-accent-teal-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-accent-teal-950/20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Notification */}
       {notification && (
-        <div className={cn(
-          'fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-sm transition-all duration-300',
-          notification.type === 'success' && 'bg-green-50/90 dark:bg-green-950/90 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
-          notification.type === 'error' && 'bg-red-50/90 dark:bg-red-950/90 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
-          notification.type === 'info' && 'bg-blue-50/90 dark:bg-blue-950/90 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
-        )}>
+        <div
+          className={cn(
+            'fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-sm transition-all duration-300',
+            notification.type === 'success' &&
+              'bg-green-50/90 dark:bg-green-950/90 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
+            notification.type === 'error' &&
+              'bg-red-50/90 dark:bg-red-950/90 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
+            notification.type === 'info' &&
+              'bg-blue-50/90 dark:bg-blue-950/90 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+          )}
+        >
           <p className="text-sm font-medium">{notification.message}</p>
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
+      {/* Modern Header with Enhanced Gradient - Consistent with Dashboard */}
+      <div className="sticky top-0 z-10 glass-card backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl text-white shadow-lg">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <h1 className="text-3xl font-bold gradient-text">Real-Time Streaming</h1>
-                <Badge variant="outline" className="glass-card">
-                  <Activity className="w-3 h-3 mr-1" />
-                  Live
-                </Badge>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                <Zap className="w-6 h-6 text-white" />
               </div>
-              <p className="text-gray-600 dark:text-gray-300">
-                Monitor machine health in real-time with streaming sensor data
-              </p>
+              <div>
+                <h1 className="text-3xl font-bold gradient-text">Real-Time Streaming</h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
+                  Monitor machine health in real-time with streaming sensor data
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
+              <Badge variant="outline" className="glass-card">
+                <Activity className="w-3 h-3 mr-1" />
+                Live
+              </Badge>
               <Button
                 variant="outline"
                 onClick={refreshData}
@@ -411,20 +423,23 @@ export default function StreamingVisualizationPage() {
         {/* Control Panel Row */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Dataset Selection */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold">Dataset</CardTitle>
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="pb-3 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-lg shadow-primary-500/25">
+                  <BarChart3 className="h-4 w-4 text-white" />
+                </div>
+                <span className="gradient-text">Dataset</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <select
                 value={selectedDinsightId || ''}
                 onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-gray-900 dark:text-gray-100"
                 disabled={datasetsLoading}
               >
-                {selectedDinsightId === null && (
-                  <option value="">Select dataset...</option>
-                )}
+                {selectedDinsightId === null && <option value="">Select dataset...</option>}
                 {datasetsLoading ? (
                   <option>Loading datasets...</option>
                 ) : (
@@ -439,11 +454,16 @@ export default function StreamingVisualizationPage() {
           </Card>
 
           {/* Streaming Controls */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold">Controls</CardTitle>
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="pb-3 bg-gradient-to-r from-accent-teal-50/30 to-emerald-50/20 dark:from-accent-teal-950/30 dark:to-emerald-950/20 rounded-t-xl">
+              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-accent-teal-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-accent-teal-500/25">
+                  <Activity className="h-4 w-4 text-white" />
+                </div>
+                <span className="gradient-text">Controls</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="pt-4 space-y-3">
               <div className="flex gap-2">
                 <Button
                   onClick={toggleStreaming}
@@ -455,7 +475,11 @@ export default function StreamingVisualizationPage() {
                   )}
                   disabled={!selectedDinsightId}
                 >
-                  {isStreaming ? <Pause className="w-4 h-4 mr-1" /> : <Play className="w-4 h-4 mr-1" />}
+                  {isStreaming ? (
+                    <Pause className="w-4 h-4 mr-1" />
+                  ) : (
+                    <Play className="w-4 h-4 mr-1" />
+                  )}
                   {isStreaming ? 'Pause' : 'Start'}
                 </Button>
                 <Button
@@ -479,11 +503,16 @@ export default function StreamingVisualizationPage() {
           </Card>
 
           {/* Visualization Settings */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold">Settings</CardTitle>
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="pb-3 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-lg flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                  <Settings className="h-4 w-4 text-white" />
+                </div>
+                <span className="gradient-text">Settings</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Point Size: {pointSize}px
@@ -524,91 +553,93 @@ export default function StreamingVisualizationPage() {
             </CardContent>
           </Card>
 
-          {/* Status Overview */}
-          <Card className="glass-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold flex items-center">
-                <Activity className="w-4 h-4 mr-2" />
-                Status
+          {/* Streaming Status */}
+          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+            <CardHeader className="pb-3 bg-gradient-to-r from-orange-50/30 to-yellow-50/20 dark:from-orange-950/30 dark:to-yellow-950/20 rounded-t-xl">
+              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/25">
+                  <Clock className="h-4 w-4 text-white" />
+                </div>
+                <span className="gradient-text">Status</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {streamingStatus ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Monitor Points:</span>
-                    <Badge variant="secondary">
-                      {streamingStatus.streamed_points}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Baseline Points:</span>
-                    <Badge variant="outline">
-                      {streamingStatus.baseline_points}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
-                    <Badge className={cn(
-                      isStreaming ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                 : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                    )}>
-                      {isStreaming ? (
-                        <>
-                          <Activity className="w-3 h-3 mr-1" />
-                          Live
-                        </>
-                      ) : (
-                        <>
-                          <Pause className="w-3 h-3 mr-1" />
-                          Paused
-                        </>
+            <CardContent className="pt-4">
+              {statusData ? (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Progress:</span>
+                    <Badge
+                      className={cn(
+                        statusData.is_active
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                       )}
+                    >
+                      {statusData.progress_percentage?.toFixed(1)}%
                     </Badge>
                   </div>
-                </>
+                  <Progress value={statusData.progress_percentage || 0} className="w-full" />
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="text-gray-500 dark:text-gray-400">Streamed</div>
+                      <div className="font-semibold">{statusData.streamed_points || 0}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-500 dark:text-gray-400">Total</div>
+                      <div className="font-semibold">{statusData.total_points || 0}</div>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select a dataset to view status
-                </p>
+                <div className="flex items-center justify-center py-4">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    No streaming data
+                  </span>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
 
         {/* Main Visualization */}
-        <Card className="glass-card">
-          <CardHeader>
+        <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+          <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-primary-100 to-accent-teal-100 dark:from-primary-900 dark:to-accent-teal-900 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                  <Eye className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-bold gradient-text">
-                    Real-Time Machine Health Monitor
+                    Streaming Visualization
                   </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
-                    Live comparison of baseline reference data vs streaming sensor measurements
+                  <CardDescription className="text-gray-600 dark:text-gray-300 mt-1">
+                    Real-time sensor data visualization and monitoring
                   </CardDescription>
                 </div>
               </div>
-              {selectedDinsightId && (
-                <div className="glass-card px-4 py-2 bg-gradient-to-r from-primary-100/80 to-accent-teal-100/60 dark:from-primary-900/50 dark:to-accent-teal-900/40 text-primary-700 dark:text-primary-300 text-sm font-semibold rounded-full border border-primary-200/50 dark:border-primary-700/50">
-                  Dataset ID: {selectedDinsightId}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedDinsightId && (
+                  <Badge variant="outline" className="glass-card">
+                    Dataset {selectedDinsightId}
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {dataLoading ? (
               <div className="flex items-center justify-center h-96">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-accent-teal-100 dark:from-primary-900 dark:to-accent-teal-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
                     <RefreshCw className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
                   </div>
-                  <h3 className="text-lg font-semibold gradient-text mb-2">Loading Streaming Data</h3>
-                  <p className="text-gray-600 dark:text-gray-300">Fetching real-time coordinates...</p>
+                  <h3 className="text-lg font-semibold gradient-text mb-2">
+                    Loading Streaming Data
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Fetching real-time coordinates...
+                  </p>
                 </div>
               </div>
             ) : dinsightData ? (
@@ -644,11 +675,10 @@ export default function StreamingVisualizationPage() {
                   <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
                     <Eye className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                   </div>
-                  <h3 className="text-2xl font-bold gradient-text mb-3">
-                    Select Dataset to Begin
-                  </h3>
+                  <h3 className="text-2xl font-bold gradient-text mb-3">Select Dataset to Begin</h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
-                    Choose a baseline dataset from the dropdown to start real-time streaming visualization.
+                    Choose a baseline dataset from the dropdown to start real-time streaming
+                    visualization.
                   </p>
                   <Link href="/dashboard/dinsight-analysis">
                     <Button className="bg-gradient-to-r from-primary-600 to-accent-teal-600 hover:from-primary-700 hover:to-accent-teal-700 text-white shadow-lg shadow-primary-500/25">
@@ -665,18 +695,22 @@ export default function StreamingVisualizationPage() {
         {/* Information Panel */}
         {selectedDinsightId && dinsightData && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="glass-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center">
-                  <CheckCircle className="w-4 h-4 mr-2 text-blue-500" />
-                  Baseline Reference
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50/30 to-accent-teal-50/20 dark:from-emerald-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <CheckCircle className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="gradient-text">Baseline Reference</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Points:</span>
-                    <span className="text-sm font-medium">{dinsightData.baseline.dinsight_x.length}</span>
+                    <span className="text-sm font-medium">
+                      {dinsightData.baseline.dinsight_x.length}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
@@ -688,26 +722,32 @@ export default function StreamingVisualizationPage() {
               </CardContent>
             </Card>
 
-            <Card className="glass-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center">
-                  <Activity className="w-4 h-4 mr-2 text-red-500" />
-                  Live Monitoring
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-3 bg-gradient-to-r from-red-50/30 to-orange-50/20 dark:from-red-950/30 dark:to-orange-950/20 rounded-t-xl">
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg shadow-red-500/25">
+                    <Activity className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="gradient-text">Live Monitoring</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Points:</span>
-                    <span className="text-sm font-medium">{dinsightData.monitoring.dinsight_x.length}</span>
+                    <span className="text-sm font-medium">
+                      {dinsightData.monitoring.dinsight_x.length}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
-                    <Badge className={cn(
-                      isStreaming 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                    )}>
+                    <Badge
+                      className={cn(
+                        isStreaming
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      )}
+                    >
                       {isStreaming ? 'Streaming' : 'Paused'}
                     </Badge>
                   </div>
@@ -715,14 +755,16 @@ export default function StreamingVisualizationPage() {
               </CardContent>
             </Card>
 
-            <Card className="glass-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex items-center">
-                  <Clock className="w-4 h-4 mr-2 text-purple-500" />
-                  Update Frequency
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-3 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-lg flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                    <Clock className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="gradient-text">Update Frequency</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Interval:</span>
@@ -730,7 +772,7 @@ export default function StreamingVisualizationPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Auto-refresh:</span>
-                    <Badge variant={autoRefresh ? "default" : "secondary"}>
+                    <Badge variant={autoRefresh ? 'default' : 'secondary'}>
                       {autoRefresh ? 'Enabled' : 'Disabled'}
                     </Badge>
                   </div>
