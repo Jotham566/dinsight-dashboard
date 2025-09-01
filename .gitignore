@@ -1,5 +1,6 @@
 # Temporarily ignore API while refactoring
 Dinsight_API/
+Dinsight_API_Original/
 Old_Streamlit_files/
 screenshots/
 
