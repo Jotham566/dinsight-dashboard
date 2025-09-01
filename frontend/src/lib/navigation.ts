@@ -7,6 +7,7 @@ import {
   Settings,
   Bell,
   Upload,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -41,6 +42,13 @@ export const mainNavItems: NavItem[] = [
     icon: LineChart,
     requiresAuth: true,
     description: 'Interactive comparison between datasets',
+  },
+  {
+    label: 'Real-Time Streaming',
+    href: '/dashboard/streaming',
+    icon: Zap,
+    requiresAuth: true,
+    description: 'Live streaming sensor data monitoring',
   },
   {
     label: 'Anomaly Detection',

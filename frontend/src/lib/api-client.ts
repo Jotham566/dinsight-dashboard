@@ -275,6 +275,14 @@ export const api = {
     validate: (data: { dataset_id: number; validation_rule_ids: number[] }) =>
       apiClient.post('/data-validation/validate', data),
   },
+
+  // Streaming endpoints
+  streaming: {
+    getStatus: (baselineId: number) => apiClient.get(`/streaming/${baselineId}/status`),
+    getLatestPoints: (baselineId: number, params?: { limit?: number; offset?: number }) =>
+      apiClient.get(`/streaming/${baselineId}/latest`, { params }),
+    reset: (baselineId: number) => apiClient.delete(`/streaming/${baselineId}/reset`),
+  },
 };
 
 export default apiClient;
