@@ -71,7 +71,7 @@ export default function StreamingVisualizationPage() {
   const [selectedDinsightId, setSelectedDinsightId] = useState<number | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingStatus, setStreamingStatus] = useState<StreamingStatus | null>(null);
-  const [pointSize, setPointSize] = useState<number>(6);
+  const [pointSize, setPointSize] = useState<number>(8);
   const [showContours, setShowContours] = useState<boolean>(false);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [refreshInterval, setRefreshInterval] = useState<number>(2000); // 2 seconds
