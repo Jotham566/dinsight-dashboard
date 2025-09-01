@@ -75,11 +75,30 @@ export default function StreamingVisualizationPage() {
   const [showContours, setShowContours] = useState<boolean>(false);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [refreshInterval, setRefreshInterval] = useState<number>(2000); // 2 seconds
+  const [streamSpeed, setStreamSpeed] = useState<'0.5x' | '1x' | '2x'>('1x');
+  const [batchSize, setBatchSize] = useState<number>(10);
   const [plotElement, setPlotElement] = useState<any>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
+
+  // Update refreshInterval when streamSpeed changes
+  useEffect(() => {
+    if (streamSpeed === '2x') setRefreshInterval(1000);
+    else if (streamSpeed === '0.5x') setRefreshInterval(4000);
+    else setRefreshInterval(2000);
+  }, [streamSpeed]);
+
+  // Handler for batch size change
+  const handleBatchSizeChange = (value: number) => {
+    setBatchSize(value);
+    setNotification({
+      type: 'info',
+      message: `Batch size set to ${value}`,
+    });
+    // Optionally, send batch size to backend if needed
+  };
 
   // Query for available dinsight datasets
   const {
@@ -463,8 +482,9 @@ export default function StreamingVisualizationPage() {
                 <span className="gradient-text">Controls</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex gap-2">
+            <CardContent className="pt-4 space-y-4">
+              {/* Pause/Resume/Stop */}
+              <div className="flex gap-2 mb-2">
                 <Button
                   onClick={toggleStreaming}
                   className={cn(
@@ -490,6 +510,48 @@ export default function StreamingVisualizationPage() {
                 >
                   <Square className="w-4 h-4" />
                 </Button>
+              </div>
+              {/* Speed Controls */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Speed:</span>
+                <Button
+                  variant={streamSpeed === '0.5x' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStreamSpeed('0.5x')}
+                  className="px-2"
+                >
+                  0.5x
+                </Button>
+                <Button
+                  variant={streamSpeed === '1x' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStreamSpeed('1x')}
+                  className="px-2"
+                >
+                  1x
+                </Button>
+                <Button
+                  variant={streamSpeed === '2x' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setStreamSpeed('2x')}
+                  className="px-2"
+                >
+                  2x
+                </Button>
+              </div>
+              {/* Batch Size Controls */}
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Batch Size: {batchSize}
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  value={batchSize}
+                  onChange={e => handleBatchSizeChange(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                />
               </div>
               <Button
                 onClick={resetStreaming}
