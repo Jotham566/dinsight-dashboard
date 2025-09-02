@@ -16,6 +16,7 @@ import csv
 import json
 import logging
 import os
+import re
 import sys
 import time
 from typing import Dict, List, Optional, Tuple
@@ -56,6 +57,121 @@ class StreamingSimulator:
         """Async context manager exit."""
         if self.session:
             await self.session.close()
+    
+    def detect_dataset_family(self, headers: List[str]) -> str:
+        """
+        Auto-detect dataset family by header patterns.
+        
+        Args:
+            headers: List of column headers from the CSV file
+            
+        Returns:
+            Dataset family identifier ('store_d' or 'generic')
+        """
+        header_str = ','.join(headers).lower()  # Use lowercase for pattern matching
+        
+        # Store D pattern: freq_X.XX format with many decimal places
+        freq_pattern = r'freq_\d+\.\d{2,}'
+        freq_matches = len(re.findall(freq_pattern, header_str))
+        
+        # Generic pattern: f_X format (simple integer suffixes)
+        f_pattern = r'\bf_\d+\b'
+        f_matches = len(re.findall(f_pattern, header_str))
+        
+        logger.info(f"📊 Schema detection: freq_X.XX matches={freq_matches}, f_X matches={f_matches}")
+        
+        if freq_matches > f_matches and freq_matches > 50:  # Store D has hundreds of freq_ columns
+            return 'store_d'
+        elif f_matches > 10:  # Generic has many f_ columns
+            return 'generic'
+        else:
+            logger.warning(f"⚠️  Unknown schema pattern, defaulting to generic")
+            return 'generic'
+    
+    def normalize_headers(self, headers: List[str], dataset_family: str) -> List[str]:
+        """
+        Normalize headers to match expected API format.
+        
+        Args:
+            headers: Original column headers
+            dataset_family: Dataset family ('store_d' or 'generic')
+            
+        Returns:
+            Normalized headers that match API expectations
+        """
+        normalized = []
+        
+        for header in headers:
+            # Clean header: remove BOM and strip whitespace, but preserve case!
+            clean_header = header.strip()
+            
+            # Remove BOM (Byte Order Mark) if present
+            if clean_header.startswith('\ufeff'):
+                clean_header = clean_header[1:]
+            
+            # For API compatibility, we need to preserve the original case
+            # but ensure consistency between baseline and monitor files
+            if dataset_family == 'store_d':
+                # Store D: preserve original case, just clean BOM
+                normalized.append(clean_header)
+            elif dataset_family == 'generic':
+                # Generic: preserve original case, just clean BOM  
+                normalized.append(clean_header)
+            else:
+                # Unknown family: preserve original case, just clean BOM
+                normalized.append(clean_header)
+        
+        logger.info(f"🔄 Header normalization: {len(headers)} -> {len(normalized)} columns")
+        logger.debug(f"🧹 BOM cleaning: first header '{headers[0]}' -> '{normalized[0]}'")
+        return normalized
+    
+    def extract_feature_columns(self, headers: List[str]) -> List[str]:
+        """
+        Extract only the feature columns (f_X or freq_X.XX) from headers.
+        
+        Args:
+            headers: List of column headers
+            
+        Returns:
+            List of feature column names only
+        """
+        feature_cols = []
+        for header in headers:
+            header_lower = header.lower().strip()
+            if header_lower.startswith('f_') or header_lower.startswith('freq_'):
+                feature_cols.append(header)  # Keep original case
+        
+        logger.info(f"🎯 Extracted {len(feature_cols)} feature columns")
+        return feature_cols
+    
+    def validate_vector_length(self, data_row: Dict, expected_length: int) -> bool:
+        """
+        Validate that the feature vector has the expected length.
+        
+        Args:
+            data_row: Dictionary containing row data
+            expected_length: Expected number of features
+            
+        Returns:
+            True if vector length matches, False otherwise
+        """
+        feature_values = []
+        for key, value in data_row.items():
+            key_lower = key.lower().strip()
+            if key_lower.startswith('f_') or key_lower.startswith('freq_'):
+                try:
+                    float(value)  # Validate it's a number
+                    feature_values.append(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"⚠️  Invalid feature value: {key}={value}")
+                    return False
+        
+        actual_length = len(feature_values)
+        if actual_length != expected_length:
+            logger.error(f"❌ Vector length mismatch: expected={expected_length}, actual={actual_length}")
+            return False
+        
+        return True
     
     async def upload_baseline_file(self, baseline_file_path: str) -> int:
         """
@@ -162,13 +278,13 @@ class StreamingSimulator:
     
     def load_monitor_data(self, monitor_file_path: str) -> List[Dict]:
         """
-        Load monitor data from CSV file.
+        Load monitor data from CSV file with schema normalization.
         
         Args:
             monitor_file_path: Path to the monitor CSV file
             
         Returns:
-            List of dictionaries containing monitor data rows
+            List of dictionaries containing normalized monitor data rows
         """
         logger.info(f"📂 Loading monitor data from: {monitor_file_path}")
         
@@ -178,11 +294,40 @@ class StreamingSimulator:
         monitor_data = []
         with open(monitor_file_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
+            
+            # Get original headers and detect dataset family
+            original_headers = reader.fieldnames
+            if not original_headers:
+                raise ValueError("CSV file has no headers")
+            
+            dataset_family = self.detect_dataset_family(original_headers)
+            logger.info(f"🔍 Detected dataset family: {dataset_family}")
+            
+            # Normalize headers for API compatibility
+            normalized_headers = self.normalize_headers(original_headers, dataset_family)
+            
+            # Extract feature columns for vector length validation
+            feature_columns = self.extract_feature_columns(original_headers)
+            expected_vector_length = len(feature_columns)
+            logger.info(f"📏 Expected vector length: {expected_vector_length}")
+            
+            # Load data with validation
             for row_idx, row in enumerate(reader):
-                row['_row_index'] = row_idx
-                monitor_data.append(row)
+                # Create normalized row
+                normalized_row = {}
+                for orig_header, norm_header in zip(original_headers, normalized_headers):
+                    normalized_row[norm_header] = row[orig_header]
+                
+                # Validate vector length for first few rows
+                if row_idx < 3:  # Check first 3 rows for consistency
+                    if not self.validate_vector_length(row, expected_vector_length):
+                        raise ValueError(f"Vector length validation failed at row {row_idx + 1}")
+                
+                normalized_row['_row_index'] = row_idx
+                monitor_data.append(normalized_row)
         
-        logger.info(f"✅ Loaded {len(monitor_data)} monitor data points")
+        logger.info(f"✅ Loaded {len(monitor_data)} monitor data points (family: {dataset_family})")
+        logger.info(f"🔄 Schema normalization complete: {len(original_headers)} -> {len(normalized_headers)} columns")
         return monitor_data
     
     async def simulate_streaming(
@@ -264,7 +409,33 @@ class StreamingSimulator:
         logger.info("🎉 Streaming simulation completed!")
     
     async def _send_monitor_batch(self, baseline_id: int, csv_file_path: Path):
-        """Send a batch of monitor data to the API."""
+        """Send a batch of monitor data to the API with enhanced error handling."""
+        
+        # Pre-flight validation: read the CSV and check vector lengths
+        try:
+            with open(csv_file_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                headers = reader.fieldnames
+                
+                # Extract feature columns and count
+                feature_count = 0
+                for header in headers:
+                    if header.lower().startswith('f_') or header.lower().startswith('freq_'):
+                        feature_count += 1
+                
+                # Validate first row
+                first_row = next(reader, None)
+                if first_row and not self.validate_vector_length(first_row, feature_count):
+                    logger.error(f"❌ Pre-flight check failed: vector length mismatch in batch CSV")
+                    raise ValueError(f"Vector length validation failed for batch {csv_file_path.name}")
+                    
+                logger.debug(f"✅ Pre-flight check passed: {feature_count} features, vector length validated")
+                
+        except StopIteration:
+            logger.error(f"❌ Empty CSV file: {csv_file_path.name}")
+            raise ValueError(f"Empty CSV file: {csv_file_path.name}")
+        
+        # Send the batch to API
         data = FormData()
         with open(csv_file_path, 'rb') as f:
             file_content = f.read()
@@ -273,11 +444,31 @@ class StreamingSimulator:
         async with self.session.post(f"{self.api_base_url}/monitor/{baseline_id}", data=data) as response:
             if response.status not in (200, 201):
                 error_text = await response.text()
-                logger.error(f"❌ Failed to send monitor batch: {error_text}")
-                raise Exception(f"Failed to send monitor batch: {error_text}")
+                
+                # Enhanced error analysis
+                if "baseline matrix empty" in error_text.lower():
+                    logger.error(f"❌ Baseline configuration issue: baseline_id={baseline_id} not properly initialized")
+                elif "dimension mismatch" in error_text.lower():
+                    logger.error(f"❌ Vector dimension mismatch: monitor CSV features don't match baseline configuration")
+                elif response.status == 400:
+                    logger.error(f"❌ Bad request (400): CSV format or data validation failed")
+                elif response.status == 500:
+                    logger.error(f"❌ Server error (500): API processing failed")
+                else:
+                    logger.error(f"❌ HTTP {response.status}: {error_text}")
+                
+                # Debug: Save failed batch for inspection
+                debug_path = f"debug_failed_batch_{baseline_id}.csv"
+                import shutil
+                shutil.copy2(csv_file_path, debug_path)
+                logger.error(f"� Failed batch saved to: {debug_path}")
+                logger.error(f"📄 Full API error response: {error_text}")
+                
+                raise Exception(f"Failed to send monitor batch (HTTP {response.status}): {error_text}")
             
             result = await response.json()
             logger.debug(f"✅ Batch sent successfully: {result}")
+            return result
     
     async def get_streaming_status(self) -> Dict:
         """Get current streaming status for frontend display."""
