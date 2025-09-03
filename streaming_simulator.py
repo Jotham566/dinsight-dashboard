@@ -354,6 +354,9 @@ class StreamingSimulator:
         # Load baseline coordinates for comparison
         self.baseline_coordinates = await self.load_baseline_coordinates(baseline_id)
         
+        # Update streaming configuration in backend
+        await self._update_streaming_config(baseline_id, self.latest_glow_count, batch_size, delay_seconds)
+        
         # Set streaming state
         self.is_streaming = True
         
@@ -415,6 +418,30 @@ class StreamingSimulator:
                 temp_dir.rmdir()
         
         logger.info("🎉 Streaming simulation completed!")
+    
+    async def _update_streaming_config(self, baseline_id: int, latest_glow_count: int, batch_size: int, delay_seconds: float):
+        """Update the streaming configuration in the backend."""
+        config_data = {
+            "latest_glow_count": latest_glow_count,
+            "batch_size": batch_size,
+            "delay_seconds": delay_seconds
+        }
+        
+        try:
+            async with self.session.put(
+                f"{self.api_base_url}/streaming/{baseline_id}/config",
+                json=config_data
+            ) as response:
+                if response.status in (200, 201):
+                    result = await response.json()
+                    logger.info(f"✅ Streaming configuration updated: latest_glow_count={latest_glow_count}")
+                else:
+                    # Log warning but continue - config update is not critical
+                    error_text = await response.text()
+                    logger.warning(f"⚠️  Failed to update streaming config: {error_text}")
+        except Exception as e:
+            # Log warning but continue - config update is not critical
+            logger.warning(f"⚠️  Could not update streaming config: {e}")
     
     async def _send_monitor_batch(self, baseline_id: int, csv_file_path: Path):
         """Send a batch of monitor data to the API with enhanced error handling."""

@@ -241,9 +241,8 @@ export default function StreamingVisualizationPage() {
       const lineColors: string[] = new Array(count);
       const lineWidths: number[] = new Array(count);
 
-      // For now, always show latest 5 points with green glow if we have data
-      // This will give a visual indication of the most recent streaming
-      const latestGlowCount = 5; // Fixed number for now
+      // Use the latest_glow_count from streaming status if available, otherwise default to 5
+      const latestGlowCount = streamingStatus?.latest_glow_count || 5;
       const latestCount = Math.min(latestGlowCount, count);
       
       // Always highlight the latest points (assuming array order = chronological order)
@@ -707,14 +706,14 @@ export default function StreamingVisualizationPage() {
                     <div className="flex items-center gap-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        Latest 5 points (green glow)
+                        Latest {streamingStatus?.latest_glow_count || 5} points (green glow)
                       </span>
                     </div>
                   </div>
 
                   {/* Info text */}
                   <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                    💡 The latest 5 data points have a green glowing border to highlight recent activity.
+                    💡 The latest {streamingStatus?.latest_glow_count || 5} data points have a green glowing border to highlight recent activity.
                   </div>
                 </div>
               </CardContent>
