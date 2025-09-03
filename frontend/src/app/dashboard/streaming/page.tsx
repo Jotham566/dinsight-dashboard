@@ -549,7 +549,7 @@ export default function StreamingVisualizationPage() {
                   min={1}
                   max={100}
                   value={batchSize}
-                  onChange={e => handleBatchSizeChange(Number(e.target.value))}
+                  onChange={(e) => handleBatchSizeChange(Number(e.target.value))}
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                 />
               </div>
