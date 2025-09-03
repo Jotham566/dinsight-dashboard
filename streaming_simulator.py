@@ -47,6 +47,8 @@ class StreamingSimulator:
         self.baseline_coordinates: Optional[Tuple[List[float], List[float]]] = None
         self.monitor_data: List[Dict] = []
         self.stream_progress = 0
+        self.is_streaming = False
+        self.latest_glow_count = 10
         
     async def __aenter__(self):
         """Async context manager entry."""
@@ -352,6 +354,9 @@ class StreamingSimulator:
         # Load baseline coordinates for comparison
         self.baseline_coordinates = await self.load_baseline_coordinates(baseline_id)
         
+        # Set streaming state
+        self.is_streaming = True
+        
         logger.info(f"🎬 Starting streaming simulation...")
         logger.info(f"   📊 Baseline ID: {baseline_id}")
         logger.info(f"   📈 Monitor points: {len(self.monitor_data)}")
@@ -400,6 +405,9 @@ class StreamingSimulator:
                     await asyncio.sleep(delay_seconds)
         
         finally:
+            # Set streaming state to completed
+            self.is_streaming = False
+            
             # Clean up temp directory
             if temp_dir.exists():
                 for file in temp_dir.glob("*.csv"):
@@ -487,12 +495,14 @@ class StreamingSimulator:
             current_points = 0
         
         return {
-            "status": "streaming",
+            "status": "streaming" if self.is_streaming else "completed",
             "baseline_id": self.baseline_id,
             "total_points": len(self.monitor_data),
             "streamed_points": current_points,
             "progress_percentage": (current_points / len(self.monitor_data)) * 100 if self.monitor_data else 0,
-            "baseline_points": len(self.baseline_coordinates[0]) if self.baseline_coordinates else 0
+            "baseline_points": len(self.baseline_coordinates[0]) if self.baseline_coordinates else 0,
+            "latest_glow_count": self.latest_glow_count,
+            "is_streaming": self.is_streaming
         }
 
 
@@ -517,6 +527,8 @@ async def main():
                        help='Delay in seconds between data points (default: 2.0)')
     parser.add_argument('--batch-size', type=int, default=1,
                        help='Number of points to send per batch (default: 1)')
+    parser.add_argument('--latest-glow-count', type=int, default=10,
+                       help='Number of latest points to highlight with green glow during streaming (default: 10)')
     parser.add_argument('--api-url', type=str, default='http://localhost:8080/api/v1',
                        help='Base API URL (default: http://localhost:8080/api/v1)')
     
@@ -524,6 +536,9 @@ async def main():
     
     try:
         async with StreamingSimulator(args.api_url) as simulator:
+            # Set the latest glow count
+            simulator.latest_glow_count = args.latest_glow_count
+            
             # Determine baseline_id
             if args.baseline_id:
                 baseline_id = args.baseline_id

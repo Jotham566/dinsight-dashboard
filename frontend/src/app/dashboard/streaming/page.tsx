@@ -48,8 +48,9 @@ interface StreamingStatus {
   progress_percentage: number;
   baseline_points: number;
   is_active: boolean;
-  last_update: string;
-  stream_start_time?: string;
+  latest_glow_count: number;
+  is_streaming: boolean;
+  status: 'not_started' | 'streaming' | 'completed';
 }
 
 interface DinsightData {
@@ -63,6 +64,7 @@ interface DinsightData {
     dinsight_y: number[];
     labels: string[];
     timestamps: string[];
+    processOrders?: number[]; // Added for gradient coloring
   };
 }
 
@@ -192,6 +194,8 @@ export default function StreamingVisualizationPage() {
             dinsight_y: monitoringData.dinsight_y || [],
             labels: (monitoringData.dinsight_x || []).map((_: any, i: number) => `monitor_${i}`),
             timestamps: (monitoringData.dinsight_x || []).map(() => new Date().toISOString()),
+            // Generate process orders since API returns data already ordered by process_order
+            processOrders: (monitoringData.dinsight_x || []).map((_: any, i: number) => i + 1),
           },
         };
       } catch (error) {
@@ -220,6 +224,45 @@ export default function StreamingVisualizationPage() {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Helper function to generate simple coloring for monitoring points
+  const generateSimpleMonitoringColors = useCallback(
+    (count: number, processOrders?: number[], streamingStatus?: StreamingStatus): {
+      colors: string[];
+      sizes: number[];
+      lineColors: string[];
+      lineWidths: number[];
+    } => {
+      if (count === 0) return { colors: [], sizes: [], lineColors: [], lineWidths: [] };
+
+      // All points are red
+      const colors = new Array(count).fill('#DC2626'); // Red color for all points
+      const sizes = new Array(count).fill(pointSize);
+      const lineColors: string[] = new Array(count);
+      const lineWidths: number[] = new Array(count);
+
+      // For now, always show latest 5 points with green glow if we have data
+      // This will give a visual indication of the most recent streaming
+      const latestGlowCount = 5; // Fixed number for now
+      const latestCount = Math.min(latestGlowCount, count);
+      
+      // Always highlight the latest points (assuming array order = chronological order)
+      for (let i = 0; i < count; i++) {
+        if (i >= count - latestCount) {
+          // Latest points: green glowing edge
+          lineColors[i] = '#10B981'; // Green color
+          lineWidths[i] = 3; // Thicker border for glow effect
+        } else {
+          // Regular points: subtle border
+          lineColors[i] = 'rgba(0,0,0,0.1)';
+          lineWidths[i] = 1;
+        }
+      }
+
+      return { colors, sizes, lineColors, lineWidths };
+    },
+    [pointSize]
+  );
 
   // Create plot data
   const createPlotData = useCallback(() => {
@@ -265,21 +308,41 @@ export default function StreamingVisualizationPage() {
       }
     }
 
-    // Streaming monitoring data
+    // Streaming monitoring data with simple red coloring and green glow for latest points (when streaming)
     if (dinsightData.monitoring.dinsight_x.length > 0) {
+      const monitoringCount = dinsightData.monitoring.dinsight_x.length;
+      const { colors, sizes, lineColors, lineWidths } = generateSimpleMonitoringColors(
+        monitoringCount,
+        dinsightData.monitoring.processOrders,
+        streamingStatus || undefined
+      );
+
       const monitoringTrace = {
         x: dinsightData.monitoring.dinsight_x,
         y: dinsightData.monitoring.dinsight_y,
         mode: 'markers' as const,
         type: 'scattergl' as const,
-        name: `Live Monitoring (${dinsightData.monitoring.dinsight_x.length} points)`,
+        name: `Live Monitoring (${monitoringCount} points)`,
         marker: {
-          color: '#DC2626',
-          size: pointSize + 1,
-          opacity: 0.8,
-          line: { width: 1, color: 'rgba(255,255,255,0.8)' },
+          color: colors,
+          size: sizes,
+          opacity: 0.8, // Consistent opacity for all points
+          line: {
+            width: lineWidths,
+            color: lineColors,
+          },
         },
-        hovertemplate: '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+        hovertemplate:
+          '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{text}</i><extra></extra>',
+        text: dinsightData.monitoring.processOrders
+          ? dinsightData.monitoring.processOrders.map((order, i) => {
+              const totalPoints = monitoringCount;
+              const relativePosition = dinsightData.monitoring.processOrders!.filter(
+                (o) => o <= order
+              ).length;
+              return `Point ${order} (${relativePosition}/${totalPoints})`;
+            })
+          : dinsightData.monitoring.dinsight_x.map((_, i) => `Point ${i + 1}/${monitoringCount}`),
       };
       data.push(monitoringTrace);
 
@@ -304,7 +367,7 @@ export default function StreamingVisualizationPage() {
     }
 
     return data;
-  }, [dinsightData, pointSize, showContours]);
+  }, [dinsightData, pointSize, showContours, generateSimpleMonitoringColors, streamingStatus]);
 
   // Plot layout configuration
   const plotLayout = useMemo(
@@ -614,6 +677,49 @@ export default function StreamingVisualizationPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Color Legend for Streaming Points */}
+          {selectedDinsightId && dinsightData && dinsightData.monitoring.dinsight_x.length > 0 && (
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="pb-3 bg-gradient-to-r from-indigo-50/30 to-purple-50/20 dark:from-indigo-950/30 dark:to-purple-950/20 rounded-t-xl">
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                    <Eye className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="gradient-text">Point Indicators</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Visual indicators for monitoring data:
+                  </div>
+
+                  {/* Simple Legend */}
+                  <div className="space-y-3">
+                    {/* All monitoring points */}
+                    <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                      <div className="w-4 h-4 rounded-full bg-red-600 border border-gray-300 dark:border-gray-600"></div>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">All monitoring points</span>
+                    </div>
+                    
+                    {/* Latest points (always show for monitoring data) */}
+                    <div className="flex items-center gap-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="w-4 h-4 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Latest 5 points (green glow)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Info text */}
+                  <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                    💡 The latest 5 data points have a green glowing border to highlight recent activity.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Streaming Status */}
           <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
