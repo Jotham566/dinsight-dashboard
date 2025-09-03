@@ -227,7 +227,11 @@ export default function StreamingVisualizationPage() {
 
   // Helper function to generate simple coloring for monitoring points
   const generateSimpleMonitoringColors = useCallback(
-    (count: number, processOrders?: number[], streamingStatus?: StreamingStatus): {
+    (
+      count: number,
+      processOrders?: number[],
+      streamingStatus?: StreamingStatus
+    ): {
       colors: string[];
       sizes: number[];
       lineColors: string[];
@@ -244,7 +248,7 @@ export default function StreamingVisualizationPage() {
       // Use the latest_glow_count from streaming status if available, otherwise default to 5
       const latestGlowCount = streamingStatus?.latest_glow_count || 5;
       const latestCount = Math.min(latestGlowCount, count);
-      
+
       // Always highlight the latest points (assuming array order = chronological order)
       for (let i = 0; i < count; i++) {
         if (i >= count - latestCount) {
@@ -539,18 +543,10 @@ export default function StreamingVisualizationPage() {
               )}
               disabled={!selectedDinsightId}
             >
-              {isStreaming ? (
-                <Pause className="w-4 h-4 mr-2" />
-              ) : (
-                <Play className="w-4 h-4 mr-2" />
-              )}
+              {isStreaming ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
               {isStreaming ? 'Pause' : 'Start'}
             </Button>
-            <Button
-              onClick={stopStreaming}
-              variant="outline"
-              disabled={!selectedDinsightId}
-            >
+            <Button onClick={stopStreaming} variant="outline" disabled={!selectedDinsightId}>
               <Square className="w-4 h-4" />
             </Button>
           </div>
@@ -663,7 +659,9 @@ export default function StreamingVisualizationPage() {
                       <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
                         <Eye className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <h3 className="text-2xl font-bold gradient-text mb-3">Select Dataset to Begin</h3>
+                      <h3 className="text-2xl font-bold gradient-text mb-3">
+                        Select Dataset to Begin
+                      </h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
                         Choose a baseline dataset from the dropdown to start real-time streaming
                         visualization.
@@ -741,7 +739,10 @@ export default function StreamingVisualizationPage() {
                       onChange={(e) => setAutoRefresh(e.target.checked)}
                       className="rounded border-gray-300 dark:border-gray-600"
                     />
-                    <label htmlFor="autoRefresh" className="text-sm text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="autoRefresh"
+                      className="text-sm text-gray-700 dark:text-gray-300"
+                    >
                       Auto-refresh ({refreshInterval / 1000}s)
                     </label>
                   </div>
@@ -805,37 +806,41 @@ export default function StreamingVisualizationPage() {
             </Card>
 
             {/* Color Legend for Streaming Points */}
-            {selectedDinsightId && dinsightData && dinsightData.monitoring.dinsight_x.length > 0 && (
-              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-                <CardHeader className="pb-3 bg-gradient-to-r from-indigo-50/30 to-purple-50/20 dark:from-indigo-950/30 dark:to-purple-950/20 rounded-t-xl">
-                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                    <div className="w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                      <Eye className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="gradient-text text-base">Legend</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="space-y-3">
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      Point indicators:
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <div className="w-3 h-3 rounded-full bg-red-600 border border-gray-300 dark:border-gray-600"></div>
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Monitoring data</span>
+            {selectedDinsightId &&
+              dinsightData &&
+              dinsightData.monitoring.dinsight_x.length > 0 && (
+                <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+                  <CardHeader className="pb-3 bg-gradient-to-r from-indigo-50/30 to-purple-50/20 dark:from-indigo-950/30 dark:to-purple-950/20 rounded-t-xl">
+                    <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                      <div className="w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                        <Eye className="h-3 w-3 text-white" />
                       </div>
-                      <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <div className="w-3 h-3 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
-                        <span className="text-xs text-gray-700 dark:text-gray-300">
-                          Latest {streamingStatus?.latest_glow_count || 5} points
-                        </span>
+                      <span className="gradient-text text-base">Legend</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="space-y-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Point indicators:
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                          <div className="w-3 h-3 rounded-full bg-red-600 border border-gray-300 dark:border-gray-600"></div>
+                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                            Monitoring data
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                          <div className="w-3 h-3 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
+                          <span className="text-xs text-gray-700 dark:text-gray-300">
+                            Latest {streamingStatus?.latest_glow_count || 5} points
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  </CardContent>
+                </Card>
+              )}
           </div>
         </div>
 
@@ -848,7 +853,9 @@ export default function StreamingVisualizationPage() {
                   <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
                     <CheckCircle className="h-3 w-3 text-white" />
                   </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">Baseline Reference</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    Baseline Reference
+                  </span>
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
@@ -868,7 +875,9 @@ export default function StreamingVisualizationPage() {
                   <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
                     <Activity className="h-3 w-3 text-white" />
                   </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">Live Monitoring</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    Live Monitoring
+                  </span>
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
@@ -895,7 +904,9 @@ export default function StreamingVisualizationPage() {
                   <div className="w-6 h-6 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-lg flex items-center justify-center shadow-lg">
                     <Clock className="h-3 w-3 text-white" />
                   </div>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">Update Frequency</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    Update Frequency
+                  </span>
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">

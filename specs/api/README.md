@@ -332,7 +332,7 @@ Create alert rule.
 {
   "dataset_id": "uuid",
   "condition": {
-    "metric": "anomaly_score",
+    "metric": "mahalanobis_distance",
     "operator": "greater_than",
     "value": 2.5
   },

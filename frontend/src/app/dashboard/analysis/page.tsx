@@ -68,7 +68,7 @@ interface AnomalyDetectionResult {
   };
 }
 
-type DetectionMethod = 'mahalanobis' | 'isolation_forest';
+type DetectionMethod = 'mahalanobis';
 
 export default function AdvancedAnalysisPage() {
   // State management
@@ -690,18 +690,6 @@ export default function AdvancedAnalysisPage() {
                           Mahalanobis Distance
                         </span>
                       </label>
-                      <label className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600">
-                        <input
-                          type="radio"
-                          value="isolation_forest"
-                          checked={detectionMethod === 'isolation_forest'}
-                          onChange={(e) => setDetectionMethod(e.target.value as DetectionMethod)}
-                          className="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500 dark:bg-gray-700"
-                        />
-                        <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Isolation Forest
-                        </span>
-                      </label>
                     </div>
                   </div>
 
@@ -916,9 +904,7 @@ export default function AdvancedAnalysisPage() {
                       </div>
                       <div className="glass-card p-4 bg-gradient-to-br from-accent-purple-50/50 to-accent-purple-100/30 dark:from-accent-purple-950/50 dark:to-accent-purple-900/30 border border-accent-purple-200/50 dark:border-accent-purple-700/50 rounded-xl">
                         <p className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300">
-                          {detectionMethod === 'mahalanobis'
-                            ? 'Distance Threshold'
-                            : 'Anomaly Score Threshold'}
+                          Distance Threshold
                         </p>
                         <p className="text-lg font-bold text-accent-purple-900 dark:text-accent-purple-100 mt-1">
                           {anomalyResults.anomaly_threshold.toFixed(4)}
@@ -934,9 +920,7 @@ export default function AdvancedAnalysisPage() {
                       </div>
                       <div className="glass-card p-4 bg-gradient-to-br from-accent-orange-50/50 to-accent-orange-100/30 dark:from-accent-orange-950/50 dark:to-accent-orange-900/30 border border-accent-orange-200/50 dark:border-accent-orange-700/50 rounded-xl">
                         <p className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">
-                          {detectionMethod === 'mahalanobis'
-                            ? 'Max Mahalanobis Distance'
-                            : 'Max Anomaly Score'}
+                          Max Mahalanobis Distance
                         </p>
                         <p className="text-lg font-bold text-accent-orange-900 dark:text-accent-orange-100 mt-1">
                           {anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}
@@ -944,34 +928,20 @@ export default function AdvancedAnalysisPage() {
                       </div>
                       <div className="glass-card p-4 bg-gradient-to-br from-accent-pink-50/50 to-accent-pink-100/30 dark:from-accent-pink-950/50 dark:to-accent-pink-900/30 border border-accent-pink-200/50 dark:border-accent-pink-700/50 rounded-xl">
                         <p className="text-sm font-medium text-accent-pink-700 dark:text-accent-pink-300">
-                          {detectionMethod === 'mahalanobis'
-                            ? 'Mean Mahalanobis Distance'
-                            : 'Mean Anomaly Score'}
+                          Mean Mahalanobis Distance
                         </p>
                         <p className="text-lg font-bold text-accent-pink-900 dark:text-accent-pink-100 mt-1">
                           {anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}
                         </p>
                       </div>
-                      {detectionMethod === 'mahalanobis' && (
-                        <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
-                          <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                            Baseline Std Dev
-                          </p>
-                          <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
-                            {anomalyResults.statistics.baseline_std_dev.toFixed(4)}
-                          </p>
-                        </div>
-                      )}
-                      {detectionMethod === 'isolation_forest' && (
-                        <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
-                          <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                            Score Std Dev
-                          </p>
-                          <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
-                            {anomalyResults.statistics.comparison_std_dev.toFixed(4)}
-                          </p>
-                        </div>
-                      )}
+                      <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
+                        <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                          Baseline Std Dev
+                        </p>
+                        <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
+                          {anomalyResults.statistics.baseline_std_dev.toFixed(4)}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Additional Context for Critical Anomalies */}
@@ -982,12 +952,8 @@ export default function AdvancedAnalysisPage() {
                       </h4>
                       <p className="text-sm text-accent-orange-700 dark:text-accent-orange-300 leading-relaxed">
                         Critical anomalies represent the top 25% of detected anomalies ranked by
-                        their{' '}
-                        {detectionMethod === 'mahalanobis'
-                          ? 'Mahalanobis distance'
-                          : 'anomaly score'}{' '}
-                        values. Out of {anomalyCount} total anomalies, {criticalCount} are
-                        classified as critical.
+                        their Mahalanobis distance values. Out of {anomalyCount} total anomalies,{' '}
+                        {criticalCount} are classified as critical.
                       </p>
                     </div>
 
