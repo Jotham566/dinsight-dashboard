@@ -29,6 +29,7 @@ import { Progress } from '@/components/ui/progress';
 
 // Utils and API
 import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { cn } from '@/utils/cn';
 
 // Dynamically import Plot to avoid SSR issues
@@ -68,6 +69,35 @@ interface DinsightData {
   };
 }
 
+interface AnomalyPoint {
+  index: number;
+  x: number;
+  y: number;
+  mahalanobis_distance: number;
+  is_anomaly: boolean;
+}
+
+interface AnomalyDetectionResult {
+  anomalous_points: AnomalyPoint[];
+  total_points: number;
+  anomaly_count: number;
+  anomaly_percentage: number;
+  anomaly_threshold: number;
+  sensitivity_factor: number;
+  sensitivity_level: string;
+  baseline_centroid: { x: number; y: number };
+  comparison_centroid: { x: number; y: number };
+  centroid_distance: number;
+  statistics: {
+    baseline_mean: number;
+    baseline_std_dev: number;
+    comparison_mean: number;
+    comparison_std_dev: number;
+    max_mahalanobis_distance: number;
+    mean_mahalanobis_distance: number;
+  };
+}
+
 export default function StreamingVisualizationPage() {
   // State management
   const [selectedDinsightId, setSelectedDinsightId] = useState<number | null>(null);
@@ -84,6 +114,12 @@ export default function StreamingVisualizationPage() {
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
+
+  // Anomaly detection state
+  const [enableAnomalyDetection, setEnableAnomalyDetection] = useState<boolean>(false);
+  const [sensitivity, setSensitivity] = useState<number>(3.0);
+  const [anomalyResults, setAnomalyResults] = useState<AnomalyDetectionResult | null>(null);
+  const [isRunningAnomalyDetection, setIsRunningAnomalyDetection] = useState<boolean>(false);
 
   // Update refreshInterval when streamSpeed changes
   useEffect(() => {
@@ -163,6 +199,24 @@ export default function StreamingVisualizationPage() {
     refetchInterval: autoRefresh ? refreshInterval : false,
   });
 
+  // Smart refresh interval - reduce refresh when anomaly detection is on and streaming is complete
+  const smartRefreshInterval = useMemo(() => {
+    if (!autoRefresh) return false;
+
+    // If streaming is complete and anomaly detection is enabled, refresh less frequently
+    if (enableAnomalyDetection && streamingStatus && streamingStatus.status === 'completed') {
+      return 10000; // 10 seconds when completed and anomaly detection is on
+    }
+
+    // If streaming is active, use the selected refresh rate
+    if (streamingStatus && streamingStatus.is_active) {
+      return refreshInterval;
+    }
+
+    // Default refresh rate for other states
+    return refreshInterval;
+  }, [autoRefresh, enableAnomalyDetection, streamingStatus, refreshInterval]);
+
   // Query for baseline and monitoring data
   const {
     data: dinsightData,
@@ -204,7 +258,7 @@ export default function StreamingVisualizationPage() {
       }
     },
     enabled: !!selectedDinsightId,
-    refetchInterval: autoRefresh ? refreshInterval : false,
+    refetchInterval: smartRefreshInterval,
   });
 
   // Update streaming status when data changes
@@ -224,6 +278,114 @@ export default function StreamingVisualizationPage() {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Anomaly detection function
+  const runAnomalyDetection = useCallback(async () => {
+    if (!selectedDinsightId || !enableAnomalyDetection) {
+      return;
+    }
+
+    // Get current monitoring data length to avoid stale closures
+    const currentMonitoringLength = dinsightData?.monitoring.dinsight_x.length || 0;
+    if (currentMonitoringLength === 0) {
+      console.log('No monitoring data available for anomaly detection');
+      return;
+    }
+
+    setIsRunningAnomalyDetection(true);
+    try {
+      console.log('Running anomaly detection for streaming data with params:', {
+        baseline_dataset_id: selectedDinsightId,
+        comparison_dataset_id: selectedDinsightId,
+        sensitivity_factor: sensitivity,
+      });
+
+      const response = await api.anomaly.detect({
+        baseline_dataset_id: selectedDinsightId,
+        comparison_dataset_id: selectedDinsightId, // Backend uses baseline ID to find monitoring data
+        sensitivity_factor: sensitivity,
+      });
+
+      if (response?.data?.success && response.data.data) {
+        const result = response.data.data as AnomalyDetectionResult;
+        setAnomalyResults(result);
+        console.log('Streaming anomaly detection completed:', result);
+
+        setNotification({
+          type: 'success',
+          message: `Anomaly detection completed: ${result.anomaly_count}/${result.total_points} anomalies found (${result.anomaly_percentage.toFixed(1)}%)`,
+        });
+      } else {
+        throw new Error('Invalid API response');
+      }
+    } catch (error: any) {
+      console.error('Error running anomaly detection:', error);
+      setAnomalyResults(null);
+
+      let errorMessage = 'Failed to run anomaly detection';
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      setNotification({
+        type: 'error',
+        message: errorMessage,
+      });
+    } finally {
+      setIsRunningAnomalyDetection(false);
+    }
+  }, [selectedDinsightId, enableAnomalyDetection, sensitivity]); // Removed dinsightData dependency
+
+  // Auto-run anomaly detection when enabled or data changes
+  useEffect(() => {
+    if (!enableAnomalyDetection) {
+      setAnomalyResults(null);
+      return;
+    }
+
+    if (dinsightData && dinsightData.monitoring.dinsight_x.length > 0) {
+      // Only run anomaly detection if:
+      // 1. We don't have results yet, OR
+      // 2. The monitoring data length has changed (new data streamed), OR
+      // 3. The sensitivity has changed
+      const shouldRun =
+        !anomalyResults ||
+        (anomalyResults &&
+          anomalyResults.total_points !== dinsightData.monitoring.dinsight_x.length);
+
+      if (shouldRun && !isRunningAnomalyDetection) {
+        // Debounce to avoid too many API calls during rapid data changes
+        const timeoutId = setTimeout(() => {
+          runAnomalyDetection();
+        }, 1000); // Increased debounce time
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [
+    enableAnomalyDetection,
+    dinsightData?.monitoring.dinsight_x.length,
+    runAnomalyDetection,
+    anomalyResults,
+    isRunningAnomalyDetection,
+  ]);
+
+  // Separate effect for sensitivity changes (immediate update)
+  useEffect(() => {
+    if (
+      enableAnomalyDetection &&
+      dinsightData &&
+      dinsightData.monitoring.dinsight_x.length > 0 &&
+      anomalyResults
+    ) {
+      // When sensitivity changes and we already have data, re-run immediately
+      const timeoutId = setTimeout(() => {
+        runAnomalyDetection();
+      }, 300); // Shorter timeout for sensitivity changes
+      return () => clearTimeout(timeoutId);
+    }
+  }, [sensitivity]); // Only sensitivity as dependency
 
   // Helper function to generate simple coloring for monitoring points
   const generateSimpleMonitoringColors = useCallback(
@@ -311,43 +473,129 @@ export default function StreamingVisualizationPage() {
       }
     }
 
-    // Streaming monitoring data with simple red coloring and green glow for latest points (when streaming)
+    // Streaming monitoring data with anomaly detection support
     if (dinsightData.monitoring.dinsight_x.length > 0) {
       const monitoringCount = dinsightData.monitoring.dinsight_x.length;
-      const { colors, sizes, lineColors, lineWidths } = generateSimpleMonitoringColors(
-        monitoringCount,
-        dinsightData.monitoring.processOrders,
-        streamingStatus || undefined
-      );
 
-      const monitoringTrace = {
-        x: dinsightData.monitoring.dinsight_x,
-        y: dinsightData.monitoring.dinsight_y,
-        mode: 'markers' as const,
-        type: 'scattergl' as const,
-        name: `Live Monitoring (${monitoringCount} points)`,
-        marker: {
-          color: colors,
-          size: sizes,
-          opacity: 0.8, // Consistent opacity for all points
-          line: {
-            width: lineWidths,
-            color: lineColors,
+      if (enableAnomalyDetection && anomalyResults) {
+        // Anomaly detection mode: separate normal and anomalous points
+        const normalPoints = anomalyResults.anomalous_points.filter((p) => !p.is_anomaly);
+        const anomalyPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
+
+        // Add normal monitoring points
+        if (normalPoints.length > 0) {
+          data.push({
+            x: normalPoints.map((p) => p.x),
+            y: normalPoints.map((p) => p.y),
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Normal Points (${normalPoints.length})`,
+            marker: {
+              color: '#34A853', // Green for normal points
+              size: pointSize,
+              opacity: 0.7,
+              line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+            },
+            hovertemplate:
+              '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            customdata: normalPoints.map((p) => p.mahalanobis_distance),
+          });
+        }
+
+        // Add anomalous monitoring points
+        if (anomalyPoints.length > 0) {
+          data.push({
+            x: anomalyPoints.map((p) => p.x),
+            y: anomalyPoints.map((p) => p.y),
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Anomalies (${anomalyPoints.length})`,
+            marker: {
+              color: '#EA4335', // Red for anomalies
+              size: pointSize + 2, // Slightly larger for emphasis
+              opacity: 0.9,
+              symbol: 'circle',
+              line: { width: 2, color: '#c62828' },
+            },
+            hovertemplate:
+              '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            customdata: anomalyPoints.map((p) => p.mahalanobis_distance),
+          });
+        }
+
+        // Add baseline and comparison centroids if anomaly detection is active
+        if (anomalyResults.baseline_centroid) {
+          data.push({
+            x: [anomalyResults.baseline_centroid.x],
+            y: [anomalyResults.baseline_centroid.y],
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: 'Baseline Centroid',
+            marker: {
+              color: '#1A73E8',
+              size: 12,
+              symbol: 'star',
+              opacity: 1.0,
+              line: { width: 2, color: 'white' },
+            },
+            hovertemplate: `<b>Baseline Centroid</b><br>X: ${anomalyResults.baseline_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.baseline_centroid.y.toFixed(4)}<extra></extra>`,
+          });
+        }
+
+        if (anomalyResults.comparison_centroid) {
+          data.push({
+            x: [anomalyResults.comparison_centroid.x],
+            y: [anomalyResults.comparison_centroid.y],
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: 'Monitor Centroid',
+            marker: {
+              color: '#FBBC04',
+              size: 12,
+              symbol: 'star',
+              opacity: 1.0,
+              line: { width: 2, color: 'white' },
+            },
+            hovertemplate: `<b>Monitor Centroid</b><br>X: ${anomalyResults.comparison_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.comparison_centroid.y.toFixed(4)}<extra></extra>`,
+          });
+        }
+      } else {
+        // Simple streaming mode: use gradient coloring with latest point highlighting
+        const { colors, sizes, lineColors, lineWidths } = generateSimpleMonitoringColors(
+          monitoringCount,
+          dinsightData.monitoring.processOrders,
+          streamingStatus || undefined
+        );
+
+        const monitoringTrace = {
+          x: dinsightData.monitoring.dinsight_x,
+          y: dinsightData.monitoring.dinsight_y,
+          mode: 'markers' as const,
+          type: 'scattergl' as const,
+          name: `Live Monitoring (${monitoringCount} points)`,
+          marker: {
+            color: colors,
+            size: sizes,
+            opacity: 0.8,
+            line: {
+              width: lineWidths,
+              color: lineColors,
+            },
           },
-        },
-        hovertemplate:
-          '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{text}</i><extra></extra>',
-        text: dinsightData.monitoring.processOrders
-          ? dinsightData.monitoring.processOrders.map((order, i) => {
-              const totalPoints = monitoringCount;
-              const relativePosition = dinsightData.monitoring.processOrders!.filter(
-                (o) => o <= order
-              ).length;
-              return `Point ${order} (${relativePosition}/${totalPoints})`;
-            })
-          : dinsightData.monitoring.dinsight_x.map((_, i) => `Point ${i + 1}/${monitoringCount}`),
-      };
-      data.push(monitoringTrace);
+          hovertemplate:
+            '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{text}</i><extra></extra>',
+          text: dinsightData.monitoring.processOrders
+            ? dinsightData.monitoring.processOrders.map((order, i) => {
+                const totalPoints = monitoringCount;
+                const relativePosition = dinsightData.monitoring.processOrders!.filter(
+                  (o) => o <= order
+                ).length;
+                return `Point ${order} (${relativePosition}/${totalPoints})`;
+              })
+            : dinsightData.monitoring.dinsight_x.map((_, i) => `Point ${i + 1}/${monitoringCount}`),
+        };
+        data.push(monitoringTrace);
+      }
 
       // Add contour plot for monitoring if enabled
       if (showContours && dinsightData.monitoring.dinsight_x.length > 10) {
@@ -370,7 +618,15 @@ export default function StreamingVisualizationPage() {
     }
 
     return data;
-  }, [dinsightData, pointSize, showContours, generateSimpleMonitoringColors, streamingStatus]);
+  }, [
+    dinsightData,
+    pointSize,
+    showContours,
+    generateSimpleMonitoringColors,
+    streamingStatus,
+    enableAnomalyDetection,
+    anomalyResults,
+  ]);
 
   // Plot layout configuration
   const plotLayout = useMemo(
@@ -565,6 +821,57 @@ export default function StreamingVisualizationPage() {
                 {speed}
               </Button>
             ))}
+          </div>
+
+          {/* Anomaly Detection Controls */}
+          <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
+            <Button
+              variant={enableAnomalyDetection ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setEnableAnomalyDetection(!enableAnomalyDetection)}
+              disabled={!selectedDinsightId || !dinsightData?.monitoring.dinsight_x.length}
+              className={cn(
+                'transition-all duration-200',
+                enableAnomalyDetection && 'bg-orange-500 hover:bg-orange-600 text-white'
+              )}
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              {enableAnomalyDetection ? 'Anomaly ON' : 'Anomaly OFF'}
+            </Button>
+            {enableAnomalyDetection && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Sensitivity:</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="5.0"
+                    step="0.1"
+                    value={sensitivity}
+                    onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+                    className="w-16"
+                  />
+                  <span className="text-xs text-gray-600 dark:text-gray-300 font-mono min-w-[2rem]">
+                    {sensitivity.toFixed(1)}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={runAnomalyDetection}
+                  disabled={
+                    isRunningAnomalyDetection || !dinsightData?.monitoring.dinsight_x.length
+                  }
+                  className="ml-2"
+                >
+                  {isRunningAnomalyDetection ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Settings Toggle */}
@@ -841,6 +1148,141 @@ export default function StreamingVisualizationPage() {
                   </CardContent>
                 </Card>
               )}
+
+            {/* Anomaly Detection Status */}
+            {enableAnomalyDetection && (
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+                <CardHeader className="pb-3 bg-gradient-to-r from-red-50/30 to-orange-50/20 dark:from-red-950/30 dark:to-orange-950/20 rounded-t-xl">
+                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                    <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
+                      <AlertTriangle className="h-3 w-3 text-white" />
+                    </div>
+                    <span className="gradient-text text-base">Anomaly Detection</span>
+                    {streamingStatus && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-xs',
+                          streamingStatus.status === 'completed' &&
+                            'bg-green-50 text-green-700 border-green-200',
+                          streamingStatus.status === 'streaming' &&
+                            'bg-blue-50 text-blue-700 border-blue-200',
+                          streamingStatus.status === 'not_started' &&
+                            'bg-gray-50 text-gray-700 border-gray-200'
+                        )}
+                      >
+                        {streamingStatus.status === 'completed'
+                          ? 'Stream Complete'
+                          : streamingStatus.status === 'streaming'
+                            ? 'Live Stream'
+                            : 'Not Started'}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {isRunningAnomalyDetection && (
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-4">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">
+                        Analyzing {dinsightData?.monitoring.dinsight_x.length || 0} points...
+                      </span>
+                    </div>
+                  )}
+
+                  {anomalyResults && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                          <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                            {anomalyResults.total_points - anomalyResults.anomaly_count}
+                          </div>
+                          <div className="text-xs text-green-700 dark:text-green-300">Normal</div>
+                        </div>
+                        <div className="text-center p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
+                          <div className="text-lg font-bold text-red-600 dark:text-red-400">
+                            {anomalyResults.anomaly_count}
+                          </div>
+                          <div className="text-xs text-red-700 dark:text-red-300">Anomalies</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Detection Rate:</span>
+                          <span className="font-medium">
+                            {anomalyResults.anomaly_percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Sensitivity:</span>
+                          <span className="font-medium">{anomalyResults.sensitivity_level}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Threshold:</span>
+                          <span className="font-medium font-mono">
+                            {anomalyResults.anomaly_threshold.toFixed(3)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Data Points:</span>
+                          <span className="font-medium">
+                            {anomalyResults.total_points} analyzed
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Legend:</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Normal points
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-red-700"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Anomalous points
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <div className="text-yellow-500 text-sm">⭐</div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Centroids
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!anomalyResults && !isRunningAnomalyDetection && (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-4">
+                      <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      {dinsightData?.monitoring.dinsight_x.length === 0 ? (
+                        <p className="text-sm">No monitoring data available</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm">
+                            Ready to analyze {dinsightData?.monitoring.dinsight_x.length} points
+                          </p>
+                          <Button
+                            size="sm"
+                            onClick={runAnomalyDetection}
+                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            Run Analysis
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
