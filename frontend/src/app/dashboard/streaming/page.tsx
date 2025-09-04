@@ -108,7 +108,6 @@ export default function StreamingVisualizationPage() {
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [refreshInterval, setRefreshInterval] = useState<number>(2000); // 2 seconds
   const [streamSpeed, setStreamSpeed] = useState<'0.5x' | '1x' | '2x'>('1x');
-  const [batchSize, setBatchSize] = useState<number>(10);
   const [plotElement, setPlotElement] = useState<any>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
@@ -127,16 +126,6 @@ export default function StreamingVisualizationPage() {
     else if (streamSpeed === '0.5x') setRefreshInterval(4000);
     else setRefreshInterval(2000);
   }, [streamSpeed]);
-
-  // Handler for batch size change
-  const handleBatchSizeChange = (value: number) => {
-    setBatchSize(value);
-    setNotification({
-      type: 'info',
-      message: `Batch size set to ${value}`,
-    });
-    // Optionally, send batch size to backend if needed
-  };
 
   // Query for available dinsight datasets
   const {
@@ -748,25 +737,6 @@ export default function StreamingVisualizationPage() {
     });
   };
 
-  const resetStreaming = async () => {
-    if (!selectedDinsightId) return;
-
-    try {
-      await apiClient.delete(`/streaming/${selectedDinsightId}/reset`);
-      refetchData();
-      refetchStatus();
-      setNotification({
-        type: 'success',
-        message: 'Streaming data reset successfully',
-      });
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to reset streaming data',
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Notification */}
@@ -1152,19 +1122,6 @@ export default function StreamingVisualizationPage() {
                     className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Batch Size: {batchSize}
-                  </label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={100}
-                    value={batchSize}
-                    onChange={(e) => handleBatchSizeChange(Number(e.target.value))}
-                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                </div>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <input
@@ -1194,14 +1151,6 @@ export default function StreamingVisualizationPage() {
                     </label>
                   </div>
                 </div>
-                <Button
-                  onClick={resetStreaming}
-                  variant="outline"
-                  className="w-full text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950 mt-4"
-                  disabled={!selectedDinsightId}
-                >
-                  Reset Data
-                </Button>
               </CardContent>
             </Card>
 
