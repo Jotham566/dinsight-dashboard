@@ -281,12 +281,18 @@ export default function StreamingVisualizationPage() {
       return;
     }
 
+    // Check stream status for better user feedback
+    const isStreamCompleted = streamingStatus?.status === 'completed';
+    const analysisType = isStreamCompleted ? 'static dataset' : 'streaming data';
+
     setIsRunningAnomalyDetection(true);
     try {
-      console.log('Running anomaly detection for streaming data with params:', {
+      console.log(`Running anomaly detection for ${analysisType} with params:`, {
         baseline_dataset_id: selectedDinsightId,
         comparison_dataset_id: selectedDinsightId,
         sensitivity_factor: sensitivity,
+        data_points: currentMonitoringLength,
+        stream_status: streamingStatus?.status,
       });
 
       const response = await api.anomaly.detect({
@@ -302,7 +308,7 @@ export default function StreamingVisualizationPage() {
 
         setNotification({
           type: 'success',
-          message: `Anomaly detection completed: ${result.anomaly_count}/${result.total_points} anomalies found (${result.anomaly_percentage.toFixed(1)}%)`,
+          message: `Anomaly detection completed for ${analysisType}: ${result.anomaly_count}/${result.total_points} anomalies found (${result.anomaly_percentage.toFixed(1)}%)`,
         });
       } else {
         throw new Error('Invalid API response');
@@ -330,6 +336,7 @@ export default function StreamingVisualizationPage() {
     enableAnomalyDetection,
     sensitivity,
     dinsightData?.monitoring.dinsight_x.length,
+    streamingStatus,
   ]);
 
   // Auto-run anomaly detection when enabled or data changes
@@ -340,32 +347,56 @@ export default function StreamingVisualizationPage() {
     }
 
     if (dinsightData && dinsightData.monitoring.dinsight_x.length > 0) {
+      // Check if streaming is completed - if so, don't re-run analysis
+      const isStreamCompleted =
+        streamingStatus?.status === 'completed' || !streamingStatus?.is_active;
+
+      // For completed streams with existing results, just keep them - no re-analysis needed
+      if (
+        isStreamCompleted &&
+        anomalyResults &&
+        anomalyResults.total_points === dinsightData.monitoring.dinsight_x.length
+      ) {
+        console.log('Stream completed - using existing anomaly results without re-analysis');
+        return;
+      }
+
       // Only run anomaly detection if:
       // 1. We don't have results yet, OR
-      // 2. The monitoring data length has changed (new data streamed), OR
-      // 3. The sensitivity has changed
+      // 2. The monitoring data length has changed (new data streamed during active streaming), OR
+      // 3. Stream is active and we need fresh analysis
       const shouldRun =
         !anomalyResults ||
-        (anomalyResults &&
+        (streamingStatus?.is_active &&
+          anomalyResults &&
           anomalyResults.total_points !== dinsightData.monitoring.dinsight_x.length);
 
       if (shouldRun && !isRunningAnomalyDetection) {
+        console.log('Running anomaly detection:', {
+          hasResults: !!anomalyResults,
+          streamStatus: streamingStatus?.status,
+          isActive: streamingStatus?.is_active,
+          dataLength: dinsightData.monitoring.dinsight_x.length,
+          resultPoints: anomalyResults?.total_points,
+        });
+
         // Debounce to avoid too many API calls during rapid data changes
         const timeoutId = setTimeout(() => {
           runAnomalyDetection();
-        }, 1000); // Increased debounce time
+        }, 1000);
         return () => clearTimeout(timeoutId);
       }
     }
   }, [
     enableAnomalyDetection,
     dinsightData,
+    streamingStatus,
     runAnomalyDetection,
     anomalyResults,
     isRunningAnomalyDetection,
   ]);
 
-  // Separate effect for sensitivity changes (immediate update)
+  // Separate effect for sensitivity changes (only re-run for active streams or user-initiated changes)
   useEffect(() => {
     if (
       enableAnomalyDetection &&
@@ -373,13 +404,30 @@ export default function StreamingVisualizationPage() {
       dinsightData.monitoring.dinsight_x.length > 0 &&
       anomalyResults
     ) {
-      // When sensitivity changes and we already have data, re-run immediately
-      const timeoutId = setTimeout(() => {
-        runAnomalyDetection();
-      }, 300); // Shorter timeout for sensitivity changes
-      return () => clearTimeout(timeoutId);
+      // Only re-run on sensitivity changes if:
+      // 1. Stream is still active (real-time adjustments), OR
+      // 2. User explicitly wants to re-analyze completed data with different sensitivity
+      const isStreamActive = streamingStatus?.is_active;
+
+      if (isStreamActive) {
+        console.log('Sensitivity changed during active streaming - re-running analysis');
+        const timeoutId = setTimeout(() => {
+          runAnomalyDetection();
+        }, 300);
+        return () => clearTimeout(timeoutId);
+      } else {
+        // For completed streams, user can manually re-run if they want different sensitivity
+        console.log('Sensitivity changed for completed stream - use manual re-run if needed');
+      }
     }
-  }, [sensitivity, enableAnomalyDetection, dinsightData, anomalyResults, runAnomalyDetection]);
+  }, [
+    sensitivity,
+    enableAnomalyDetection,
+    dinsightData,
+    anomalyResults,
+    runAnomalyDetection,
+    streamingStatus,
+  ]);
 
   // Helper function to generate simple coloring for monitoring points
   const generateSimpleMonitoringColors = useCallback(
