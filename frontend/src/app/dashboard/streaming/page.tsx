@@ -997,107 +997,8 @@ export default function StreamingVisualizationPage() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Main Visualization - Center Stage */}
-          <div className="xl:col-span-3">
-            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-              <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
-                      <Eye className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl font-bold gradient-text">
-                        Real-Time Streaming Visualization
-                      </CardTitle>
-                      <CardDescription className="text-gray-600 dark:text-gray-300 mt-1">
-                        Live sensor data monitoring and anomaly detection
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {selectedDinsightId && (
-                      <Badge variant="outline" className="glass-card">
-                        Dataset {selectedDinsightId}
-                      </Badge>
-                    )}
-                    {isStreaming && (
-                      <div className="flex items-center gap-2 glass-card px-3 py-2 bg-green-50/90 dark:bg-green-950/90 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 rounded-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium">Live</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {dataLoading ? (
-                  <div className="flex items-center justify-center h-[600px]">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-accent-teal-100 dark:from-primary-900 dark:to-accent-teal-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                        <RefreshCw className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
-                      </div>
-                      <h3 className="text-lg font-semibold gradient-text mb-2">
-                        Loading Streaming Data
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        Fetching real-time coordinates...
-                      </p>
-                    </div>
-                  </div>
-                ) : dinsightData ? (
-                  <div className="relative">
-                    <Plot
-                      data={createPlotData()}
-                      layout={{
-                        ...plotLayout,
-                        height: 700, // Larger height for center stage
-                        margin: { l: 60, r: 30, t: 50, b: 60 },
-                      }}
-                      style={{ width: '100%', height: '700px' }}
-                      config={{
-                        displayModeBar: true,
-                        displaylogo: false,
-                        modeBarButtonsToRemove: ['select2d', 'lasso2d'],
-                        toImageButtonOptions: {
-                          format: 'png',
-                          filename: `streaming_visualization_${selectedDinsightId}_${new Date().toISOString().split('T')[0]}`,
-                          height: 700,
-                          width: 1400,
-                          scale: 2,
-                        },
-                      }}
-                      onInitialized={(figure, graphDiv) => setPlotElement(graphDiv)}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[600px]">
-                    <div className="text-center">
-                      <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
-                        <Eye className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <h3 className="text-2xl font-bold gradient-text mb-3">
-                        Select Dataset to Begin
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
-                        Choose a baseline dataset from the dropdown to start real-time streaming
-                        visualization.
-                      </p>
-                      <Link href="/dashboard/dinsight-analysis">
-                        <Button className="bg-gradient-to-r from-primary-600 to-accent-teal-600 hover:from-primary-700 hover:to-accent-teal-700 text-white shadow-lg shadow-primary-500/25">
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          Upload Data
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Sidebar with Controls and Info */}
-          <div className="space-y-6">
+          <div className="xl:col-span-1 space-y-6">
             {/* Visualization Settings */}
             <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
               <CardHeader className="pb-3 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
@@ -1269,6 +1170,105 @@ export default function StreamingVisualizationPage() {
                   </CardContent>
                 </Card>
               )}
+          </div>
+
+          {/* Main Visualization - Center Stage */}
+          <div className="xl:col-span-3">
+            <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
+                      <Eye className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl font-bold gradient-text">
+                        Real-Time Streaming Visualization
+                      </CardTitle>
+                      <CardDescription className="text-gray-600 dark:text-gray-300 mt-1">
+                        Live sensor data monitoring and anomaly detection
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedDinsightId && (
+                      <Badge variant="outline" className="glass-card">
+                        Dataset {selectedDinsightId}
+                      </Badge>
+                    )}
+                    {isStreaming && (
+                      <div className="flex items-center gap-2 glass-card px-3 py-2 bg-green-50/90 dark:bg-green-950/90 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 rounded-lg">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-medium">Live</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {dataLoading ? (
+                  <div className="flex items-center justify-center h-[600px]">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-accent-teal-100 dark:from-primary-900 dark:to-accent-teal-900 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+                        <RefreshCw className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
+                      </div>
+                      <h3 className="text-lg font-semibold gradient-text mb-2">
+                        Loading Streaming Data
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        Fetching real-time coordinates...
+                      </p>
+                    </div>
+                  </div>
+                ) : dinsightData ? (
+                  <div className="relative">
+                    <Plot
+                      data={createPlotData()}
+                      layout={{
+                        ...plotLayout,
+                        height: 700, // Larger height for center stage
+                        margin: { l: 60, r: 30, t: 50, b: 60 },
+                      }}
+                      style={{ width: '100%', height: '700px' }}
+                      config={{
+                        displayModeBar: true,
+                        displaylogo: false,
+                        modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+                        toImageButtonOptions: {
+                          format: 'png',
+                          filename: `streaming_visualization_${selectedDinsightId}_${new Date().toISOString().split('T')[0]}`,
+                          height: 700,
+                          width: 1400,
+                          scale: 2,
+                        },
+                      }}
+                      onInitialized={(figure, graphDiv) => setPlotElement(graphDiv)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-[600px]">
+                    <div className="text-center">
+                      <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
+                        <Eye className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <h3 className="text-2xl font-bold gradient-text mb-3">
+                        Select Dataset to Begin
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
+                        Choose a baseline dataset from the dropdown to start real-time streaming
+                        visualization.
+                      </p>
+                      <Link href="/dashboard/dinsight-analysis">
+                        <Button className="bg-gradient-to-r from-primary-600 to-accent-teal-600 hover:from-primary-700 hover:to-accent-teal-700 text-white shadow-lg shadow-primary-500/25">
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          Upload Data
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
 
