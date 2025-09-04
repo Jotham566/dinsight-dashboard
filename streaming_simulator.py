@@ -555,7 +555,7 @@ async def main():
     parser.add_argument('--batch-size', type=int, default=1,
                        help='Number of points to send per batch (default: 1)')
     parser.add_argument('--latest-glow-count', type=int, default=10,
-                       help='Number of latest points to highlight with green glow during streaming (default: 10)')
+                       help='Number of latest points to highlight with yellow glow during streaming (default: 10)')
     parser.add_argument('--api-url', type=str, default='http://localhost:8080/api/v1',
                        help='Base API URL (default: http://localhost:8080/api/v1)')
     

@@ -414,8 +414,8 @@ export default function StreamingVisualizationPage() {
       // Always highlight the latest points (assuming array order = chronological order)
       for (let i = 0; i < count; i++) {
         if (i >= count - latestCount) {
-          // Latest points: green glowing edge
-          lineColors[i] = '#10B981'; // Green color
+          // Latest points: bright yellow/gold glowing edge for visibility
+          lineColors[i] = '#FBBF24'; // Bright yellow/gold color
           lineWidths[i] = 3; // Thicker border for glow effect
         } else {
           // Regular points: subtle border
@@ -530,9 +530,9 @@ export default function StreamingVisualizationPage() {
             name: `Normal (Latest ${normalPointsGlow.length})`,
             marker: {
               color: '#34A853', // Green for normal points
-              size: pointSize,
-              opacity: 0.8,
-              line: { width: 3, color: '#10B981' }, // Green glow effect
+              size: pointSize + 2, // Slightly larger for emphasis
+              opacity: 0.9,
+              line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for visibility
             },
             hovertemplate:
               '<b>Normal (Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
@@ -574,7 +574,7 @@ export default function StreamingVisualizationPage() {
               size: pointSize + 2, // Slightly larger for emphasis
               opacity: 0.9,
               symbol: 'circle',
-              line: { width: 4, color: '#10B981' }, // Green glow effect even for anomalies
+              line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for consistency
             },
             hovertemplate:
               '<b>Anomaly (Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
@@ -1286,10 +1286,10 @@ export default function StreamingVisualizationPage() {
                               Anomalous points
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-green-400 shadow-lg shadow-green-500/50"></div>
+                          <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-yellow-400 shadow-lg shadow-yellow-500/50"></div>
                             <span className="text-xs text-gray-700 dark:text-gray-300">
-                              Latest {streamingStatus?.latest_glow_count || 5} points (green glow)
+                              Latest {streamingStatus?.latest_glow_count || 5} points (yellow glow)
                             </span>
                           </div>
                           <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
@@ -1308,10 +1308,10 @@ export default function StreamingVisualizationPage() {
                               Monitoring data
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <div className="w-3 h-3 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
+                          <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-red-600 border-2 border-yellow-400 shadow-lg shadow-yellow-500/50"></div>
                             <span className="text-xs text-gray-700 dark:text-gray-300">
-                              Latest {streamingStatus?.latest_glow_count || 5} points (green glow)
+                              Latest {streamingStatus?.latest_glow_count || 5} points (yellow glow)
                             </span>
                           </div>
                         </div>
