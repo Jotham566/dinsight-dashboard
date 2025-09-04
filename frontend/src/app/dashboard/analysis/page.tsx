@@ -720,6 +720,48 @@ export default function AdvancedAnalysisPage() {
                 </CardContent>
               </Card>
 
+              {/* Key Statistics Card */}
+              {anomalyResults && (
+                <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+                  <CardHeader className="pb-3 bg-gradient-to-r from-accent-orange-50/30 to-accent-pink-50/20 dark:from-accent-orange-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+                    <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-accent-orange-500 to-accent-pink-600 rounded-lg flex items-center justify-center shadow-lg">
+                        <TrendingUp className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="gradient-text text-base">Key Metrics</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Detection Rate:</span>
+                        <span className="font-semibold text-accent-purple-600 dark:text-accent-purple-400">
+                          {detectionRate.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Sensitivity:</span>
+                        <span className="font-semibold text-accent-teal-600 dark:text-accent-teal-400">
+                          {anomalyResults.sensitivity_level}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Threshold:</span>
+                        <span className="font-semibold text-primary-600 dark:text-primary-400">
+                          {anomalyResults.anomaly_threshold.toFixed(3)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Max Distance:</span>
+                        <span className="font-semibold text-accent-orange-600 dark:text-accent-orange-400">
+                          {anomalyResults.statistics.max_mahalanobis_distance.toFixed(3)}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Run Analysis Button */}
               <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
                 <CardContent className="p-6">
@@ -877,102 +919,6 @@ export default function AdvancedAnalysisPage() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Analysis Statistics */}
-              {anomalyResults && (
-                <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-                  <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 to-accent-purple-50/20 dark:from-primary-950/30 dark:to-accent-purple-950/20 rounded-t-xl">
-                    <CardTitle className="text-2xl font-bold gradient-text flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
-                        <TrendingUp className="w-5 h-5 text-white" />
-                      </div>
-                      Analysis Details
-                    </CardTitle>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">
-                      Detection Method: {detectionMethod.replace('_', ' ')}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
-                        <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                          Sensitivity Level
-                        </p>
-                        <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
-                          {anomalyResults.sensitivity_level}
-                        </p>
-                      </div>
-                      <div className="glass-card p-4 bg-gradient-to-br from-accent-purple-50/50 to-accent-purple-100/30 dark:from-accent-purple-950/50 dark:to-accent-purple-900/30 border border-accent-purple-200/50 dark:border-accent-purple-700/50 rounded-xl">
-                        <p className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300">
-                          Distance Threshold
-                        </p>
-                        <p className="text-lg font-bold text-accent-purple-900 dark:text-accent-purple-100 mt-1">
-                          {anomalyResults.anomaly_threshold.toFixed(4)}
-                        </p>
-                      </div>
-                      <div className="glass-card p-4 bg-gradient-to-br from-accent-teal-50/50 to-accent-teal-100/30 dark:from-accent-teal-950/50 dark:to-accent-teal-900/30 border border-accent-teal-200/50 dark:border-accent-teal-700/50 rounded-xl">
-                        <p className="text-sm font-medium text-accent-teal-700 dark:text-accent-teal-300">
-                          Centroid Distance
-                        </p>
-                        <p className="text-lg font-bold text-accent-teal-900 dark:text-accent-teal-100 mt-1">
-                          {anomalyResults.centroid_distance.toFixed(3)}
-                        </p>
-                      </div>
-                      <div className="glass-card p-4 bg-gradient-to-br from-accent-orange-50/50 to-accent-orange-100/30 dark:from-accent-orange-950/50 dark:to-accent-orange-900/30 border border-accent-orange-200/50 dark:border-accent-orange-700/50 rounded-xl">
-                        <p className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">
-                          Max Mahalanobis Distance
-                        </p>
-                        <p className="text-lg font-bold text-accent-orange-900 dark:text-accent-orange-100 mt-1">
-                          {anomalyResults.statistics.max_mahalanobis_distance.toFixed(4)}
-                        </p>
-                      </div>
-                      <div className="glass-card p-4 bg-gradient-to-br from-accent-pink-50/50 to-accent-pink-100/30 dark:from-accent-pink-950/50 dark:to-accent-pink-900/30 border border-accent-pink-200/50 dark:border-accent-pink-700/50 rounded-xl">
-                        <p className="text-sm font-medium text-accent-pink-700 dark:text-accent-pink-300">
-                          Mean Mahalanobis Distance
-                        </p>
-                        <p className="text-lg font-bold text-accent-pink-900 dark:text-accent-pink-100 mt-1">
-                          {anomalyResults.statistics.mean_mahalanobis_distance.toFixed(4)}
-                        </p>
-                      </div>
-                      <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
-                        <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                          Baseline Std Dev
-                        </p>
-                        <p className="text-lg font-bold text-primary-900 dark:text-primary-100 mt-1">
-                          {anomalyResults.statistics.baseline_std_dev.toFixed(4)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Additional Context for Critical Anomalies */}
-                    <div className="glass-card p-6 bg-gradient-to-r from-accent-orange-100/80 to-accent-orange-50/60 dark:from-accent-orange-900/50 dark:to-accent-orange-950/40 border border-accent-orange-200/50 dark:border-accent-orange-700/50 rounded-xl">
-                      <h4 className="text-sm font-semibold text-accent-orange-800 dark:text-accent-orange-200 mb-3 flex items-center gap-2">
-                        <XCircle className="w-4 h-4" />
-                        Critical Anomalies Definition
-                      </h4>
-                      <p className="text-sm text-accent-orange-700 dark:text-accent-orange-300 leading-relaxed">
-                        Critical anomalies represent the top 25% of detected anomalies ranked by
-                        their Mahalanobis distance values. Out of {anomalyCount} total anomalies,{' '}
-                        {criticalCount} are classified as critical.
-                      </p>
-                    </div>
-
-                    {/* Detection Rate Context */}
-                    <div className="glass-card p-6 bg-gradient-to-r from-accent-purple-100/80 to-accent-purple-50/60 dark:from-accent-purple-900/50 dark:to-accent-purple-950/40 border border-accent-purple-200/50 dark:border-accent-purple-700/50 rounded-xl">
-                      <h4 className="text-sm font-semibold text-accent-purple-800 dark:text-accent-purple-200 mb-3 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
-                        Detection Rate Explanation
-                      </h4>
-                      <p className="text-sm text-accent-purple-700 dark:text-accent-purple-300 leading-relaxed">
-                        Detection rate of {detectionRate.toFixed(2)}% means {anomalyCount} out of{' '}
-                        {totalSamples} monitoring samples were flagged as anomalous using{' '}
-                        {detectionMethod.replace('_', ' ')} with{' '}
-                        {anomalyResults.sensitivity_level.toLowerCase()} sensitivity.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </div>
         </div>
