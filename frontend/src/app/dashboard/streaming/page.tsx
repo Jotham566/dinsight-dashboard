@@ -482,14 +482,32 @@ export default function StreamingVisualizationPage() {
         const normalPoints = anomalyResults.anomalous_points.filter((p) => !p.is_anomaly);
         const anomalyPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
 
-        // Add normal monitoring points
-        if (normalPoints.length > 0) {
+        // Determine latest points for green glow effect
+        const latestGlowCount = streamingStatus?.latest_glow_count || 5;
+        const totalPoints = anomalyResults.total_points;
+        const latestPointIndices = new Set(
+          Array.from({ length: Math.min(latestGlowCount, totalPoints) }, (_, i) => totalPoints - 1 - i)
+        );
+
+        // Helper function to determine if a point should have green glow
+        const shouldHaveGlow = (point: AnomalyPoint) => latestPointIndices.has(point.index);
+
+        // Separate normal points into glowing and non-glowing
+        const normalPointsGlow = normalPoints.filter(shouldHaveGlow);
+        const normalPointsRegular = normalPoints.filter(p => !shouldHaveGlow(p));
+
+        // Separate anomaly points into glowing and non-glowing
+        const anomalyPointsGlow = anomalyPoints.filter(shouldHaveGlow);
+        const anomalyPointsRegular = anomalyPoints.filter(p => !shouldHaveGlow(p));
+
+        // Add regular normal monitoring points (no glow)
+        if (normalPointsRegular.length > 0) {
           data.push({
-            x: normalPoints.map((p) => p.x),
-            y: normalPoints.map((p) => p.y),
+            x: normalPointsRegular.map((p) => p.x),
+            y: normalPointsRegular.map((p) => p.y),
             mode: 'markers' as const,
             type: 'scattergl' as const,
-            name: `Normal Points (${normalPoints.length})`,
+            name: `Normal Points (${normalPointsRegular.length})`,
             marker: {
               color: '#34A853', // Green for normal points
               size: pointSize,
@@ -498,18 +516,38 @@ export default function StreamingVisualizationPage() {
             },
             hovertemplate:
               '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-            customdata: normalPoints.map((p) => p.mahalanobis_distance),
+            customdata: normalPointsRegular.map((p) => p.mahalanobis_distance),
           });
         }
 
-        // Add anomalous monitoring points
-        if (anomalyPoints.length > 0) {
+        // Add glowing normal monitoring points (latest points)
+        if (normalPointsGlow.length > 0) {
           data.push({
-            x: anomalyPoints.map((p) => p.x),
-            y: anomalyPoints.map((p) => p.y),
+            x: normalPointsGlow.map((p) => p.x),
+            y: normalPointsGlow.map((p) => p.y),
             mode: 'markers' as const,
             type: 'scattergl' as const,
-            name: `Anomalies (${anomalyPoints.length})`,
+            name: `Normal (Latest ${normalPointsGlow.length})`,
+            marker: {
+              color: '#34A853', // Green for normal points
+              size: pointSize,
+              opacity: 0.8,
+              line: { width: 3, color: '#10B981' }, // Green glow effect
+            },
+            hovertemplate:
+              '<b>Normal (Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            customdata: normalPointsGlow.map((p) => p.mahalanobis_distance),
+          });
+        }
+
+        // Add regular anomalous monitoring points (no glow)
+        if (anomalyPointsRegular.length > 0) {
+          data.push({
+            x: anomalyPointsRegular.map((p) => p.x),
+            y: anomalyPointsRegular.map((p) => p.y),
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Anomalies (${anomalyPointsRegular.length})`,
             marker: {
               color: '#EA4335', // Red for anomalies
               size: pointSize + 2, // Slightly larger for emphasis
@@ -519,7 +557,28 @@ export default function StreamingVisualizationPage() {
             },
             hovertemplate:
               '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-            customdata: anomalyPoints.map((p) => p.mahalanobis_distance),
+            customdata: anomalyPointsRegular.map((p) => p.mahalanobis_distance),
+          });
+        }
+
+        // Add glowing anomalous monitoring points (latest anomalies)
+        if (anomalyPointsGlow.length > 0) {
+          data.push({
+            x: anomalyPointsGlow.map((p) => p.x),
+            y: anomalyPointsGlow.map((p) => p.y),
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Anomalies (Latest ${anomalyPointsGlow.length})`,
+            marker: {
+              color: '#EA4335', // Red for anomalies
+              size: pointSize + 2, // Slightly larger for emphasis
+              opacity: 0.9,
+              symbol: 'circle',
+              line: { width: 4, color: '#10B981' }, // Green glow effect even for anomalies
+            },
+            hovertemplate:
+              '<b>Anomaly (Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            customdata: anomalyPointsGlow.map((p) => p.mahalanobis_distance),
           });
         }
 
@@ -1211,20 +1270,52 @@ export default function StreamingVisualizationPage() {
                       <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         Point indicators:
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                          <div className="w-3 h-3 rounded-full bg-red-600 border border-gray-300 dark:border-gray-600"></div>
-                          <span className="text-xs text-gray-700 dark:text-gray-300">
-                            Monitoring data
-                          </span>
+                      
+                      {enableAnomalyDetection && anomalyResults ? (
+                        // Anomaly detection mode legend
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Normal points
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Anomalous points
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-green-400 shadow-lg shadow-green-500/50"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Latest {streamingStatus?.latest_glow_count || 5} points (green glow)
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <div className="text-yellow-500 text-sm">⭐</div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Centroids
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                          <div className="w-3 h-3 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
-                          <span className="text-xs text-gray-700 dark:text-gray-300">
-                            Latest {streamingStatus?.latest_glow_count || 5} points
-                          </span>
+                      ) : (
+                        // Simple streaming mode legend
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-red-600 border border-gray-300 dark:border-gray-600"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Monitoring data
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div className="w-3 h-3 rounded-full bg-red-600 border-2 border-green-500 shadow-lg shadow-green-500/50"></div>
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              Latest {streamingStatus?.latest_glow_count || 5} points (green glow)
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
