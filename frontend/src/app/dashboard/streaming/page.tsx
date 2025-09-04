@@ -762,127 +762,208 @@ export default function StreamingVisualizationPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Compact Control Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8 p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-          {/* Dataset Selection - Compact */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-lg shadow-primary-500/25">
-              <BarChart3 className="h-4 w-4 text-white" />
-            </div>
-            <select
-              value={selectedDinsightId || ''}
-              onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
-              className="px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-gray-900 dark:text-gray-100 min-w-[200px]"
-              disabled={datasetsLoading}
-            >
-              {selectedDinsightId === null && <option value="">Select dataset...</option>}
-              {datasetsLoading ? (
-                <option>Loading datasets...</option>
-              ) : (
-                availableDinsightIds?.map((dataset) => (
-                  <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                    {dataset.name} ({dataset.records} points)
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {/* Streaming Controls - Horizontal */}
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={toggleStreaming}
-              className={cn(
-                'transition-all duration-200',
-                isStreaming
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                  : 'bg-green-500 hover:bg-green-600 text-white'
-              )}
-              disabled={!selectedDinsightId}
-            >
-              {isStreaming ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-              {isStreaming ? 'Pause' : 'Start'}
-            </Button>
-            <Button onClick={stopStreaming} variant="outline" disabled={!selectedDinsightId}>
-              <Square className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {/* Speed Controls */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Speed:</span>
-            {['0.5x', '1x', '2x'].map((speed) => (
-              <Button
-                key={speed}
-                variant={streamSpeed === speed ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStreamSpeed(speed as any)}
-                className="px-3 py-1"
+        <div className="space-y-4 mb-8">
+          {/* Main Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+            {/* Dataset Selection - Compact */}
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-lg shadow-primary-500/25">
+                <BarChart3 className="h-4 w-4 text-white" />
+              </div>
+              <select
+                value={selectedDinsightId || ''}
+                onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
+                className="px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 text-gray-900 dark:text-gray-100 min-w-[200px]"
+                disabled={datasetsLoading}
               >
-                {speed}
+                {selectedDinsightId === null && <option value="">Select dataset...</option>}
+                {datasetsLoading ? (
+                  <option>Loading datasets...</option>
+                ) : (
+                  availableDinsightIds?.map((dataset) => (
+                    <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                      {dataset.name} ({dataset.records} points)
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {/* Streaming Controls - Horizontal */}
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={toggleStreaming}
+                className={cn(
+                  'transition-all duration-200',
+                  isStreaming
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                )}
+                disabled={!selectedDinsightId}
+              >
+                {isStreaming ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                {isStreaming ? 'Pause' : 'Start'}
               </Button>
-            ))}
-          </div>
+              <Button onClick={stopStreaming} variant="outline" disabled={!selectedDinsightId}>
+                <Square className="w-4 h-4" />
+              </Button>
+            </div>
 
-          {/* Anomaly Detection Controls */}
-          <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
-            <Button
-              variant={enableAnomalyDetection ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setEnableAnomalyDetection(!enableAnomalyDetection)}
-              disabled={!selectedDinsightId || !dinsightData?.monitoring.dinsight_x.length}
-              className={cn(
-                'transition-all duration-200',
-                enableAnomalyDetection && 'bg-orange-500 hover:bg-orange-600 text-white'
-              )}
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              {enableAnomalyDetection ? 'Anomaly ON' : 'Anomaly OFF'}
-            </Button>
-            {enableAnomalyDetection && (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Sensitivity:</span>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="5.0"
-                    step="0.1"
-                    value={sensitivity}
-                    onChange={(e) => setSensitivity(parseFloat(e.target.value))}
-                    className="w-16"
-                  />
-                  <span className="text-xs text-gray-600 dark:text-gray-300 font-mono min-w-[2rem]">
-                    {sensitivity.toFixed(1)}
-                  </span>
-                </div>
+            {/* Speed Controls */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Speed:</span>
+              {['0.5x', '1x', '2x'].map((speed) => (
                 <Button
-                  variant="outline"
+                  key={speed}
+                  variant={streamSpeed === speed ? 'default' : 'outline'}
                   size="sm"
-                  onClick={runAnomalyDetection}
-                  disabled={
-                    isRunningAnomalyDetection || !dinsightData?.monitoring.dinsight_x.length
-                  }
-                  className="ml-2"
+                  onClick={() => setStreamSpeed(speed as any)}
+                  className="px-3 py-1"
                 >
-                  {isRunningAnomalyDetection ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
+                  {speed}
                 </Button>
-              </>
-            )}
+              ))}
+            </div>
+
+            {/* Anomaly Detection Controls */}
+            <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
+              <Button
+                variant={enableAnomalyDetection ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEnableAnomalyDetection(!enableAnomalyDetection)}
+                disabled={!selectedDinsightId || !dinsightData?.monitoring.dinsight_x.length}
+                className={cn(
+                  'transition-all duration-200',
+                  enableAnomalyDetection && 'bg-orange-500 hover:bg-orange-600 text-white'
+                )}
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                {enableAnomalyDetection ? 'Anomaly ON' : 'Anomaly OFF'}
+              </Button>
+              {enableAnomalyDetection && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Sensitivity:</span>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="5.0"
+                      step="0.1"
+                      value={sensitivity}
+                      onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+                      className="w-16"
+                    />
+                    <span className="text-xs text-gray-600 dark:text-gray-300 font-mono min-w-[2rem]">
+                      {sensitivity.toFixed(1)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={runAnomalyDetection}
+                    disabled={
+                      isRunningAnomalyDetection || !dinsightData?.monitoring.dinsight_x.length
+                    }
+                    className="ml-2"
+                  >
+                    {isRunningAnomalyDetection ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Settings Toggle */}
+            <Button
+              onClick={refreshData}
+              variant="outline"
+              className="glass-card hover:shadow-lg transition-all duration-200"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
           </div>
 
-          {/* Settings Toggle */}
-          <Button
-            onClick={refreshData}
-            variant="outline"
-            className="glass-card hover:shadow-lg transition-all duration-200"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          {/* Anomaly Detection Status Bar - Only when enabled */}
+          {enableAnomalyDetection && (
+            <div className="p-4 bg-gradient-to-r from-orange-50/50 to-red-50/50 dark:from-orange-950/30 dark:to-red-950/30 backdrop-blur-sm rounded-xl border border-orange-200/50 dark:border-orange-700/50 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      Anomaly Detection Status
+                    </span>
+                    {streamingStatus && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-xs',
+                          streamingStatus.status === 'completed' &&
+                            'bg-green-50 text-green-700 border-green-200',
+                          streamingStatus.status === 'streaming' &&
+                            'bg-blue-50 text-blue-700 border-blue-200',
+                          streamingStatus.status === 'not_started' &&
+                            'bg-gray-50 text-gray-700 border-gray-200'
+                        )}
+                      >
+                        {streamingStatus.status === 'completed'
+                          ? 'Stream Complete'
+                          : streamingStatus.status === 'streaming'
+                            ? 'Live Stream'
+                            : 'Not Started'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  {isRunningAnomalyDetection && (
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">
+                        Analyzing {dinsightData?.monitoring.dinsight_x.length || 0} points...
+                      </span>
+                    </div>
+                  )}
+
+                  {anomalyResults && (
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Normal: {anomalyResults.total_points - anomalyResults.anomaly_count}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Anomalies: {anomalyResults.anomaly_count}
+                        </span>
+                      </div>
+                      <div className="text-gray-600 dark:text-gray-400">
+                        Rate: {anomalyResults.anomaly_percentage.toFixed(1)}%
+                      </div>
+                      <div className="text-gray-600 dark:text-gray-400">
+                        Sensitivity: {anomalyResults.sensitivity_level}
+                      </div>
+                    </div>
+                  )}
+
+                  {!anomalyResults && !isRunningAnomalyDetection && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {dinsightData?.monitoring.dinsight_x.length === 0
+                        ? 'No monitoring data available'
+                        : `Ready to analyze ${dinsightData?.monitoring.dinsight_x.length} points`}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content Grid */}
@@ -1148,141 +1229,6 @@ export default function StreamingVisualizationPage() {
                   </CardContent>
                 </Card>
               )}
-
-            {/* Anomaly Detection Status */}
-            {enableAnomalyDetection && (
-              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-                <CardHeader className="pb-3 bg-gradient-to-r from-red-50/30 to-orange-50/20 dark:from-red-950/30 dark:to-orange-950/20 rounded-t-xl">
-                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                    <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
-                      <AlertTriangle className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="gradient-text text-base">Anomaly Detection</span>
-                    {streamingStatus && (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'text-xs',
-                          streamingStatus.status === 'completed' &&
-                            'bg-green-50 text-green-700 border-green-200',
-                          streamingStatus.status === 'streaming' &&
-                            'bg-blue-50 text-blue-700 border-blue-200',
-                          streamingStatus.status === 'not_started' &&
-                            'bg-gray-50 text-gray-700 border-gray-200'
-                        )}
-                      >
-                        {streamingStatus.status === 'completed'
-                          ? 'Stream Complete'
-                          : streamingStatus.status === 'streaming'
-                            ? 'Live Stream'
-                            : 'Not Started'}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  {isRunningAnomalyDetection && (
-                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-4">
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">
-                        Analyzing {dinsightData?.monitoring.dinsight_x.length || 0} points...
-                      </span>
-                    </div>
-                  )}
-
-                  {anomalyResults && (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                          <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                            {anomalyResults.total_points - anomalyResults.anomaly_count}
-                          </div>
-                          <div className="text-xs text-green-700 dark:text-green-300">Normal</div>
-                        </div>
-                        <div className="text-center p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-                          <div className="text-lg font-bold text-red-600 dark:text-red-400">
-                            {anomalyResults.anomaly_count}
-                          </div>
-                          <div className="text-xs text-red-700 dark:text-red-300">Anomalies</div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Detection Rate:</span>
-                          <span className="font-medium">
-                            {anomalyResults.anomaly_percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Sensitivity:</span>
-                          <span className="font-medium">{anomalyResults.sensitivity_level}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Threshold:</span>
-                          <span className="font-medium font-mono">
-                            {anomalyResults.anomaly_threshold.toFixed(3)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Data Points:</span>
-                          <span className="font-medium">
-                            {anomalyResults.total_points} analyzed
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">Legend:</div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="text-xs text-gray-700 dark:text-gray-300">
-                              Normal points
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-red-700"></div>
-                            <span className="text-xs text-gray-700 dark:text-gray-300">
-                              Anomalous points
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                            <div className="text-yellow-500 text-sm">⭐</div>
-                            <span className="text-xs text-gray-700 dark:text-gray-300">
-                              Centroids
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {!anomalyResults && !isRunningAnomalyDetection && (
-                    <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                      <AlertTriangle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      {dinsightData?.monitoring.dinsight_x.length === 0 ? (
-                        <p className="text-sm">No monitoring data available</p>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm">
-                            Ready to analyze {dinsightData?.monitoring.dinsight_x.length} points
-                          </p>
-                          <Button
-                            size="sm"
-                            onClick={runAnomalyDetection}
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                          >
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            Run Analysis
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
 
