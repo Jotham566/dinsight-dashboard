@@ -734,13 +734,17 @@ export default function AdvancedAnalysisPage() {
                   <CardContent className="pt-4 space-y-4">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Detection Rate:</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Detection Rate:
+                        </span>
                         <span className="font-semibold text-accent-purple-600 dark:text-accent-purple-400">
                           {detectionRate.toFixed(1)}%
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Sensitivity:</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Sensitivity:
+                        </span>
                         <span className="font-semibold text-accent-teal-600 dark:text-accent-teal-400">
                           {anomalyResults.sensitivity_level}
                         </span>
@@ -752,7 +756,9 @@ export default function AdvancedAnalysisPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Max Distance:</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Max Distance:
+                        </span>
                         <span className="font-semibold text-accent-orange-600 dark:text-accent-orange-400">
                           {anomalyResults.statistics.max_mahalanobis_distance.toFixed(3)}
                         </span>

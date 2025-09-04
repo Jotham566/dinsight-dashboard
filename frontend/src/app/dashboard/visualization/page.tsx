@@ -39,7 +39,7 @@ interface Dataset {
 export default function VisualizationPage() {
   // State management - single dinsight_id for both baseline and monitoring
   const [selectedDinsightId, setSelectedDinsightId] = useState<number | null>(null);
-  const [pointSize, setPointSize] = useState<number>(12); 
+  const [pointSize, setPointSize] = useState<number>(12);
   const [showContours, setShowContours] = useState<boolean>(false);
   const [sideBySide, setSideBySide] = useState<boolean>(false);
   const [notification, setNotification] = useState<{

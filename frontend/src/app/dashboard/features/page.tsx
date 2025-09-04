@@ -703,7 +703,7 @@ export default function FeatureAnalysisPage() {
               <div>
                 <h1 className="text-3xl font-bold gradient-text">Feature Explorer</h1>
                 <p className="text-gray-600 dark:text-gray-300 mt-1">
-                  Explore raw feature data with interactive heatmap visualization
+                  Explore raw feature data with interactive visualization
                 </p>
               </div>
             </div>
@@ -737,56 +737,39 @@ export default function FeatureAnalysisPage() {
           <div className="xl:col-span-1 space-y-6">
             {/* Dataset Selection Card */}
             <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-              <CardHeader className="pb-4 bg-gradient-to-br from-accent-teal-50 via-white to-accent-teal-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 rounded-t-2xl">
-                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-teal-500/25">
-                    <Database className="w-5 h-5 text-white" />
+              <CardHeader className="pb-3 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <Database className="w-4 h-4 text-white" />
                   </div>
-                  <div>
-                    <div className="gradient-text font-bold">Dataset Selection</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">
-                      Choose data source
-                    </div>
-                  </div>
+                  <span className="gradient-text text-base">Dataset Selection</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-4 space-y-4">
                 {/* Compact Status */}
                 {datasetsLoading ? (
-                  <div className="text-center py-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-accent-teal-500/25">
-                      <RefreshCw className="w-4 h-4 text-white animate-spin" />
-                    </div>
-                    <p className="text-xs font-medium text-accent-teal-600 dark:text-accent-teal-400">
-                      Scanning...
-                    </p>
+                  <div className="flex items-center justify-center py-4">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin text-primary-600" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Scanning datasets...
+                    </span>
                   </div>
                 ) : datasetsError ? (
-                  <div className="text-center py-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-red-500/25">
-                      <AlertCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <p className="text-xs font-medium text-red-600 dark:text-red-400">
-                      Discovery failed
-                    </p>
+                  <div className="flex items-center justify-center py-4">
+                    <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
+                    <span className="text-sm text-red-600 dark:text-red-400">Discovery failed</span>
                   </div>
                 ) : availableDatasets && availableDatasets.length > 0 ? (
-                  <div className="text-center py-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-accent-teal-500/25">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <p className="text-xs font-medium text-accent-teal-600 dark:text-accent-teal-400">
+                  <div className="flex items-center justify-center py-2">
+                    <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
                       {availableDatasets.length} datasets found
-                    </p>
+                    </span>
                   </div>
                 ) : (
-                  <div className="text-center py-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow-lg shadow-yellow-500/25">
-                      <AlertCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
-                      None found
-                    </p>
+                  <div className="flex items-center justify-center py-4">
+                    <AlertCircle className="w-4 h-4 mr-2 text-yellow-500" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">None found</span>
                   </div>
                 )}
 
@@ -796,7 +779,7 @@ export default function FeatureAnalysisPage() {
                     <select
                       value={selectedFileUploadId || ''}
                       onChange={(e) => setSelectedFileUploadId(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-white/90 dark:bg-gray-800/90 border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:ring-2 focus:ring-accent-teal-500/50 focus:border-accent-teal-500 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm text-gray-900 dark:text-gray-100"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100"
                       disabled={!availableDatasets || availableDatasets.length === 0}
                     >
                       <option value="">Select dataset...</option>
@@ -815,7 +798,7 @@ export default function FeatureAnalysisPage() {
                       value={manualId}
                       onChange={(e) => setManualId(e.target.value)}
                       placeholder="ID"
-                      className="flex-1 px-4 py-3 bg-white/90 dark:bg-gray-800/90 border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:ring-2 focus:ring-accent-teal-500/50 focus:border-accent-teal-500 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm text-gray-900 dark:text-gray-100"
+                      className="flex-1 px-4 py-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100"
                     />
                     <Button
                       size="sm"
@@ -848,7 +831,7 @@ export default function FeatureAnalysisPage() {
                 <Button
                   onClick={handleLoadFeatureData}
                   disabled={isLoadingFeatures || !selectedFileUploadId}
-                  className="w-full bg-gradient-to-r from-accent-teal-500 to-accent-teal-600 hover:from-accent-teal-600 hover:to-accent-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+                  className="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 text-base font-semibold"
                 >
                   {isLoadingFeatures ? (
                     <>
@@ -867,28 +850,21 @@ export default function FeatureAnalysisPage() {
 
             {/* Sample Selection Card */}
             <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-              <CardHeader className="pb-4 bg-gradient-to-br from-accent-purple-50 via-white to-accent-pink-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 rounded-t-2xl">
-                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
-                    <Eye className="w-5 h-5 text-white" />
+              <CardHeader className="pb-3 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
+                <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <Eye className="w-4 h-4 text-white" />
                   </div>
-                  <div>
-                    <div className="gradient-text font-bold">Sample Selection</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">
-                      Choose samples to visualize
-                    </div>
-                  </div>
+                  <span className="gradient-text text-base">Sample Selection</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="pt-4 space-y-3">
                 {featureDataLoading ? (
-                  <div className="text-center py-6">
-                    <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-accent-purple-500/25">
-                      <RefreshCw className="w-5 h-5 text-white animate-spin" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Loading...
-                    </p>
+                  <div className="flex items-center justify-center py-4">
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin text-primary-600" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Loading samples...
+                    </span>
                   </div>
                 ) : featureData && featureData.length > 0 ? (
                   <div className="space-y-3">
@@ -902,7 +878,7 @@ export default function FeatureAnalysisPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedSamples([featureData[0].sample_id])}
-                          className="justify-start glass-button border-gray-200/50 dark:border-gray-600/50 hover:bg-accent-purple-50/50 dark:hover:bg-gray-700/50 hover:border-accent-purple-300/50 transition-all duration-200 rounded-xl"
+                          className="justify-start text-sm"
                         >
                           First Sample
                         </Button>
@@ -913,7 +889,7 @@ export default function FeatureAnalysisPage() {
                             const samples = featureData.slice(0, 3).map((d) => d.sample_id);
                             setSelectedSamples(samples);
                           }}
-                          className="justify-start glass-button border-gray-200/50 dark:border-gray-600/50 hover:bg-accent-purple-50/50 dark:hover:bg-gray-700/50 hover:border-accent-purple-300/50 transition-all duration-200 rounded-xl"
+                          className="justify-start text-sm"
                         >
                           First 3 Samples
                         </Button>
@@ -927,7 +903,7 @@ export default function FeatureAnalysisPage() {
                               .filter(Boolean);
                             setSelectedSamples(samples);
                           }}
-                          className="justify-start glass-button border-gray-200/50 dark:border-gray-600/50 hover:bg-accent-purple-50/50 dark:hover:bg-gray-700/50 hover:border-accent-purple-300/50 transition-all duration-200 rounded-xl"
+                          className="justify-start text-sm"
                         >
                           Spread 3 Samples
                         </Button>
@@ -976,17 +952,19 @@ export default function FeatureAnalysisPage() {
                       size="sm"
                       onClick={() => setSelectedSamples([])}
                       disabled={selectedSamples.length === 0}
-                      className="w-full glass-button border-gray-200/50 dark:border-gray-600/50 hover:bg-red-50/50 dark:hover:bg-gray-700/50 hover:border-red-300/50 transition-all duration-200 rounded-xl"
+                      className="w-full text-sm"
                     >
                       Clear All
                     </Button>
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                    <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Database className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                  <div className="flex items-center justify-center py-6">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                        <Database className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Load data first</p>
                     </div>
-                    <p className="text-sm font-medium">Load data first</p>
                   </div>
                 )}
               </CardContent>
@@ -995,17 +973,17 @@ export default function FeatureAnalysisPage() {
 
           {/* Main Visualization Area */}
           <div className="xl:col-span-3">
-            <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 min-h-[700px]">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-accent-purple-50 via-white to-accent-pink-50/50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 backdrop-blur-xl rounded-t-2xl">
+            <Card className="glass-card shadow-2xl border-gray-200/50 dark:border-gray-700/50 card-hover">
+              <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
                     <Dna className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 gradient-text">
+                    <CardTitle className="text-2xl font-bold gradient-text">
                       Feature Data Visualization
                     </CardTitle>
-                    <CardDescription className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
                       {selectedFileUploadId
                         ? `Dataset ID ${selectedFileUploadId}`
                         : 'No dataset selected'}
@@ -1013,13 +991,6 @@ export default function FeatureAnalysisPage() {
                         ` • ${totalSamples.toLocaleString()} samples • ${totalFeatures} features`}
                     </CardDescription>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {selectedFileUploadId && (
-                    <div className="px-4 py-2 bg-gradient-to-r from-accent-purple-100 to-accent-pink-100 dark:from-accent-purple-900/30 dark:to-accent-pink-900/30 text-accent-purple-700 dark:text-accent-purple-300 text-sm font-semibold rounded-xl border border-accent-purple-200/50 dark:border-accent-purple-700/50 backdrop-blur-sm">
-                      Dataset ID: {selectedFileUploadId}
-                    </div>
-                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -1038,48 +1009,42 @@ export default function FeatureAnalysisPage() {
                     </div>
                   </div>
                 ) : featureDataLoading ? (
-                  <div className="flex items-center justify-center h-[600px]">
+                  <div className="flex items-center justify-center h-96">
                     <div className="text-center">
                       <div className="relative">
-                        <div className="w-20 h-20 border-4 border-accent-purple-200/50 dark:border-accent-purple-700/50 border-t-accent-purple-600 dark:border-t-accent-purple-400 rounded-full animate-spin mx-auto mb-6"></div>
+                        <div className="w-20 h-20 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin mx-auto mb-6"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-16 h-16 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
-                            <Dna className="w-8 h-8 text-white" />
-                          </div>
+                          <Dna className="w-8 h-8 text-primary-600 dark:text-primary-400" />
                         </div>
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">
+                      <h3 className="text-2xl font-bold gradient-text mb-3">
                         Loading Feature Data
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-gray-600 dark:text-gray-300">
                         Processing feature vectors...
                       </p>
                     </div>
                   </div>
                 ) : !featureData ? (
-                  <div className="flex items-center justify-center h-[600px]">
+                  <div className="flex items-center justify-center h-96">
                     <div className="text-center">
-                      <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
                         <Dna className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">
-                        No Data Available
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm leading-relaxed">
+                      <h3 className="text-2xl font-bold gradient-text mb-3">No Data Available</h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
                         Select a dataset and load feature data to begin visualization.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-[600px]">
+                  <div className="flex items-center justify-center h-96">
                     <div className="text-center">
-                      <div className="w-24 h-24 bg-gradient-to-br from-accent-purple-100 to-accent-pink-100 dark:from-accent-purple-900/30 dark:to-accent-pink-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-                        <Eye className="w-10 h-10 text-accent-purple-600 dark:text-accent-purple-400" />
+                      <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
+                        <Eye className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 gradient-text">
-                        No Samples Selected
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm leading-relaxed">
+                      <h3 className="text-2xl font-bold gradient-text mb-3">No Samples Selected</h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
                         Choose samples from the sidebar to visualize feature patterns.
                       </p>
                     </div>
@@ -1090,50 +1055,50 @@ export default function FeatureAnalysisPage() {
 
             {/* Statistics Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <Card className="glass-card shadow-xl border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-br from-primary-50/80 via-white/80 to-primary-100/50 dark:from-gray-800/80 dark:via-gray-900/80 dark:to-primary-900/20 group card-hover">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/25 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary-500/30 transition-all duration-300">
-                    <TrendingUp className="w-7 h-7 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-primary-500/25 group-hover:scale-110 transition-transform duration-200">
+                    <TrendingUp className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-primary-900 dark:text-primary-100 mb-2 gradient-text">
+                  <div className="text-2xl font-bold gradient-text mb-1">
                     {totalFeatures.toLocaleString()}
                   </div>
-                  <div className="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-1">
+                  <div className="text-sm font-medium text-primary-700 dark:text-primary-300">
                     Total Features
                   </div>
-                  <div className="text-xs text-primary-600 dark:text-primary-400 opacity-80">
+                  <div className="text-xs text-primary-600 dark:text-primary-400 mt-1 opacity-80">
                     Feature dimensions per sample
                   </div>
                 </CardContent>
               </Card>
-              <Card className="glass-card shadow-xl border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-br from-accent-teal-50/80 via-white/80 to-accent-teal-100/50 dark:from-gray-800/80 dark:via-gray-900/80 dark:to-accent-teal-900/20 group card-hover">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-red-50/30 to-red-100/20 dark:from-red-950/30 dark:to-red-900/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent-teal-500/25 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-accent-teal-500/30 transition-all duration-300">
-                    <Database className="w-7 h-7 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-500/25 group-hover:scale-110 transition-transform duration-200">
+                    <Database className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-accent-teal-900 dark:text-accent-teal-100 mb-2 gradient-text">
+                  <div className="text-2xl font-bold text-red-900 dark:text-red-100 mb-1">
                     {totalSamples.toLocaleString()}
                   </div>
-                  <div className="text-sm font-semibold text-accent-teal-700 dark:text-accent-teal-300 mb-1">
+                  <div className="text-sm font-medium text-red-700 dark:text-red-300">
                     Total Samples
                   </div>
-                  <div className="text-xs text-accent-teal-600 dark:text-accent-teal-400 opacity-80">
+                  <div className="text-xs text-red-600 dark:text-red-400 mt-1 opacity-80">
                     Data points in dataset
                   </div>
                 </CardContent>
               </Card>
-              <Card className="glass-card shadow-xl border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-br from-accent-purple-50/80 via-white/80 to-accent-purple-100/50 dark:from-gray-800/80 dark:via-gray-900/80 dark:to-accent-purple-900/20 group card-hover">
+              <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-accent-orange-50/30 to-accent-orange-100/20 dark:from-accent-orange-950/30 dark:to-accent-orange-900/20 group hover:shadow-2xl card-hover">
                 <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 bg-gradient-to-br from-accent-purple-500 to-accent-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent-purple-500/25 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-accent-purple-500/30 transition-all duration-300">
-                    <BarChart3 className="w-7 h-7 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-accent-orange-500 to-accent-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-accent-orange-500/25 group-hover:scale-110 transition-transform duration-200">
+                    <BarChart3 className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-accent-purple-900 dark:text-accent-purple-100 mb-2 gradient-text">
+                  <div className="text-2xl font-bold text-accent-orange-900 dark:text-accent-orange-100 mb-1">
                     {highVarianceFeatures.toLocaleString()}
                   </div>
-                  <div className="text-sm font-semibold text-accent-purple-700 dark:text-accent-purple-300 mb-1">
+                  <div className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">
                     High Variance
                   </div>
-                  <div className="text-xs text-accent-purple-600 dark:text-accent-purple-400 opacity-80">
+                  <div className="text-xs text-accent-orange-600 dark:text-accent-orange-400 mt-1 opacity-80">
                     Features with variance &gt; 2
                   </div>
                 </CardContent>

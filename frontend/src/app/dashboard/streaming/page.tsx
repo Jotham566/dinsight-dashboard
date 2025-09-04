@@ -325,7 +325,12 @@ export default function StreamingVisualizationPage() {
     } finally {
       setIsRunningAnomalyDetection(false);
     }
-  }, [selectedDinsightId, enableAnomalyDetection, sensitivity]); // Removed dinsightData dependency
+  }, [
+    selectedDinsightId,
+    enableAnomalyDetection,
+    sensitivity,
+    dinsightData?.monitoring.dinsight_x.length,
+  ]);
 
   // Auto-run anomaly detection when enabled or data changes
   useEffect(() => {
@@ -354,7 +359,7 @@ export default function StreamingVisualizationPage() {
     }
   }, [
     enableAnomalyDetection,
-    dinsightData?.monitoring.dinsight_x.length,
+    dinsightData,
     runAnomalyDetection,
     anomalyResults,
     isRunningAnomalyDetection,
@@ -374,7 +379,7 @@ export default function StreamingVisualizationPage() {
       }, 300); // Shorter timeout for sensitivity changes
       return () => clearTimeout(timeoutId);
     }
-  }, [sensitivity]); // Only sensitivity as dependency
+  }, [sensitivity, enableAnomalyDetection, dinsightData, anomalyResults, runAnomalyDetection]);
 
   // Helper function to generate simple coloring for monitoring points
   const generateSimpleMonitoringColors = useCallback(
@@ -475,7 +480,10 @@ export default function StreamingVisualizationPage() {
         const latestGlowCount = streamingStatus?.latest_glow_count || 5;
         const totalPoints = anomalyResults.total_points;
         const latestPointIndices = new Set(
-          Array.from({ length: Math.min(latestGlowCount, totalPoints) }, (_, i) => totalPoints - 1 - i)
+          Array.from(
+            { length: Math.min(latestGlowCount, totalPoints) },
+            (_, i) => totalPoints - 1 - i
+          )
         );
 
         // Helper function to determine if a point should have green glow
@@ -483,11 +491,11 @@ export default function StreamingVisualizationPage() {
 
         // Separate normal points into glowing and non-glowing
         const normalPointsGlow = normalPoints.filter(shouldHaveGlow);
-        const normalPointsRegular = normalPoints.filter(p => !shouldHaveGlow(p));
+        const normalPointsRegular = normalPoints.filter((p) => !shouldHaveGlow(p));
 
         // Separate anomaly points into glowing and non-glowing
         const anomalyPointsGlow = anomalyPoints.filter(shouldHaveGlow);
-        const anomalyPointsRegular = anomalyPoints.filter(p => !shouldHaveGlow(p));
+        const anomalyPointsRegular = anomalyPoints.filter((p) => !shouldHaveGlow(p));
 
         // Add regular normal monitoring points (no glow)
         if (normalPointsRegular.length > 0) {
@@ -830,7 +838,11 @@ export default function StreamingVisualizationPage() {
                 )}
                 disabled={!selectedDinsightId}
               >
-                {isStreaming ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                {isStreaming ? (
+                  <Pause className="w-4 h-4 mr-2" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
                 {isStreaming ? 'Pause' : 'Start'}
               </Button>
               <Button onClick={stopStreaming} variant="outline" disabled={!selectedDinsightId}>
@@ -1120,7 +1132,7 @@ export default function StreamingVisualizationPage() {
                       <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         Point indicators:
                       </div>
-                      
+
                       {enableAnomalyDetection && anomalyResults ? (
                         // Anomaly detection mode legend
                         <div className="space-y-2">
