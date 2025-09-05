@@ -19,6 +19,7 @@ import {
   Eye,
   AlertTriangle,
   CheckCircle,
+  MousePointer2,
 } from 'lucide-react';
 
 // UI Components
@@ -119,6 +120,17 @@ export default function StreamingVisualizationPage() {
   const [sensitivity, setSensitivity] = useState<number>(3.0);
   const [anomalyResults, setAnomalyResults] = useState<AnomalyDetectionResult | null>(null);
   const [isRunningAnomalyDetection, setIsRunningAnomalyDetection] = useState<boolean>(false);
+
+  // Manual selection state
+  const [enableManualSelection, setEnableManualSelection] = useState<boolean>(false);
+  const [manualSelectionBoundary, setManualSelectionBoundary] = useState<{
+    type: 'rectangle' | 'lasso';
+    coordinates: number[][];
+  } | null>(null);
+  const [manualClassification, setManualClassification] = useState<{
+    normal_points: number[];
+    anomaly_points: number[];
+  } | null>(null);
 
   // Update refreshInterval when streamSpeed changes
   useEffect(() => {
@@ -429,6 +441,126 @@ export default function StreamingVisualizationPage() {
     streamingStatus,
   ]);
 
+  // Manual selection functions
+  const handleManualSelectionToggle = useCallback(() => {
+    if (enableManualSelection) {
+      // Turning OFF manual selection
+      setEnableManualSelection(false);
+      setManualSelectionBoundary(null);
+      setManualClassification(null);
+    } else {
+      // Turning ON manual selection - ensure anomaly detection is OFF
+      if (enableAnomalyDetection) {
+        setEnableAnomalyDetection(false);
+        setAnomalyResults(null);
+      }
+      setEnableManualSelection(true);
+    }
+  }, [enableManualSelection, enableAnomalyDetection]);
+
+  // Point-in-rectangle check
+  const isPointInRectangle = useCallback((x: number, y: number, bounds: number[][]) => {
+    if (bounds.length < 2) return false;
+    const [x1, y1] = bounds[0];
+    const [x2, y2] = bounds[1];
+
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+
+    return x >= minX && x <= maxX && y >= minY && y <= maxY;
+  }, []);
+
+  // Point-in-polygon check using ray casting algorithm
+  const isPointInPolygon = useCallback((x: number, y: number, polygon: number[][]) => {
+    if (polygon.length < 3) return false;
+
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][0],
+        yi = polygon[i][1];
+      const xj = polygon[j][0],
+        yj = polygon[j][1];
+
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }, []);
+
+  // Classify points based on manual selection
+  const classifyPointsManually = useCallback(
+    (boundary: { type: 'rectangle' | 'lasso'; coordinates: number[][] }) => {
+      if (!dinsightData?.monitoring.dinsight_x || !dinsightData?.monitoring.dinsight_y) {
+        return null;
+      }
+
+      const normalPoints: number[] = [];
+      const anomalyPoints: number[] = [];
+
+      dinsightData.monitoring.dinsight_x.forEach((x, index) => {
+        const y = dinsightData.monitoring.dinsight_y[index];
+
+        let isInside = false;
+        if (boundary.type === 'rectangle') {
+          isInside = isPointInRectangle(x, y, boundary.coordinates);
+        } else if (boundary.type === 'lasso') {
+          isInside = isPointInPolygon(x, y, boundary.coordinates);
+        }
+
+        if (isInside) {
+          normalPoints.push(index);
+        } else {
+          anomalyPoints.push(index);
+        }
+      });
+
+      return { normal_points: normalPoints, anomaly_points: anomalyPoints };
+    },
+    [dinsightData, isPointInRectangle, isPointInPolygon]
+  );
+
+  // Handle plot selection event
+  const handlePlotSelection = useCallback(
+    (eventData: any) => {
+      if (!enableManualSelection || !eventData?.range) return;
+
+      // Extract selection bounds from Plotly event
+      const range = eventData.range;
+      if (range.x && range.y) {
+        const boundary = {
+          type: 'rectangle' as const,
+          coordinates: [
+            [range.x[0], range.y[0]], // bottom-left
+            [range.x[1], range.y[1]], // top-right
+          ],
+        };
+
+        setManualSelectionBoundary(boundary);
+        const classification = classifyPointsManually(boundary);
+        setManualClassification(classification);
+
+        console.log('Manual selection created:', {
+          boundary,
+          normal: classification?.normal_points.length,
+          anomaly: classification?.anomaly_points.length,
+        });
+      }
+    },
+    [enableManualSelection, classifyPointsManually]
+  );
+
+  // Handle plot deselection event (clear selection)
+  const handlePlotDeselect = useCallback(() => {
+    if (enableManualSelection) {
+      setManualSelectionBoundary(null);
+      setManualClassification(null);
+      console.log('Manual selection cleared');
+    }
+  }, [enableManualSelection]);
+
   // Helper function to generate simple coloring for monitoring points
   const generateSimpleMonitoringColors = useCallback(
     (
@@ -521,8 +653,35 @@ export default function StreamingVisualizationPage() {
 
       if (enableAnomalyDetection && anomalyResults) {
         // Anomaly detection mode: separate normal and anomalous points
-        const normalPoints = anomalyResults.anomalous_points.filter((p) => !p.is_anomaly);
-        const anomalyPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
+        let normalPoints: AnomalyPoint[] = [];
+        let anomalyPoints: AnomalyPoint[] = [];
+
+        // Use manual classification if available, otherwise use algorithmic results
+        if (
+          manualClassification &&
+          (manualClassification.normal_points.length > 0 ||
+            manualClassification.anomaly_points.length > 0)
+        ) {
+          // Manual classification takes precedence
+          anomalyResults.anomalous_points.forEach((point) => {
+            if (manualClassification.normal_points.includes(point.index)) {
+              normalPoints.push(point);
+            } else if (manualClassification.anomaly_points.includes(point.index)) {
+              anomalyPoints.push(point);
+            } else {
+              // If not manually classified, use algorithmic result
+              if (point.is_anomaly) {
+                anomalyPoints.push(point);
+              } else {
+                normalPoints.push(point);
+              }
+            }
+          });
+        } else {
+          // Use algorithmic classification
+          normalPoints = anomalyResults.anomalous_points.filter((p) => !p.is_anomaly);
+          anomalyPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
+        }
 
         // Determine latest points for green glow effect
         const latestGlowCount = streamingStatus?.latest_glow_count || 5;
@@ -554,13 +713,15 @@ export default function StreamingVisualizationPage() {
             type: 'scattergl' as const,
             name: `Normal Points (${normalPointsRegular.length})`,
             marker: {
-              color: '#34A853', // Green for normal points
+              color: manualClassification ? '#22C55E' : '#34A853', // Brighter green for manual selection
               size: pointSize,
-              opacity: 0.7,
-              line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+              opacity: manualClassification ? 0.8 : 0.7, // Higher opacity for manual selection
+              line: {
+                width: manualClassification ? 2 : 1,
+                color: manualClassification ? '#16A34A' : 'rgba(0,0,0,0.2)',
+              },
             },
-            hovertemplate:
-              '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            hovertemplate: `<b>${manualClassification ? 'Normal (Manual)' : 'Normal'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
             customdata: normalPointsRegular.map((p) => p.mahalanobis_distance),
           });
         }
@@ -574,13 +735,12 @@ export default function StreamingVisualizationPage() {
             type: 'scattergl' as const,
             name: `Normal (Latest ${normalPointsGlow.length})`,
             marker: {
-              color: '#34A853', // Green for normal points
+              color: manualClassification ? '#22C55E' : '#34A853', // Brighter green for manual selection
               size: pointSize + 2, // Slightly larger for emphasis
               opacity: 0.9,
               line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for visibility
             },
-            hovertemplate:
-              '<b>Normal (Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            hovertemplate: `<b>${manualClassification ? 'Normal (Manual, Latest)' : 'Normal (Latest)'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
             customdata: normalPointsGlow.map((p) => p.mahalanobis_distance),
           });
         }
@@ -594,14 +754,16 @@ export default function StreamingVisualizationPage() {
             type: 'scattergl' as const,
             name: `Anomalies (${anomalyPointsRegular.length})`,
             marker: {
-              color: '#EA4335', // Red for anomalies
-              size: pointSize + 2, // Slightly larger for emphasis
-              opacity: 0.9,
+              color: manualClassification ? '#EF4444' : '#EA4335', // Brighter red for manual selection
+              size: pointSize + (manualClassification ? 3 : 2), // Larger for manual selection emphasis
+              opacity: manualClassification ? 0.9 : 0.9,
               symbol: 'circle',
-              line: { width: 2, color: '#c62828' },
+              line: {
+                width: manualClassification ? 3 : 2,
+                color: manualClassification ? '#DC2626' : '#c62828',
+              },
             },
-            hovertemplate:
-              '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            hovertemplate: `<b>${manualClassification ? 'Anomaly (Manual)' : 'Anomaly'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
             customdata: anomalyPointsRegular.map((p) => p.mahalanobis_distance),
           });
         }
@@ -615,14 +777,13 @@ export default function StreamingVisualizationPage() {
             type: 'scattergl' as const,
             name: `Anomalies (Latest ${anomalyPointsGlow.length})`,
             marker: {
-              color: '#EA4335', // Red for anomalies
-              size: pointSize + 2, // Slightly larger for emphasis
+              color: manualClassification ? '#EF4444' : '#EA4335', // Brighter red for manual selection
+              size: pointSize + (manualClassification ? 4 : 2), // Even larger for manual selection + latest
               opacity: 0.9,
               symbol: 'circle',
               line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for consistency
             },
-            hovertemplate:
-              '<b>Anomaly (Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+            hovertemplate: `<b>${manualClassification ? 'Anomaly (Manual, Latest)' : 'Anomaly (Latest)'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
             customdata: anomalyPointsGlow.map((p) => p.mahalanobis_distance),
           });
         }
@@ -663,42 +824,202 @@ export default function StreamingVisualizationPage() {
             hovertemplate: `<b>Monitor Centroid</b><br>X: ${anomalyResults.comparison_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.comparison_centroid.y.toFixed(4)}<extra></extra>`,
           });
         }
+
+        // Add manual selection boundary if it exists
+        if (manualSelectionBoundary && manualSelectionBoundary.coordinates.length > 0) {
+          // Extract coordinates and close the polygon
+          const coords = manualSelectionBoundary.coordinates;
+          let boundaryX: number[] = [];
+          let boundaryY: number[] = [];
+
+          if (manualSelectionBoundary.type === 'rectangle' && coords.length >= 2) {
+            // For rectangle: coords are [[x1, y1], [x2, y2]]
+            const [x1, y1] = coords[0];
+            const [x2, y2] = coords[1];
+            boundaryX = [x1, x2, x2, x1, x1]; // Close the rectangle
+            boundaryY = [y1, y1, y2, y2, y1];
+          } else if (manualSelectionBoundary.type === 'lasso') {
+            // For lasso: coords are [[x1, y1], [x2, y2], ...]
+            boundaryX = [...coords.map(([x]) => x), coords[0][0]]; // Close the polygon
+            boundaryY = [...coords.map(([, y]) => y), coords[0][1]];
+          }
+
+          if (boundaryX.length > 2) {
+            data.push({
+              x: boundaryX,
+              y: boundaryY,
+              mode: 'lines' as const,
+              type: 'scattergl' as const,
+              name: 'Manual Selection Boundary',
+              line: {
+                color: '#8B5CF6', // Purple color to match the manual selection theme
+                width: 3,
+                dash: 'dash',
+              },
+              hovertemplate: '<b>Manual Selection Boundary</b><extra></extra>',
+              showlegend: true,
+            });
+          }
+        }
       } else {
         // Simple streaming mode: use gradient coloring with latest point highlighting
-        const { colors, sizes, lineColors, lineWidths } = generateSimpleMonitoringColors(
-          monitoringCount,
-          dinsightData.monitoring.processOrders,
-          streamingStatus || undefined
-        );
+        // OR manual classification if available
+        if (
+          manualClassification &&
+          (manualClassification.normal_points.length > 0 ||
+            manualClassification.anomaly_points.length > 0)
+        ) {
+          // Manual classification in simple mode - create separate traces for normal/anomaly
+          const normalIndices = new Set(manualClassification.normal_points);
+          const anomalyIndices = new Set(manualClassification.anomaly_points);
 
-        const monitoringTrace = {
-          x: dinsightData.monitoring.dinsight_x,
-          y: dinsightData.monitoring.dinsight_y,
-          mode: 'markers' as const,
-          type: 'scattergl' as const,
-          name: `Live Monitoring (${monitoringCount} points)`,
-          marker: {
-            color: colors,
-            size: sizes,
-            opacity: 0.8,
-            line: {
-              width: lineWidths,
-              color: lineColors,
+          const normalX: number[] = [];
+          const normalY: number[] = [];
+          const anomalyX: number[] = [];
+          const anomalyY: number[] = [];
+          const unclassifiedX: number[] = [];
+          const unclassifiedY: number[] = [];
+
+          dinsightData.monitoring.dinsight_x.forEach((x, index) => {
+            const y = dinsightData.monitoring.dinsight_y[index];
+            if (normalIndices.has(index)) {
+              normalX.push(x);
+              normalY.push(y);
+            } else if (anomalyIndices.has(index)) {
+              anomalyX.push(x);
+              anomalyY.push(y);
+            } else {
+              unclassifiedX.push(x);
+              unclassifiedY.push(y);
+            }
+          });
+
+          // Add normal points (bright green)
+          if (normalX.length > 0) {
+            data.push({
+              x: normalX,
+              y: normalY,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Normal Points (${normalX.length})`,
+              marker: {
+                color: '#22C55E', // Bright green
+                size: pointSize + 1,
+                opacity: 0.8,
+                line: { width: 2, color: '#16A34A' },
+              },
+              hovertemplate: '<b>Normal (Manual)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+            });
+          }
+
+          // Add anomaly points (bright red)
+          if (anomalyX.length > 0) {
+            data.push({
+              x: anomalyX,
+              y: anomalyY,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Anomaly Points (${anomalyX.length})`,
+              marker: {
+                color: '#EF4444', // Bright red
+                size: pointSize + 2,
+                opacity: 0.9,
+                line: { width: 3, color: '#DC2626' },
+              },
+              hovertemplate: '<b>Anomaly (Manual)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+            });
+          }
+
+          // Add unclassified points (gray)
+          if (unclassifiedX.length > 0) {
+            data.push({
+              x: unclassifiedX,
+              y: unclassifiedY,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Unclassified (${unclassifiedX.length})`,
+              marker: {
+                color: '#9CA3AF', // Gray
+                size: pointSize,
+                opacity: 0.5,
+                line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+              },
+              hovertemplate: '<b>Unclassified</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+            });
+          }
+
+          // Add manual selection boundary
+          if (manualSelectionBoundary && manualSelectionBoundary.coordinates.length > 0) {
+            const coords = manualSelectionBoundary.coordinates;
+            let boundaryX: number[] = [];
+            let boundaryY: number[] = [];
+
+            if (manualSelectionBoundary.type === 'rectangle' && coords.length >= 2) {
+              const [x1, y1] = coords[0];
+              const [x2, y2] = coords[1];
+              boundaryX = [x1, x2, x2, x1, x1];
+              boundaryY = [y1, y1, y2, y2, y1];
+            } else if (manualSelectionBoundary.type === 'lasso') {
+              boundaryX = [...coords.map(([x]) => x), coords[0][0]];
+              boundaryY = [...coords.map(([, y]) => y), coords[0][1]];
+            }
+
+            if (boundaryX.length > 2) {
+              data.push({
+                x: boundaryX,
+                y: boundaryY,
+                mode: 'lines' as const,
+                type: 'scattergl' as const,
+                name: 'Selection Boundary',
+                line: {
+                  color: '#8B5CF6',
+                  width: 3,
+                  dash: 'dash',
+                },
+                hovertemplate: '<b>Manual Selection Boundary</b><extra></extra>',
+                showlegend: true,
+              });
+            }
+          }
+        } else {
+          // Default simple streaming mode
+          const { colors, sizes, lineColors, lineWidths } = generateSimpleMonitoringColors(
+            monitoringCount,
+            dinsightData.monitoring.processOrders,
+            streamingStatus || undefined
+          );
+
+          const monitoringTrace = {
+            x: dinsightData.monitoring.dinsight_x,
+            y: dinsightData.monitoring.dinsight_y,
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Live Monitoring (${monitoringCount} points)`,
+            marker: {
+              color: colors,
+              size: sizes,
+              opacity: 0.8,
+              line: {
+                width: lineWidths,
+                color: lineColors,
+              },
             },
-          },
-          hovertemplate:
-            '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{text}</i><extra></extra>',
-          text: dinsightData.monitoring.processOrders
-            ? dinsightData.monitoring.processOrders.map((order, i) => {
-                const totalPoints = monitoringCount;
-                const relativePosition = dinsightData.monitoring.processOrders!.filter(
-                  (o) => o <= order
-                ).length;
-                return `Point ${order} (${relativePosition}/${totalPoints})`;
-              })
-            : dinsightData.monitoring.dinsight_x.map((_, i) => `Point ${i + 1}/${monitoringCount}`),
-        };
-        data.push(monitoringTrace);
+            hovertemplate:
+              '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{text}</i><extra></extra>',
+            text: dinsightData.monitoring.processOrders
+              ? dinsightData.monitoring.processOrders.map((order, i) => {
+                  const totalPoints = monitoringCount;
+                  const relativePosition = dinsightData.monitoring.processOrders!.filter(
+                    (o) => o <= order
+                  ).length;
+                  return `Point ${order} (${relativePosition}/${totalPoints})`;
+                })
+              : dinsightData.monitoring.dinsight_x.map(
+                  (_, i) => `Point ${i + 1}/${monitoringCount}`
+                ),
+          };
+          data.push(monitoringTrace);
+        }
       }
 
       // Add contour plot for monitoring if enabled
@@ -730,6 +1051,8 @@ export default function StreamingVisualizationPage() {
     streamingStatus,
     enableAnomalyDetection,
     anomalyResults,
+    manualClassification,
+    manualSelectionBoundary,
   ]);
 
   // Plot layout configuration
@@ -742,6 +1065,7 @@ export default function StreamingVisualizationPage() {
       paper_bgcolor: 'white',
       font: { family: 'Inter, sans-serif' },
       template: 'plotly_white' as any,
+      dragmode: enableManualSelection ? ('select' as const) : ('zoom' as const), // Enable selection mode when manual selection is active
       legend: {
         orientation: 'h' as any,
         yanchor: 'bottom' as any,
@@ -762,7 +1086,7 @@ export default function StreamingVisualizationPage() {
       height: 600,
       margin: { l: 60, r: 30, t: 30, b: 60 },
     }),
-    []
+    [enableManualSelection]
   );
 
   // Control functions
@@ -920,7 +1244,11 @@ export default function StreamingVisualizationPage() {
                 variant={enableAnomalyDetection ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setEnableAnomalyDetection(!enableAnomalyDetection)}
-                disabled={!selectedDinsightId || !dinsightData?.monitoring.dinsight_x.length}
+                disabled={
+                  !selectedDinsightId ||
+                  !dinsightData?.monitoring.dinsight_x.length ||
+                  enableManualSelection
+                }
                 className={cn(
                   'transition-all duration-200',
                   enableAnomalyDetection && 'bg-orange-500 hover:bg-orange-600 text-white'
@@ -962,6 +1290,49 @@ export default function StreamingVisualizationPage() {
                     )}
                   </Button>
                 </>
+              )}
+            </div>
+
+            {/* Manual Selection Controls */}
+            <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
+              <Button
+                variant={enableManualSelection ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleManualSelectionToggle}
+                disabled={!selectedDinsightId || !dinsightData?.monitoring.dinsight_x.length}
+                className={cn(
+                  'transition-all duration-200',
+                  enableManualSelection && 'bg-purple-500 hover:bg-purple-600 text-white'
+                )}
+              >
+                <MousePointer2 className="w-4 h-4 mr-2" />
+                {enableManualSelection ? 'Manual ON' : 'Manual OFF'}
+              </Button>
+              {enableManualSelection && (
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                  {!manualClassification ? (
+                    <span>Use box select tool 📦 to drag and select the normal operating area</span>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="text-purple-600 dark:text-purple-400 font-medium">
+                        ✓{' '}
+                        {manualClassification.normal_points.length +
+                          manualClassification.anomaly_points.length}{' '}
+                        points classified
+                      </span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span>{manualClassification.normal_points.length} normal</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          <span>{manualClassification.anomaly_points.length} anomaly</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -1293,7 +1664,9 @@ export default function StreamingVisualizationPage() {
                       config={{
                         displayModeBar: true,
                         displaylogo: false,
-                        modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+                        modeBarButtonsToRemove: enableManualSelection
+                          ? ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'zoom2d'] // Keep selection tools and resetScale2d, remove zoom/pan tools
+                          : ['select2d', 'lasso2d'], // Remove selection tools when not in manual mode
                         toImageButtonOptions: {
                           format: 'png',
                           filename: `streaming_visualization_${selectedDinsightId}_${new Date().toISOString().split('T')[0]}`,
@@ -1301,8 +1674,13 @@ export default function StreamingVisualizationPage() {
                           width: 1400,
                           scale: 2,
                         },
+                        // Enable selection when in manual selection mode
+                        scrollZoom: !enableManualSelection,
+                        doubleClick: enableManualSelection ? 'reset' : 'reset+autosize', // Allow reset but not autosize in selection mode
                       }}
                       onInitialized={(figure, graphDiv) => setPlotElement(graphDiv)}
+                      onSelected={enableManualSelection ? handlePlotSelection : undefined}
+                      onDeselect={enableManualSelection ? handlePlotDeselect : undefined}
                     />
                   </div>
                 ) : (
