@@ -522,6 +522,65 @@ export default function StreamingVisualizationPage() {
     [dinsightData, isPointInRectangle, isPointInPolygon]
   );
 
+  // Real-time classification for streaming data using manual boundary
+  const classifyStreamingPointsManually = useCallback(() => {
+    if (
+      !manualSelectionBoundary ||
+      !dinsightData?.monitoring.dinsight_x ||
+      !dinsightData?.monitoring.dinsight_y
+    ) {
+      return null;
+    }
+
+    const normalPoints: number[] = [];
+    const anomalyPoints: number[] = [];
+
+    dinsightData.monitoring.dinsight_x.forEach((x, index) => {
+      const y = dinsightData.monitoring.dinsight_y[index];
+
+      let isInside = false;
+      if (manualSelectionBoundary.type === 'rectangle') {
+        isInside = isPointInRectangle(x, y, manualSelectionBoundary.coordinates);
+      } else if (manualSelectionBoundary.type === 'lasso') {
+        isInside = isPointInPolygon(x, y, manualSelectionBoundary.coordinates);
+      }
+
+      if (isInside) {
+        normalPoints.push(index);
+      } else {
+        anomalyPoints.push(index);
+      }
+    });
+
+    return { normal_points: normalPoints, anomaly_points: anomalyPoints };
+  }, [dinsightData, manualSelectionBoundary, isPointInRectangle, isPointInPolygon]);
+
+  // Auto-update manual classification for streaming data
+  useEffect(() => {
+    if (
+      enableManualSelection &&
+      manualSelectionBoundary &&
+      dinsightData &&
+      dinsightData.monitoring.dinsight_x.length > 0
+    ) {
+      // Re-classify all points (including new streaming data) when data changes
+      const classification = classifyStreamingPointsManually();
+      if (classification) {
+        setManualClassification(classification);
+        console.log('Updated manual classification for streaming data:', {
+          normal: classification.normal_points.length,
+          anomaly: classification.anomaly_points.length,
+          total: dinsightData.monitoring.dinsight_x.length,
+        });
+      }
+    }
+  }, [
+    enableManualSelection,
+    manualSelectionBoundary,
+    dinsightData,
+    classifyStreamingPointsManually,
+  ]);
+
   // Handle plot selection event
   const handlePlotSelection = useCallback(
     (eventData: any) => {
@@ -647,11 +706,166 @@ export default function StreamingVisualizationPage() {
       }
     }
 
-    // Streaming monitoring data with anomaly detection support
+    // Streaming monitoring data with manual selection, anomaly detection, or simple mode
     if (dinsightData.monitoring.dinsight_x.length > 0) {
       const monitoringCount = dinsightData.monitoring.dinsight_x.length;
 
-      if (enableAnomalyDetection && anomalyResults) {
+      if (enableManualSelection && manualSelectionBoundary && manualClassification) {
+        // Manual streaming mode: classify streaming points based on manual boundary
+        const normalIndices = new Set(manualClassification.normal_points);
+        const anomalyIndices = new Set(manualClassification.anomaly_points);
+
+        // Determine latest points for glow effect
+        const latestGlowCount = streamingStatus?.latest_glow_count || 5;
+        const latestPointIndices = new Set(
+          Array.from(
+            { length: Math.min(latestGlowCount, monitoringCount) },
+            (_, i) => monitoringCount - 1 - i
+          )
+        );
+
+        const normalX: number[] = [];
+        const normalY: number[] = [];
+        const normalXGlow: number[] = [];
+        const normalYGlow: number[] = [];
+        const anomalyX: number[] = [];
+        const anomalyY: number[] = [];
+        const anomalyXGlow: number[] = [];
+        const anomalyYGlow: number[] = [];
+
+        dinsightData.monitoring.dinsight_x.forEach((x, index) => {
+          const y = dinsightData.monitoring.dinsight_y[index];
+          const isLatest = latestPointIndices.has(index);
+
+          if (normalIndices.has(index)) {
+            if (isLatest) {
+              normalXGlow.push(x);
+              normalYGlow.push(y);
+            } else {
+              normalX.push(x);
+              normalY.push(y);
+            }
+          } else if (anomalyIndices.has(index)) {
+            if (isLatest) {
+              anomalyXGlow.push(x);
+              anomalyYGlow.push(y);
+            } else {
+              anomalyX.push(x);
+              anomalyY.push(y);
+            }
+          }
+        });
+
+        // Add regular normal points (bright green)
+        if (normalX.length > 0) {
+          data.push({
+            x: normalX,
+            y: normalY,
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Normal Points (${normalX.length})`,
+            marker: {
+              color: '#22C55E', // Bright green for manual
+              size: pointSize + 1,
+              opacity: 0.8,
+              line: { width: 2, color: '#16A34A' },
+            },
+            hovertemplate:
+              '<b>Normal (Manual Stream)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+          });
+        }
+
+        // Add glowing normal points (latest)
+        if (normalXGlow.length > 0) {
+          data.push({
+            x: normalXGlow,
+            y: normalYGlow,
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Normal (Latest ${normalXGlow.length})`,
+            marker: {
+              color: '#22C55E', // Bright green
+              size: pointSize + 3,
+              opacity: 0.9,
+              line: { width: 4, color: '#FBBF24' }, // Gold glow
+            },
+            hovertemplate:
+              '<b>Normal (Manual Stream, Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+          });
+        }
+
+        // Add regular anomaly points (bright red)
+        if (anomalyX.length > 0) {
+          data.push({
+            x: anomalyX,
+            y: anomalyY,
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Anomaly Points (${anomalyX.length})`,
+            marker: {
+              color: '#EF4444', // Bright red for manual
+              size: pointSize + 2,
+              opacity: 0.9,
+              line: { width: 3, color: '#DC2626' },
+            },
+            hovertemplate:
+              '<b>Anomaly (Manual Stream)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+          });
+        }
+
+        // Add glowing anomaly points (latest)
+        if (anomalyXGlow.length > 0) {
+          data.push({
+            x: anomalyXGlow,
+            y: anomalyYGlow,
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: `Anomaly (Latest ${anomalyXGlow.length})`,
+            marker: {
+              color: '#EF4444', // Bright red
+              size: pointSize + 4,
+              opacity: 0.95,
+              line: { width: 4, color: '#FBBF24' }, // Gold glow
+            },
+            hovertemplate:
+              '<b>Anomaly (Manual Stream, Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+          });
+        }
+
+        // Add manual selection boundary
+        if (manualSelectionBoundary.coordinates.length > 0) {
+          const coords = manualSelectionBoundary.coordinates;
+          let boundaryX: number[] = [];
+          let boundaryY: number[] = [];
+
+          if (manualSelectionBoundary.type === 'rectangle' && coords.length >= 2) {
+            const [x1, y1] = coords[0];
+            const [x2, y2] = coords[1];
+            boundaryX = [x1, x2, x2, x1, x1];
+            boundaryY = [y1, y1, y2, y2, y1];
+          } else if (manualSelectionBoundary.type === 'lasso') {
+            boundaryX = [...coords.map(([x]) => x), coords[0][0]];
+            boundaryY = [...coords.map(([, y]) => y), coords[0][1]];
+          }
+
+          if (boundaryX.length > 2) {
+            data.push({
+              x: boundaryX,
+              y: boundaryY,
+              mode: 'lines' as const,
+              type: 'scattergl' as const,
+              name: 'Manual Selection Boundary',
+              line: {
+                color: '#8B5CF6',
+                width: 3,
+                dash: 'dash',
+              },
+              hovertemplate: '<b>Manual Selection Boundary</b><extra></extra>',
+              showlegend: true,
+            });
+          }
+        }
+      } else if (enableAnomalyDetection && anomalyResults) {
         // Anomaly detection mode: separate normal and anomalous points
         let normalPoints: AnomalyPoint[] = [];
         let anomalyPoints: AnomalyPoint[] = [];
@@ -1050,6 +1264,7 @@ export default function StreamingVisualizationPage() {
     generateSimpleMonitoringColors,
     streamingStatus,
     enableAnomalyDetection,
+    enableManualSelection,
     anomalyResults,
     manualClassification,
     manualSelectionBoundary,
@@ -1418,6 +1633,80 @@ export default function StreamingVisualizationPage() {
                       {dinsightData?.monitoring.dinsight_x.length === 0
                         ? 'No monitoring data available'
                         : `Ready to analyze ${dinsightData?.monitoring.dinsight_x.length} points`}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Selection Status Bar - Only when enabled */}
+          {enableManualSelection && manualSelectionBoundary && (
+            <div className="p-4 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-950/30 backdrop-blur-sm rounded-xl border border-purple-200/50 dark:border-purple-700/50 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <MousePointer2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      Manual Selection Status
+                    </span>
+                    {streamingStatus && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-xs',
+                          streamingStatus.status === 'completed' &&
+                            'bg-green-50 text-green-700 border-green-200',
+                          streamingStatus.status === 'streaming' &&
+                            'bg-purple-50 text-purple-700 border-purple-200',
+                          streamingStatus.status === 'not_started' &&
+                            'bg-gray-50 text-gray-700 border-gray-200'
+                        )}
+                      >
+                        {streamingStatus.status === 'completed'
+                          ? 'Classification Complete'
+                          : streamingStatus.status === 'streaming'
+                            ? 'Live Classification'
+                            : 'Ready to Stream'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  {manualClassification && (
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Normal: {manualClassification.normal_points.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Anomalies: {manualClassification.anomaly_points.length}
+                        </span>
+                      </div>
+                      <div className="text-gray-600 dark:text-gray-400">
+                        Rate:{' '}
+                        {(
+                          (manualClassification.anomaly_points.length /
+                            (manualClassification.normal_points.length +
+                              manualClassification.anomaly_points.length)) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </div>
+                      <div className="text-purple-600 dark:text-purple-400 font-medium">
+                        Manual Mode
+                      </div>
+                    </div>
+                  )}
+
+                  {!manualClassification && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Boundary set, ready to classify streaming data
                     </div>
                   )}
                 </div>
