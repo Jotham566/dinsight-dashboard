@@ -35,6 +35,7 @@ out/
 *.swp
 *.swo
 .claude/
+.github/
 
 # OS
 .DS_Store
