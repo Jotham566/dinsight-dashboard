@@ -751,12 +751,6 @@ export default function StreamingVisualizationPage() {
           });
 
           setManualClassification({ normal_points: normalPoints, anomaly_points: anomalyPoints });
-          console.log('Updated manual classification after adding boundary:', {
-            normal: normalPoints.length,
-            anomaly: anomalyPoints.length,
-            total: dinsightData.monitoring.dinsight_x.length,
-            boundaries: updatedBoundaries.length,
-          });
         }
       }, 0);
 
@@ -815,12 +809,6 @@ export default function StreamingVisualizationPage() {
           });
 
           setManualClassification({ normal_points: normalPoints, anomaly_points: anomalyPoints });
-          console.log('Updated manual classification after removing boundary:', {
-            normal: normalPoints.length,
-            anomaly: anomalyPoints.length,
-            total: dinsightData.monitoring.dinsight_x.length,
-            boundaries: updatedBoundaries.length,
-          });
         } else if (updatedBoundaries.length === 0) {
           // No boundaries left, clear classification
           setManualClassification(null);
@@ -1710,15 +1698,35 @@ export default function StreamingVisualizationPage() {
         boundary.radiusX &&
         boundary.radiusY
       ) {
-        // For ovals, we approximate with an ellipse using SVG path
+        // For ovals, instead of SVG path, use multiple line segments like circles
         const cx = boundary.center.x;
         const cy = boundary.center.y;
         const rx = boundary.radiusX;
         const ry = boundary.radiusY;
 
+        // Generate oval points and create path using line segments
+        const numPoints = 64;
+        const ovalPoints: string[] = [];
+
+        // Start with move command
+        const startX = cx + rx * Math.cos(0);
+        const startY = cy + ry * Math.sin(0);
+        ovalPoints.push(`M ${startX} ${startY}`);
+
+        // Add line segments for the oval
+        for (let i = 1; i <= numPoints; i++) {
+          const angle = (i / numPoints) * 2 * Math.PI;
+          const x = cx + rx * Math.cos(angle);
+          const y = cy + ry * Math.sin(angle);
+          ovalPoints.push(`L ${x} ${y}`);
+        }
+
+        // Close the path
+        ovalPoints.push('Z');
+
         return {
           type: 'path',
-          path: `M ${cx - rx},${cy} A ${rx},${ry} 0 1,1 ${cx + rx},${cy} A ${rx},${ry} 0 1,1 ${cx - rx},${cy}`,
+          path: ovalPoints.join(' '),
           line: { color, width: isMultiple ? 2 : 3, dash: isMultiple ? 'solid' : 'dot' },
           fillcolor: 'rgba(0,0,0,0)',
           layer: 'above',
@@ -1736,19 +1744,28 @@ export default function StreamingVisualizationPage() {
 
     // Add current single boundary if in single mode and exists
     if (!enableMultipleSelections && manualSelectionBoundary) {
-      shapes.push(createShapeFromBoundary(manualSelectionBoundary, '#10b981', false));
+      const shape = createShapeFromBoundary(manualSelectionBoundary, '#10b981', false);
+      if (shape) {
+        shapes.push(shape);
+      }
     }
 
     // Add multiple boundaries if in multiple mode
     if (enableMultipleSelections) {
       manualSelectionBoundaries.forEach((boundary, index) => {
         const color = `hsl(${(index * 137.5) % 360}, 70%, 50%)`; // Golden ratio based colors
-        shapes.push(createShapeFromBoundary(boundary, color, true, index));
+        const shape = createShapeFromBoundary(boundary, color, true, index);
+        if (shape) {
+          shapes.push(shape);
+        }
       });
 
       // Add current drawing boundary with different style
       if (manualSelectionBoundary) {
-        shapes.push(createShapeFromBoundary(manualSelectionBoundary, '#3b82f6', false));
+        const shape = createShapeFromBoundary(manualSelectionBoundary, '#3b82f6', false);
+        if (shape) {
+          shapes.push(shape);
+        }
       }
     }
 
@@ -1792,13 +1809,7 @@ export default function StreamingVisualizationPage() {
       margin: { l: 60, r: 30, t: 30, b: 60 },
       shapes: generateBoundaryShapes(),
     }),
-    [
-      enableManualSelection,
-      enableMultipleSelections,
-      manualSelectionBoundary,
-      manualSelectionBoundaries,
-      generateBoundaryShapes,
-    ]
+    [enableManualSelection, generateBoundaryShapes]
   );
 
   // Control functions
