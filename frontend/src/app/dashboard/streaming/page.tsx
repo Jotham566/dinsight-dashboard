@@ -124,6 +124,19 @@ export default function StreamingVisualizationPage() {
   // Manual selection state
   const [enableManualSelection, setEnableManualSelection] = useState<boolean>(false);
   const [selectionMode, setSelectionMode] = useState<'rectangle' | 'circle' | 'oval'>('rectangle');
+  const [enableMultipleSelections, setEnableMultipleSelections] = useState<boolean>(false);
+  const [manualSelectionBoundaries, setManualSelectionBoundaries] = useState<
+    Array<{
+      id: string;
+      type: 'rectangle' | 'lasso' | 'circle' | 'oval';
+      coordinates: number[][];
+      center?: { x: number; y: number };
+      radius?: number;
+      radiusX?: number;
+      radiusY?: number;
+      name: string;
+    }>
+  >([]);
   const [manualSelectionBoundary, setManualSelectionBoundary] = useState<{
     type: 'rectangle' | 'lasso' | 'circle' | 'oval';
     coordinates: number[][];
@@ -563,13 +576,17 @@ export default function StreamingVisualizationPage() {
     [dinsightData, isPointInRectangle, isPointInPolygon, isPointInCircle, isPointInOval]
   );
 
-  // Real-time classification for streaming data using manual boundary
+  // Real-time classification for streaming data using manual boundary(ies)
   const classifyStreamingPointsManually = useCallback(() => {
-    if (
-      !manualSelectionBoundary ||
-      !dinsightData?.monitoring.dinsight_x ||
-      !dinsightData?.monitoring.dinsight_y
-    ) {
+    if (!dinsightData?.monitoring.dinsight_x || !dinsightData?.monitoring.dinsight_y) {
+      return null;
+    }
+
+    // Check if we have any boundaries to work with
+    const hasMultipleBoundaries = enableMultipleSelections && manualSelectionBoundaries.length > 0;
+    const hasSingleBoundary = !enableMultipleSelections && manualSelectionBoundary;
+
+    if (!hasMultipleBoundaries && !hasSingleBoundary) {
       return null;
     }
 
@@ -578,36 +595,59 @@ export default function StreamingVisualizationPage() {
 
     dinsightData.monitoring.dinsight_x.forEach((x, index) => {
       const y = dinsightData.monitoring.dinsight_y[index];
-
       let isInside = false;
-      if (manualSelectionBoundary.type === 'rectangle') {
-        isInside = isPointInRectangle(x, y, manualSelectionBoundary.coordinates);
-      } else if (manualSelectionBoundary.type === 'lasso') {
-        isInside = isPointInPolygon(x, y, manualSelectionBoundary.coordinates);
-      } else if (
-        manualSelectionBoundary.type === 'circle' &&
-        manualSelectionBoundary.center &&
-        manualSelectionBoundary.radius
-      ) {
-        isInside = isPointInCircle(
-          x,
-          y,
-          manualSelectionBoundary.center,
-          manualSelectionBoundary.radius
-        );
-      } else if (
-        manualSelectionBoundary.type === 'oval' &&
-        manualSelectionBoundary.center &&
-        manualSelectionBoundary.radiusX &&
-        manualSelectionBoundary.radiusY
-      ) {
-        isInside = isPointInOval(
-          x,
-          y,
-          manualSelectionBoundary.center,
-          manualSelectionBoundary.radiusX,
-          manualSelectionBoundary.radiusY
-        );
+
+      if (enableMultipleSelections) {
+        // Check if point is inside any of the multiple boundaries
+        for (const boundary of manualSelectionBoundaries) {
+          if (boundary.type === 'rectangle') {
+            isInside = isPointInRectangle(x, y, boundary.coordinates);
+          } else if (boundary.type === 'lasso') {
+            isInside = isPointInPolygon(x, y, boundary.coordinates);
+          } else if (boundary.type === 'circle' && boundary.center && boundary.radius) {
+            isInside = isPointInCircle(x, y, boundary.center, boundary.radius);
+          } else if (
+            boundary.type === 'oval' &&
+            boundary.center &&
+            boundary.radiusX &&
+            boundary.radiusY
+          ) {
+            isInside = isPointInOval(x, y, boundary.center, boundary.radiusX, boundary.radiusY);
+          }
+
+          if (isInside) break; // If found in any boundary, it's normal
+        }
+      } else {
+        // Single boundary mode (backward compatibility)
+        if (manualSelectionBoundary!.type === 'rectangle') {
+          isInside = isPointInRectangle(x, y, manualSelectionBoundary!.coordinates);
+        } else if (manualSelectionBoundary!.type === 'lasso') {
+          isInside = isPointInPolygon(x, y, manualSelectionBoundary!.coordinates);
+        } else if (
+          manualSelectionBoundary!.type === 'circle' &&
+          manualSelectionBoundary!.center &&
+          manualSelectionBoundary!.radius
+        ) {
+          isInside = isPointInCircle(
+            x,
+            y,
+            manualSelectionBoundary!.center,
+            manualSelectionBoundary!.radius
+          );
+        } else if (
+          manualSelectionBoundary!.type === 'oval' &&
+          manualSelectionBoundary!.center &&
+          manualSelectionBoundary!.radiusX &&
+          manualSelectionBoundary!.radiusY
+        ) {
+          isInside = isPointInOval(
+            x,
+            y,
+            manualSelectionBoundary!.center,
+            manualSelectionBoundary!.radiusX,
+            manualSelectionBoundary!.radiusY
+          );
+        }
       }
 
       if (isInside) {
@@ -620,6 +660,8 @@ export default function StreamingVisualizationPage() {
     return { normal_points: normalPoints, anomaly_points: anomalyPoints };
   }, [
     dinsightData,
+    enableMultipleSelections,
+    manualSelectionBoundaries,
     manualSelectionBoundary,
     isPointInRectangle,
     isPointInPolygon,
@@ -631,9 +673,10 @@ export default function StreamingVisualizationPage() {
   useEffect(() => {
     if (
       enableManualSelection &&
-      manualSelectionBoundary &&
       dinsightData &&
-      dinsightData.monitoring.dinsight_x.length > 0
+      dinsightData.monitoring.dinsight_x.length > 0 &&
+      ((enableMultipleSelections && manualSelectionBoundaries.length > 0) ||
+        (!enableMultipleSelections && manualSelectionBoundary))
     ) {
       // Re-classify all points (including new streaming data) when data changes
       const classification = classifyStreamingPointsManually();
@@ -643,15 +686,178 @@ export default function StreamingVisualizationPage() {
           normal: classification.normal_points.length,
           anomaly: classification.anomaly_points.length,
           total: dinsightData.monitoring.dinsight_x.length,
+          mode: enableMultipleSelections ? 'multiple' : 'single',
+          boundaries: enableMultipleSelections ? manualSelectionBoundaries.length : 1,
         });
       }
     }
   }, [
     enableManualSelection,
+    enableMultipleSelections,
+    manualSelectionBoundaries,
     manualSelectionBoundary,
     dinsightData,
     classifyStreamingPointsManually,
   ]);
+
+  // Add current selection to multiple boundaries list
+  const addSelectionToBoundaries = () => {
+    if (!manualSelectionBoundary) return;
+
+    const newBoundary = {
+      id: `selection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ...manualSelectionBoundary,
+      name: `${manualSelectionBoundary.type.charAt(0).toUpperCase() + manualSelectionBoundary.type.slice(1)} ${manualSelectionBoundaries.length + 1}`,
+    };
+
+    setManualSelectionBoundaries((prev) => {
+      const updatedBoundaries = [...prev, newBoundary];
+
+      // Force re-classification after state update
+      setTimeout(() => {
+        if (dinsightData?.monitoring.dinsight_x && dinsightData?.monitoring.dinsight_y) {
+          const normalPoints: number[] = [];
+          const anomalyPoints: number[] = [];
+
+          dinsightData.monitoring.dinsight_x.forEach((x, index) => {
+            const y = dinsightData.monitoring.dinsight_y[index];
+            let isInside = false;
+
+            // Check if point is inside any of the updated boundaries
+            for (const boundary of updatedBoundaries) {
+              if (boundary.type === 'rectangle') {
+                isInside = isPointInRectangle(x, y, boundary.coordinates);
+              } else if (boundary.type === 'lasso') {
+                isInside = isPointInPolygon(x, y, boundary.coordinates);
+              } else if (boundary.type === 'circle' && boundary.center && boundary.radius) {
+                isInside = isPointInCircle(x, y, boundary.center, boundary.radius);
+              } else if (
+                boundary.type === 'oval' &&
+                boundary.center &&
+                boundary.radiusX &&
+                boundary.radiusY
+              ) {
+                isInside = isPointInOval(x, y, boundary.center, boundary.radiusX, boundary.radiusY);
+              }
+
+              if (isInside) break; // If found in any boundary, it's normal
+            }
+
+            if (isInside) {
+              normalPoints.push(index);
+            } else {
+              anomalyPoints.push(index);
+            }
+          });
+
+          setManualClassification({ normal_points: normalPoints, anomaly_points: anomalyPoints });
+          console.log('Updated manual classification after adding boundary:', {
+            normal: normalPoints.length,
+            anomaly: anomalyPoints.length,
+            total: dinsightData.monitoring.dinsight_x.length,
+            boundaries: updatedBoundaries.length,
+          });
+        }
+      }, 0);
+
+      return updatedBoundaries;
+    });
+
+    setManualSelectionBoundary(null); // Clear current selection
+
+    console.log('Added selection to boundaries:', newBoundary);
+  };
+
+  // Remove a specific boundary from multiple selections
+  const removeBoundary = (id: string) => {
+    setManualSelectionBoundaries((prev) => {
+      const updatedBoundaries = prev.filter((boundary) => boundary.id !== id);
+
+      // Force re-classification after removal
+      setTimeout(() => {
+        if (
+          updatedBoundaries.length > 0 &&
+          dinsightData?.monitoring.dinsight_x &&
+          dinsightData?.monitoring.dinsight_y
+        ) {
+          const normalPoints: number[] = [];
+          const anomalyPoints: number[] = [];
+
+          dinsightData.monitoring.dinsight_x.forEach((x, index) => {
+            const y = dinsightData.monitoring.dinsight_y[index];
+            let isInside = false;
+
+            // Check if point is inside any of the remaining boundaries
+            for (const boundary of updatedBoundaries) {
+              if (boundary.type === 'rectangle') {
+                isInside = isPointInRectangle(x, y, boundary.coordinates);
+              } else if (boundary.type === 'lasso') {
+                isInside = isPointInPolygon(x, y, boundary.coordinates);
+              } else if (boundary.type === 'circle' && boundary.center && boundary.radius) {
+                isInside = isPointInCircle(x, y, boundary.center, boundary.radius);
+              } else if (
+                boundary.type === 'oval' &&
+                boundary.center &&
+                boundary.radiusX &&
+                boundary.radiusY
+              ) {
+                isInside = isPointInOval(x, y, boundary.center, boundary.radiusX, boundary.radiusY);
+              }
+
+              if (isInside) break; // If found in any boundary, it's normal
+            }
+
+            if (isInside) {
+              normalPoints.push(index);
+            } else {
+              anomalyPoints.push(index);
+            }
+          });
+
+          setManualClassification({ normal_points: normalPoints, anomaly_points: anomalyPoints });
+          console.log('Updated manual classification after removing boundary:', {
+            normal: normalPoints.length,
+            anomaly: anomalyPoints.length,
+            total: dinsightData.monitoring.dinsight_x.length,
+            boundaries: updatedBoundaries.length,
+          });
+        } else if (updatedBoundaries.length === 0) {
+          // No boundaries left, clear classification
+          setManualClassification(null);
+        }
+      }, 0);
+
+      return updatedBoundaries;
+    });
+
+    console.log('Removed boundary:', id);
+  };
+
+  // Clear all multiple boundaries
+  const clearAllBoundaries = () => {
+    setManualSelectionBoundaries([]);
+    setManualSelectionBoundary(null);
+    setManualClassification(null);
+    console.log('Cleared all boundaries');
+  };
+
+  // Toggle multiple selections mode
+  const toggleMultipleSelections = () => {
+    const newMode = !enableMultipleSelections;
+    setEnableMultipleSelections(newMode);
+
+    if (newMode) {
+      // Switching to multiple mode - if we have a current selection, add it to the list
+      if (manualSelectionBoundary) {
+        addSelectionToBoundaries();
+      }
+    } else {
+      // Switching to single mode - clear multiple boundaries and keep only the current one
+      setManualSelectionBoundaries([]);
+    }
+
+    console.log('Toggled multiple selections mode:', newMode);
+  };
 
   // Handle plot selection event
   const handlePlotSelection = useCallback(
@@ -1465,6 +1671,95 @@ export default function StreamingVisualizationPage() {
     manualSelectionBoundary,
   ]);
 
+  // Helper function to create shape from boundary
+  const createShapeFromBoundary = useCallback(
+    (boundary: any, color: string, isMultiple: boolean, index?: number) => {
+      if (boundary.type === 'rectangle') {
+        const coords = boundary.coordinates;
+        const x0 = Math.min(...coords.map((c: number[]) => c[0]));
+        const x1 = Math.max(...coords.map((c: number[]) => c[0]));
+        const y0 = Math.min(...coords.map((c: number[]) => c[1]));
+        const y1 = Math.max(...coords.map((c: number[]) => c[1]));
+
+        return {
+          type: 'rect',
+          x0,
+          y0,
+          x1,
+          y1,
+          line: { color, width: isMultiple ? 2 : 3, dash: isMultiple ? 'solid' : 'dot' },
+          fillcolor: 'rgba(0,0,0,0)',
+          layer: 'above',
+        };
+      } else if (boundary.type === 'circle' && boundary.center && boundary.radius) {
+        return {
+          type: 'circle',
+          xref: 'x',
+          yref: 'y',
+          x0: boundary.center.x - boundary.radius,
+          y0: boundary.center.y - boundary.radius,
+          x1: boundary.center.x + boundary.radius,
+          y1: boundary.center.y + boundary.radius,
+          line: { color, width: isMultiple ? 2 : 3, dash: isMultiple ? 'solid' : 'dot' },
+          fillcolor: 'rgba(0,0,0,0)',
+          layer: 'above',
+        };
+      } else if (
+        boundary.type === 'oval' &&
+        boundary.center &&
+        boundary.radiusX &&
+        boundary.radiusY
+      ) {
+        // For ovals, we approximate with an ellipse using SVG path
+        const cx = boundary.center.x;
+        const cy = boundary.center.y;
+        const rx = boundary.radiusX;
+        const ry = boundary.radiusY;
+
+        return {
+          type: 'path',
+          path: `M ${cx - rx},${cy} A ${rx},${ry} 0 1,1 ${cx + rx},${cy} A ${rx},${ry} 0 1,1 ${cx - rx},${cy}`,
+          line: { color, width: isMultiple ? 2 : 3, dash: isMultiple ? 'solid' : 'dot' },
+          fillcolor: 'rgba(0,0,0,0)',
+          layer: 'above',
+        };
+      }
+
+      return null;
+    },
+    []
+  );
+
+  // Generate shapes for boundary visualization
+  const generateBoundaryShapes = useCallback(() => {
+    const shapes: any[] = [];
+
+    // Add current single boundary if in single mode and exists
+    if (!enableMultipleSelections && manualSelectionBoundary) {
+      shapes.push(createShapeFromBoundary(manualSelectionBoundary, '#10b981', false));
+    }
+
+    // Add multiple boundaries if in multiple mode
+    if (enableMultipleSelections) {
+      manualSelectionBoundaries.forEach((boundary, index) => {
+        const color = `hsl(${(index * 137.5) % 360}, 70%, 50%)`; // Golden ratio based colors
+        shapes.push(createShapeFromBoundary(boundary, color, true, index));
+      });
+
+      // Add current drawing boundary with different style
+      if (manualSelectionBoundary) {
+        shapes.push(createShapeFromBoundary(manualSelectionBoundary, '#3b82f6', false));
+      }
+    }
+
+    return shapes;
+  }, [
+    enableMultipleSelections,
+    manualSelectionBoundary,
+    manualSelectionBoundaries,
+    createShapeFromBoundary,
+  ]);
+
   // Plot layout configuration
   const plotLayout = useMemo(
     () => ({
@@ -1495,8 +1790,15 @@ export default function StreamingVisualizationPage() {
       },
       height: 600,
       margin: { l: 60, r: 30, t: 30, b: 60 },
+      shapes: generateBoundaryShapes(),
     }),
-    [enableManualSelection]
+    [
+      enableManualSelection,
+      enableMultipleSelections,
+      manualSelectionBoundary,
+      manualSelectionBoundaries,
+      generateBoundaryShapes,
+    ]
   );
 
   // Control functions
@@ -1749,6 +2051,64 @@ export default function StreamingVisualizationPage() {
                 </div>
               )}
 
+              {/* Multiple Selection Controls */}
+              {enableManualSelection && (
+                <div className="flex items-center gap-2 ml-2">
+                  <Button
+                    onClick={toggleMultipleSelections}
+                    variant={enableMultipleSelections ? 'default' : 'outline'}
+                    size="sm"
+                    className={cn(
+                      'px-3 py-1 text-xs transition-all duration-200',
+                      enableMultipleSelections && 'bg-blue-500 hover:bg-blue-600 text-white'
+                    )}
+                    title="Toggle multiple selections mode"
+                  >
+                    <div className="flex items-center gap-1">
+                      {enableMultipleSelections ? '🔗' : '🔓'}
+                      <span className="hidden sm:inline">
+                        {enableMultipleSelections ? 'Multi' : 'Single'}
+                      </span>
+                    </div>
+                  </Button>
+
+                  {enableMultipleSelections && (
+                    <>
+                      {manualSelectionBoundary && (
+                        <Button
+                          onClick={addSelectionToBoundaries}
+                          variant="outline"
+                          size="sm"
+                          className="px-2 py-1 text-xs bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700"
+                          title="Add current selection to normal areas"
+                        >
+                          ➕ Add
+                        </Button>
+                      )}
+
+                      {manualSelectionBoundaries.length > 0 && (
+                        <Button
+                          onClick={clearAllBoundaries}
+                          variant="outline"
+                          size="sm"
+                          className="px-2 py-1 text-xs bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                          title="Clear all selections"
+                        >
+                          🗑️ Clear All
+                        </Button>
+                      )}
+
+                      {manualSelectionBoundaries.length > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="font-medium">{manualSelectionBoundaries.length}</span>
+                          <span>areas</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
               {enableManualSelection && (
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                   {!manualClassification ? (
@@ -1766,7 +2126,13 @@ export default function StreamingVisualizationPage() {
                         ✓{' '}
                         {manualClassification.normal_points.length +
                           manualClassification.anomaly_points.length}{' '}
-                        points classified ({selectionMode})
+                        points classified
+                        {enableMultipleSelections && manualSelectionBoundaries.length > 0 && (
+                          <span className="ml-1">({manualSelectionBoundaries.length} areas)</span>
+                        )}
+                        {!enableMultipleSelections && (
+                          <span className="ml-1">({selectionMode})</span>
+                        )}
                       </span>
                       <div className="flex items-center gap-2 text-xs">
                         <div className="flex items-center gap-1">
@@ -1782,6 +2148,54 @@ export default function StreamingVisualizationPage() {
                   )}
                 </div>
               )}
+
+              {/* Multiple Boundaries List */}
+              {enableManualSelection &&
+                enableMultipleSelections &&
+                manualSelectionBoundaries.length > 0 && (
+                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Normal Operating Areas ({manualSelectionBoundaries.length})
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {manualSelectionBoundaries.map((boundary, index) => {
+                        const color = `hsl(${(index * 137.5) % 360}, 70%, 50%)`;
+                        return (
+                          <div
+                            key={boundary.id}
+                            className="flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded border-2 flex-shrink-0"
+                                style={{ borderColor: color }}
+                              ></div>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                  {boundary.name}
+                                </span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {boundary.type}
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => removeBoundary(boundary.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              title="Remove this boundary"
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
             </div>
 
             {/* Settings Toggle */}
