@@ -123,9 +123,14 @@ export default function StreamingVisualizationPage() {
 
   // Manual selection state
   const [enableManualSelection, setEnableManualSelection] = useState<boolean>(false);
+  const [selectionMode, setSelectionMode] = useState<'rectangle' | 'circle' | 'oval'>('rectangle');
   const [manualSelectionBoundary, setManualSelectionBoundary] = useState<{
-    type: 'rectangle' | 'lasso';
+    type: 'rectangle' | 'lasso' | 'circle' | 'oval';
     coordinates: number[][];
+    center?: { x: number; y: number };
+    radius?: number;
+    radiusX?: number;
+    radiusY?: number;
   } | null>(null);
   const [manualClassification, setManualClassification] = useState<{
     normal_points: number[];
@@ -490,9 +495,36 @@ export default function StreamingVisualizationPage() {
     return inside;
   }, []);
 
+  // Point-in-circle check
+  const isPointInCircle = useCallback(
+    (x: number, y: number, center: { x: number; y: number }, radius: number) => {
+      const dx = x - center.x;
+      const dy = y - center.y;
+      return dx * dx + dy * dy <= radius * radius;
+    },
+    []
+  );
+
+  // Point-in-oval check
+  const isPointInOval = useCallback(
+    (x: number, y: number, center: { x: number; y: number }, radiusX: number, radiusY: number) => {
+      const dx = x - center.x;
+      const dy = y - center.y;
+      return (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY) <= 1;
+    },
+    []
+  );
+
   // Classify points based on manual selection
   const classifyPointsManually = useCallback(
-    (boundary: { type: 'rectangle' | 'lasso'; coordinates: number[][] }) => {
+    (boundary: {
+      type: 'rectangle' | 'lasso' | 'circle' | 'oval';
+      coordinates: number[][];
+      center?: { x: number; y: number };
+      radius?: number;
+      radiusX?: number;
+      radiusY?: number;
+    }) => {
       if (!dinsightData?.monitoring.dinsight_x || !dinsightData?.monitoring.dinsight_y) {
         return null;
       }
@@ -508,6 +540,15 @@ export default function StreamingVisualizationPage() {
           isInside = isPointInRectangle(x, y, boundary.coordinates);
         } else if (boundary.type === 'lasso') {
           isInside = isPointInPolygon(x, y, boundary.coordinates);
+        } else if (boundary.type === 'circle' && boundary.center && boundary.radius) {
+          isInside = isPointInCircle(x, y, boundary.center, boundary.radius);
+        } else if (
+          boundary.type === 'oval' &&
+          boundary.center &&
+          boundary.radiusX &&
+          boundary.radiusY
+        ) {
+          isInside = isPointInOval(x, y, boundary.center, boundary.radiusX, boundary.radiusY);
         }
 
         if (isInside) {
@@ -519,7 +560,7 @@ export default function StreamingVisualizationPage() {
 
       return { normal_points: normalPoints, anomaly_points: anomalyPoints };
     },
-    [dinsightData, isPointInRectangle, isPointInPolygon]
+    [dinsightData, isPointInRectangle, isPointInPolygon, isPointInCircle, isPointInOval]
   );
 
   // Real-time classification for streaming data using manual boundary
@@ -543,6 +584,30 @@ export default function StreamingVisualizationPage() {
         isInside = isPointInRectangle(x, y, manualSelectionBoundary.coordinates);
       } else if (manualSelectionBoundary.type === 'lasso') {
         isInside = isPointInPolygon(x, y, manualSelectionBoundary.coordinates);
+      } else if (
+        manualSelectionBoundary.type === 'circle' &&
+        manualSelectionBoundary.center &&
+        manualSelectionBoundary.radius
+      ) {
+        isInside = isPointInCircle(
+          x,
+          y,
+          manualSelectionBoundary.center,
+          manualSelectionBoundary.radius
+        );
+      } else if (
+        manualSelectionBoundary.type === 'oval' &&
+        manualSelectionBoundary.center &&
+        manualSelectionBoundary.radiusX &&
+        manualSelectionBoundary.radiusY
+      ) {
+        isInside = isPointInOval(
+          x,
+          y,
+          manualSelectionBoundary.center,
+          manualSelectionBoundary.radiusX,
+          manualSelectionBoundary.radiusY
+        );
       }
 
       if (isInside) {
@@ -553,7 +618,14 @@ export default function StreamingVisualizationPage() {
     });
 
     return { normal_points: normalPoints, anomaly_points: anomalyPoints };
-  }, [dinsightData, manualSelectionBoundary, isPointInRectangle, isPointInPolygon]);
+  }, [
+    dinsightData,
+    manualSelectionBoundary,
+    isPointInRectangle,
+    isPointInPolygon,
+    isPointInCircle,
+    isPointInOval,
+  ]);
 
   // Auto-update manual classification for streaming data
   useEffect(() => {
@@ -589,26 +661,113 @@ export default function StreamingVisualizationPage() {
       // Extract selection bounds from Plotly event
       const range = eventData.range;
       if (range.x && range.y) {
-        const boundary = {
-          type: 'rectangle' as const,
-          coordinates: [
-            [range.x[0], range.y[0]], // bottom-left
-            [range.x[1], range.y[1]], // top-right
-          ],
-        };
+        let boundary;
 
-        setManualSelectionBoundary(boundary);
-        const classification = classifyPointsManually(boundary);
-        setManualClassification(classification);
+        if (selectionMode === 'rectangle') {
+          // Rectangle selection (existing behavior)
+          boundary = {
+            type: 'rectangle' as const,
+            coordinates: [
+              [range.x[0], range.y[0]], // bottom-left
+              [range.x[1], range.y[1]], // top-right
+            ],
+          };
+        } else if (selectionMode === 'circle') {
+          // Circle selection - use selection bounds to create circle
+          const centerX = (range.x[0] + range.x[1]) / 2;
+          const centerY = (range.y[0] + range.y[1]) / 2;
+          const radiusX = Math.abs(range.x[1] - range.x[0]) / 2;
+          const radiusY = Math.abs(range.y[1] - range.y[0]) / 2;
+          const radius = Math.min(radiusX, radiusY); // Use smaller radius for perfect circle
 
-        console.log('Manual selection created:', {
-          boundary,
-          normal: classification?.normal_points.length,
-          anomaly: classification?.anomaly_points.length,
-        });
+          console.log('Circle mode - calculated values:', {
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            radius,
+          });
+
+          // Generate circle coordinates for boundary visualization
+          const circlePoints: number[][] = [];
+          const numPoints = 64; // Number of points to approximate circle
+          for (let i = 0; i <= numPoints; i++) {
+            const angle = (i / numPoints) * 2 * Math.PI;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            circlePoints.push([x, y]);
+          }
+
+          boundary = {
+            type: 'circle' as const,
+            coordinates: circlePoints,
+            center: { x: centerX, y: centerY },
+            radius: radius,
+          };
+
+          console.log('Circle boundary created:', boundary.type, 'radius:', boundary.radius);
+        } else if (selectionMode === 'oval') {
+          // Oval selection - use full selection bounds
+          const centerX = (range.x[0] + range.x[1]) / 2;
+          const centerY = (range.y[0] + range.y[1]) / 2;
+          const radiusX = Math.abs(range.x[1] - range.x[0]) / 2;
+          const radiusY = Math.abs(range.y[1] - range.y[0]) / 2;
+
+          console.log('Oval mode - calculated values:', {
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+          });
+
+          // Generate oval coordinates for boundary visualization
+          const ovalPoints: number[][] = [];
+          const numPoints = 64; // Number of points to approximate oval
+          for (let i = 0; i <= numPoints; i++) {
+            const angle = (i / numPoints) * 2 * Math.PI;
+            const x = centerX + radiusX * Math.cos(angle);
+            const y = centerY + radiusY * Math.sin(angle);
+            ovalPoints.push([x, y]);
+          }
+
+          boundary = {
+            type: 'oval' as const,
+            coordinates: ovalPoints,
+            center: { x: centerX, y: centerY },
+            radiusX: radiusX,
+            radiusY: radiusY,
+          };
+
+          console.log(
+            'Oval boundary created:',
+            boundary.type,
+            'radiusX:',
+            boundary.radiusX,
+            'radiusY:',
+            boundary.radiusY
+          );
+        }
+
+        if (boundary) {
+          setManualSelectionBoundary(boundary);
+          const classification = classifyPointsManually(boundary);
+          setManualClassification(classification);
+
+          console.log(`${selectionMode} selection created:`, {
+            selectionMode,
+            boundaryType: boundary.type,
+            center: boundary.center,
+            radius: boundary.radius || 'N/A',
+            radiusX: boundary.radiusX || 'N/A',
+            radiusY: boundary.radiusY || 'N/A',
+            coordinatesLength: boundary.coordinates.length,
+            normal: classification?.normal_points.length,
+            anomaly: classification?.anomaly_points.length,
+          });
+        }
       }
     },
-    [enableManualSelection, classifyPointsManually]
+    [enableManualSelection, selectionMode, classifyPointsManually]
   );
 
   // Handle plot deselection event (clear selection)
@@ -837,15 +996,27 @@ export default function StreamingVisualizationPage() {
           const coords = manualSelectionBoundary.coordinates;
           let boundaryX: number[] = [];
           let boundaryY: number[] = [];
+          let boundaryName = 'Manual Selection Boundary';
 
           if (manualSelectionBoundary.type === 'rectangle' && coords.length >= 2) {
             const [x1, y1] = coords[0];
             const [x2, y2] = coords[1];
             boundaryX = [x1, x2, x2, x1, x1];
             boundaryY = [y1, y1, y2, y2, y1];
+            boundaryName = 'Rectangle Selection';
           } else if (manualSelectionBoundary.type === 'lasso') {
             boundaryX = [...coords.map(([x]) => x), coords[0][0]];
             boundaryY = [...coords.map(([, y]) => y), coords[0][1]];
+            boundaryName = 'Lasso Selection';
+          } else if (
+            manualSelectionBoundary.type === 'circle' ||
+            manualSelectionBoundary.type === 'oval'
+          ) {
+            // For circle and oval, coordinates already contain the boundary points
+            boundaryX = coords.map(([x]) => x);
+            boundaryY = coords.map(([, y]) => y);
+            boundaryName =
+              manualSelectionBoundary.type === 'circle' ? 'Circle Selection' : 'Oval Selection';
           }
 
           if (boundaryX.length > 2) {
@@ -854,13 +1025,13 @@ export default function StreamingVisualizationPage() {
               y: boundaryY,
               mode: 'lines' as const,
               type: 'scattergl' as const,
-              name: 'Manual Selection Boundary',
+              name: boundaryName,
               line: {
                 color: '#8B5CF6',
                 width: 3,
                 dash: 'dash',
               },
-              hovertemplate: '<b>Manual Selection Boundary</b><extra></extra>',
+              hovertemplate: `<b>${boundaryName}</b><extra></extra>`,
               showlegend: true,
             });
           }
@@ -1045,6 +1216,7 @@ export default function StreamingVisualizationPage() {
           const coords = manualSelectionBoundary.coordinates;
           let boundaryX: number[] = [];
           let boundaryY: number[] = [];
+          let boundaryName = 'Manual Selection Boundary';
 
           if (manualSelectionBoundary.type === 'rectangle' && coords.length >= 2) {
             // For rectangle: coords are [[x1, y1], [x2, y2]]
@@ -1052,10 +1224,21 @@ export default function StreamingVisualizationPage() {
             const [x2, y2] = coords[1];
             boundaryX = [x1, x2, x2, x1, x1]; // Close the rectangle
             boundaryY = [y1, y1, y2, y2, y1];
+            boundaryName = 'Rectangle Selection';
           } else if (manualSelectionBoundary.type === 'lasso') {
             // For lasso: coords are [[x1, y1], [x2, y2], ...]
             boundaryX = [...coords.map(([x]) => x), coords[0][0]]; // Close the polygon
             boundaryY = [...coords.map(([, y]) => y), coords[0][1]];
+            boundaryName = 'Lasso Selection';
+          } else if (
+            manualSelectionBoundary.type === 'circle' ||
+            manualSelectionBoundary.type === 'oval'
+          ) {
+            // For circle and oval, coordinates already contain the boundary points
+            boundaryX = coords.map(([x]) => x);
+            boundaryY = coords.map(([, y]) => y);
+            boundaryName =
+              manualSelectionBoundary.type === 'circle' ? 'Circle Selection' : 'Oval Selection';
           }
 
           if (boundaryX.length > 2) {
@@ -1064,13 +1247,13 @@ export default function StreamingVisualizationPage() {
               y: boundaryY,
               mode: 'lines' as const,
               type: 'scattergl' as const,
-              name: 'Manual Selection Boundary',
+              name: boundaryName,
               line: {
                 color: '#8B5CF6', // Purple color to match the manual selection theme
                 width: 3,
                 dash: 'dash',
               },
-              hovertemplate: '<b>Manual Selection Boundary</b><extra></extra>',
+              hovertemplate: `<b>${boundaryName}</b><extra></extra>`,
               showlegend: true,
             });
           }
@@ -1167,15 +1350,27 @@ export default function StreamingVisualizationPage() {
             const coords = manualSelectionBoundary.coordinates;
             let boundaryX: number[] = [];
             let boundaryY: number[] = [];
+            let boundaryName = 'Selection Boundary';
 
             if (manualSelectionBoundary.type === 'rectangle' && coords.length >= 2) {
               const [x1, y1] = coords[0];
               const [x2, y2] = coords[1];
               boundaryX = [x1, x2, x2, x1, x1];
               boundaryY = [y1, y1, y2, y2, y1];
+              boundaryName = 'Rectangle Selection';
             } else if (manualSelectionBoundary.type === 'lasso') {
               boundaryX = [...coords.map(([x]) => x), coords[0][0]];
               boundaryY = [...coords.map(([, y]) => y), coords[0][1]];
+              boundaryName = 'Lasso Selection';
+            } else if (
+              manualSelectionBoundary.type === 'circle' ||
+              manualSelectionBoundary.type === 'oval'
+            ) {
+              // For circle and oval, coordinates already contain the boundary points
+              boundaryX = coords.map(([x]) => x);
+              boundaryY = coords.map(([, y]) => y);
+              boundaryName =
+                manualSelectionBoundary.type === 'circle' ? 'Circle Selection' : 'Oval Selection';
             }
 
             if (boundaryX.length > 2) {
@@ -1184,13 +1379,13 @@ export default function StreamingVisualizationPage() {
                 y: boundaryY,
                 mode: 'lines' as const,
                 type: 'scattergl' as const,
-                name: 'Selection Boundary',
+                name: boundaryName,
                 line: {
                   color: '#8B5CF6',
                   width: 3,
                   dash: 'dash',
                 },
-                hovertemplate: '<b>Manual Selection Boundary</b><extra></extra>',
+                hovertemplate: `<b>${boundaryName}</b><extra></extra>`,
                 showlegend: true,
               });
             }
@@ -1280,7 +1475,7 @@ export default function StreamingVisualizationPage() {
       paper_bgcolor: 'white',
       font: { family: 'Inter, sans-serif' },
       template: 'plotly_white' as any,
-      dragmode: enableManualSelection ? ('select' as const) : ('zoom' as const), // Enable selection mode when manual selection is active
+      dragmode: enableManualSelection ? ('select' as const) : ('zoom' as const), // Always use select mode for manual selection - we interpret the rectangular selection based on selectionMode
       legend: {
         orientation: 'h' as any,
         yanchor: 'bottom' as any,
@@ -1523,17 +1718,55 @@ export default function StreamingVisualizationPage() {
                 <MousePointer2 className="w-4 h-4 mr-2" />
                 {enableManualSelection ? 'Manual ON' : 'Manual OFF'}
               </Button>
+
+              {/* Selection Mode Controls */}
+              {enableManualSelection && (
+                <div className="flex items-center gap-1 ml-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Mode:</span>
+                  {(['rectangle', 'circle', 'oval'] as const).map((mode) => (
+                    <Button
+                      key={mode}
+                      variant={selectionMode === mode ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setSelectionMode(mode);
+                        // Clear existing selection when changing modes
+                        setManualSelectionBoundary(null);
+                        setManualClassification(null);
+                      }}
+                      className={cn(
+                        'px-2 py-1 text-xs transition-all duration-200',
+                        selectionMode === mode && 'bg-purple-500 hover:bg-purple-600 text-white'
+                      )}
+                      title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} selection mode`}
+                    >
+                      {mode === 'rectangle' && '📦'}
+                      {mode === 'circle' && '⭕'}
+                      {mode === 'oval' && '🥚'}
+                      <span className="ml-1 hidden sm:inline">{mode}</span>
+                    </Button>
+                  ))}
+                </div>
+              )}
+
               {enableManualSelection && (
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                   {!manualClassification ? (
-                    <span>Use box select tool 📦 to drag and select the normal operating area</span>
+                    <span>
+                      {selectionMode === 'rectangle' &&
+                        'Use box select tool 📦 to drag and select rectangular area'}
+                      {selectionMode === 'circle' &&
+                        'Use box select tool 📦 to drag - creates circle from selection bounds'}
+                      {selectionMode === 'oval' &&
+                        'Use box select tool 📦 to drag - creates oval from selection bounds'}
+                    </span>
                   ) : (
                     <div className="flex items-center gap-3">
                       <span className="text-purple-600 dark:text-purple-400 font-medium">
                         ✓{' '}
                         {manualClassification.normal_points.length +
                           manualClassification.anomaly_points.length}{' '}
-                        points classified
+                        points classified ({selectionMode})
                       </span>
                       <div className="flex items-center gap-2 text-xs">
                         <div className="flex items-center gap-1">
