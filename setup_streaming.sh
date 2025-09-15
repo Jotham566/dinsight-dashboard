@@ -67,7 +67,7 @@ cd Dinsight_API
 
 # Check if Go is available
 if ! command -v go &> /dev/null; then
-    print_error "Go is not installed. Please install Go 1.19 or higher."
+    print_error "Go is not installed. Please install Go 1.23.2 or higher."
     exit 1
 fi
 
@@ -97,7 +97,7 @@ cd frontend
 
 # Check if Node.js is available
 if ! command -v npm &> /dev/null; then
-    print_error "Node.js/npm is not installed. Please install Node.js 18 or higher."
+    print_error "Node.js/npm is not installed. Please install Node.js 20 or higher."
     exit 1
 fi
 

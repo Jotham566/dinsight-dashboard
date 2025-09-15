@@ -36,6 +36,7 @@ out/
 *.swo
 .claude/
 .github/
+.github/instructions/
 
 # OS
 .DS_Store
