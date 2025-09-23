@@ -239,12 +239,18 @@ export default function DinsightAnalysisPage() {
         formData.append('files', file);
       });
 
-      // Upload to /analyze endpoint with extended timeout
+      // Upload to /analyze endpoint with infinite timeout; progress updates if available
       const response = await apiClient.post('/analyze', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes timeout for baseline uploads
+        timeout: 0,
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            setProcessingState((prev) => ({ ...prev, progress: percent }));
+          }
+        },
       });
 
       console.log('Baseline upload successful:', response.data);
@@ -356,12 +362,18 @@ export default function DinsightAnalysisPage() {
       // Note: monitoring endpoint expects 'file' (singular) not 'files'
       formData.append('file', uploadFiles[0]);
 
-      // Upload to /monitor/:dinsight_id endpoint with extended timeout
+      // Upload to /monitor/:dinsight_id endpoint with infinite timeout; progress updates if available
       const response = await apiClient.post(`/monitor/${processingState.dinsightId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes timeout for monitoring uploads
+        timeout: 0,
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            setProcessingState((prev) => ({ ...prev, progress: percent }));
+          }
+        },
       });
 
       console.log('Monitoring upload successful:', response.data);

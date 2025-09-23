@@ -212,6 +212,8 @@ export const api = {
       files.forEach((file) => formData.append('files', file));
       return apiClient.post('/analyze', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        // Never time out large baseline uploads; processing is polled separately
+        timeout: 0,
       });
     },
     getConfig: () => apiClient.get('/config'),
@@ -229,6 +231,8 @@ export const api = {
       formData.append('file', file);
       return apiClient.post(`/monitor/${dinsightId}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        // Never time out large monitoring uploads; UI will handle progress/polling
+        timeout: 0,
       });
     },
     get: (dinsightId: number) => apiClient.get(`/monitor/${dinsightId}`),
