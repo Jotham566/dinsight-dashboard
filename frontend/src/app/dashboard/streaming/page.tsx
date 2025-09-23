@@ -1978,7 +1978,7 @@ export default function StreamingVisualizationPage() {
                 )}
               >
                 <AlertTriangle className="w-4 h-4 mr-2" />
-                {enableAnomalyDetection ? 'Anomaly ON' : 'Anomaly OFF'}
+                {enableAnomalyDetection ? 'Auto Anomaly ON' : 'Auto Anomaly OFF'}
               </Button>
               {enableAnomalyDetection && (
                 <>
@@ -2029,7 +2029,7 @@ export default function StreamingVisualizationPage() {
                 )}
               >
                 <MousePointer2 className="w-4 h-4 mr-2" />
-                {enableManualSelection ? 'Manual ON' : 'Manual OFF'}
+                {enableManualSelection ? 'Manual Anomaly ON' : 'Manual Anomaly OFF'}
               </Button>
 
               {/* Selection Mode Controls */}
