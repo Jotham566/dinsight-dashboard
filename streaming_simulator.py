@@ -26,6 +26,13 @@ import aiohttp
 # import pandas as pd  # Not needed for basic CSV operations
 from aiohttp import ClientSession, FormData
 
+# Increase CSV field size limit for very wide rows
+try:
+    csv.field_size_limit(sys.maxsize)
+except Exception:
+    # Fallback to a large value if sys.maxsize is not accepted on this platform
+    csv.field_size_limit(10**9)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -49,10 +56,22 @@ class StreamingSimulator:
         self.stream_progress = 0
         self.is_streaming = False
         self.latest_glow_count = 10
+        # Feature selection controls
+        self.selected_feature_columns: Optional[List[str]] = None
+        self.feature_max_freq: Optional[float] = None  # e.g., 1000.0 keeps freq_<=1000.0
+        self.feature_max_index: Optional[int] = None   # e.g., 1023 keeps f_0..f_1023
+        self.include_metadata: bool = True            # include non-feature columns in batches by default
+        # Store header schemas
+        self._original_headers: Optional[List[str]] = None
+        self._normalized_headers: Optional[List[str]] = None
+        self._orig_to_norm: Optional[Dict[str, str]] = None
+        self.request_retries: int = 2                  # light retry on transient 5xx
+        self.request_timeout = aiohttp.ClientTimeout(total=None, sock_connect=60, sock_read=300)
         
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = aiohttp.ClientSession()
+        # Configure session with extended read timeout for heavy processing
+        self.session = aiohttp.ClientSession(timeout=self.request_timeout)
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -142,9 +161,39 @@ class StreamingSimulator:
             header_lower = header.lower().strip()
             if header_lower.startswith('f_') or header_lower.startswith('freq_'):
                 feature_cols.append(header)  # Keep original case
-        
-        logger.info(f"🎯 Extracted {len(feature_cols)} feature columns")
-        return feature_cols
+        # Apply optional feature limits
+        filtered_cols: List[str] = []
+        if self.feature_max_freq is not None:
+            for h in feature_cols:
+                hl = h.lower()
+                if hl.startswith('freq_'):
+                    try:
+                        val = float(hl.replace('freq_', ''))
+                        if val <= self.feature_max_freq:
+                            filtered_cols.append(h)
+                    except ValueError:
+                        # keep if unparsable to avoid accidental drops
+                        filtered_cols.append(h)
+                else:
+                    # keep non-freq_ columns when using freq filter
+                    filtered_cols.append(h)
+        elif self.feature_max_index is not None:
+            for h in feature_cols:
+                hl = h.lower()
+                if hl.startswith('f_'):
+                    try:
+                        idx = int(hl.replace('f_', ''))
+                        if idx <= self.feature_max_index:
+                            filtered_cols.append(h)
+                    except ValueError:
+                        filtered_cols.append(h)
+                else:
+                    # keep freq_* when using f_ index filter
+                    filtered_cols.append(h)
+        else:
+            filtered_cols = feature_cols
+        logging.info(f"🎯 Extracted {len(filtered_cols)} feature columns (from {len(feature_cols)})")
+        return filtered_cols
     
     def validate_vector_length(self, data_row: Dict, expected_length: int) -> bool:
         """
@@ -294,42 +343,46 @@ class StreamingSimulator:
             raise FileNotFoundError(f"Monitor file not found: {monitor_file_path}")
         
         monitor_data = []
-        with open(monitor_file_path, 'r', encoding='utf-8') as f:
+        # Use utf-8-sig to auto-strip BOM, and newline='' as recommended by csv module
+        with open(monitor_file_path, 'r', encoding='utf-8-sig', newline='') as f:
             reader = csv.DictReader(f)
             
             # Get original headers and detect dataset family
-            original_headers = reader.fieldnames
-            if not original_headers:
+            headers_seq = reader.fieldnames
+            if not headers_seq:
                 raise ValueError("CSV file has no headers")
+            original_headers: List[str] = list(headers_seq)
             
+            # Persist original headers exactly as in file (may include BOM)
+            self._original_headers = list(original_headers)
             dataset_family = self.detect_dataset_family(original_headers)
             logger.info(f"🔍 Detected dataset family: {dataset_family}")
-            
-            # Normalize headers for API compatibility
+            # Normalize headers for API compatibility (used internally)
             normalized_headers = self.normalize_headers(original_headers, dataset_family)
-            
+            self._normalized_headers = list(normalized_headers)
+            # Map original -> normalized to reconstruct rows when writing CSV
+            self._orig_to_norm = {orig: norm for orig, norm in zip(original_headers, normalized_headers)}
             # Extract feature columns for vector length validation
             feature_columns = self.extract_feature_columns(original_headers)
+            # Persist selected feature columns in original order
+            self.selected_feature_columns = feature_columns
             expected_vector_length = len(feature_columns)
             logger.info(f"📏 Expected vector length: {expected_vector_length}")
             
             # Load data with validation
             for row_idx, row in enumerate(reader):
-                # Create normalized row
+                # Build normalized row using mapping
                 normalized_row = {}
-                for orig_header, norm_header in zip(original_headers, normalized_headers):
-                    normalized_row[norm_header] = row[orig_header]
-                
-                # Validate vector length for first few rows
-                if row_idx < 3:  # Check first 3 rows for consistency
+                for orig_header in original_headers:
+                    norm_header = self._orig_to_norm[orig_header]
+                    normalized_row[norm_header] = row.get(orig_header, '')
+                if row_idx < 3:
                     if not self.validate_vector_length(row, expected_vector_length):
                         raise ValueError(f"Vector length validation failed at row {row_idx + 1}")
-                
                 normalized_row['_row_index'] = row_idx
                 monitor_data.append(normalized_row)
-        
         logger.info(f"✅ Loaded {len(monitor_data)} monitor data points (family: {dataset_family})")
-        logger.info(f"🔄 Schema normalization complete: {len(original_headers)} -> {len(normalized_headers)} columns")
+        logger.info(f"🔄 Schema normalization complete: {len(self._original_headers)} -> {len(self._normalized_headers)} columns")
         return monitor_data
     
     async def simulate_streaming(
@@ -382,12 +435,30 @@ class StreamingSimulator:
                 # Write batch to temporary CSV
                 with open(temp_csv_path, 'w', newline='', encoding='utf-8') as f:
                     if batch:
-                        fieldnames = [k for k in batch[0].keys() if k != '_row_index']
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        if self.include_metadata and self._original_headers:
+                            # Use original headers exactly as in baseline/monitor files
+                            fieldnames = [h for h in self._original_headers]
+                        else:
+                            # Use only the selected feature columns (these names are original headers)
+                            fieldnames = list(self.selected_feature_columns or [k for k in batch[0].keys() if k.lower().startswith(('f_', 'freq_'))])
+                        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore', lineterminator='\n')
                         writer.writeheader()
-                        
                         for row in batch:
-                            row_data = {k: v for k, v in row.items() if k != '_row_index'}
+                            row_data = {}
+                            for col in fieldnames:
+                                if col.lower().startswith(('f_', 'freq_')):
+                                    # Feature value comes from normalized row; map original->normalized if needed
+                                    source_key = self._orig_to_norm[col] if (self.include_metadata and self._orig_to_norm and col in self._orig_to_norm) else col
+                                    val = row.get(source_key, '')
+                                    try:
+                                        num = float(val)
+                                        row_data[col] = ("%g" % num)
+                                    except (ValueError, TypeError):
+                                        row_data[col] = "0"
+                                else:
+                                    # Non-feature metadata - if using normalized internal rows, map back
+                                    source_key = self._orig_to_norm[col] if (self.include_metadata and self._orig_to_norm and col in self._orig_to_norm) else col
+                                    row_data[col] = row.get(source_key, '')
                             writer.writerow(row_data)
                 
                 # Send batch to API
@@ -444,66 +515,75 @@ class StreamingSimulator:
             logger.warning(f"⚠️  Could not update streaming config: {e}")
     
     async def _send_monitor_batch(self, baseline_id: int, csv_file_path: Path):
-        """Send a batch of monitor data to the API with enhanced error handling."""
+        """Send a batch of monitor data to the API with enhanced error handling and retries."""
         
         # Pre-flight validation: read the CSV and check vector lengths
         try:
-            with open(csv_file_path, 'r', encoding='utf-8') as f:
+            with open(csv_file_path, 'r', encoding='utf-8-sig', newline='') as f:
                 reader = csv.DictReader(f)
-                headers = reader.fieldnames
-                
-                # Extract feature columns and count
-                feature_count = 0
-                for header in headers:
-                    if header.lower().startswith('f_') or header.lower().startswith('freq_'):
-                        feature_count += 1
-                
-                # Validate first row
+                headers: List[str] = list(reader.fieldnames or [])
+                # Determine expected feature count from selected features or headers
+                if self.selected_feature_columns:
+                    # Intersect with headers to be safe (account for metadata columns present)
+                    feature_count = len([h for h in headers if h in self.selected_feature_columns])
+                else:
+                    feature_count = sum(1 for h in headers if h.lower().startswith(('f_', 'freq_')))
                 first_row = next(reader, None)
-                if first_row and not self.validate_vector_length(first_row, feature_count):
-                    logger.error(f"❌ Pre-flight check failed: vector length mismatch in batch CSV")
-                    raise ValueError(f"Vector length validation failed for batch {csv_file_path.name}")
-                    
-                logger.debug(f"✅ Pre-flight check passed: {feature_count} features, vector length validated")
-                
+                if first_row:
+                    if not self.validate_vector_length(first_row, feature_count):
+                        logger.error(f"❌ Pre-flight check failed: vector length mismatch in batch CSV")
+                        raise ValueError(f"Vector length validation failed for batch {csv_file_path.name}")
+                else:
+                    logger.error(f"❌ Empty CSV file: {csv_file_path.name}")
+                    raise ValueError(f"Empty CSV file: {csv_file_path.name}")
         except StopIteration:
             logger.error(f"❌ Empty CSV file: {csv_file_path.name}")
             raise ValueError(f"Empty CSV file: {csv_file_path.name}")
         
-        # Send the batch to API
-        data = FormData()
-        with open(csv_file_path, 'rb') as f:
-            file_content = f.read()
-            data.add_field('file', file_content, filename=csv_file_path.name)
-        
-        async with self.session.post(f"{self.api_base_url}/monitor/{baseline_id}", data=data) as response:
-            if response.status not in (200, 201):
-                error_text = await response.text()
-                
-                # Enhanced error analysis
-                if "baseline matrix empty" in error_text.lower():
-                    logger.error(f"❌ Baseline configuration issue: baseline_id={baseline_id} not properly initialized")
-                elif "dimension mismatch" in error_text.lower():
-                    logger.error(f"❌ Vector dimension mismatch: monitor CSV features don't match baseline configuration")
-                elif response.status == 400:
-                    logger.error(f"❌ Bad request (400): CSV format or data validation failed")
-                elif response.status == 500:
-                    logger.error(f"❌ Server error (500): API processing failed")
-                else:
-                    logger.error(f"❌ HTTP {response.status}: {error_text}")
-                
-                # Debug: Save failed batch for inspection
-                debug_path = f"debug_failed_batch_{baseline_id}.csv"
-                import shutil
-                shutil.copy2(csv_file_path, debug_path)
-                logger.error(f"� Failed batch saved to: {debug_path}")
-                logger.error(f"📄 Full API error response: {error_text}")
-                
-                raise Exception(f"Failed to send monitor batch (HTTP {response.status}): {error_text}")
-            
-            result = await response.json()
-            logger.debug(f"✅ Batch sent successfully: {result}")
-            return result
+        # Send the batch to API with light retries
+        attempt = 0
+        last_error_text = ''
+        while attempt <= self.request_retries:
+            attempt += 1
+            data = FormData()
+            with open(csv_file_path, 'rb') as f:
+                file_content = f.read()
+                data.add_field('file', file_content, filename=csv_file_path.name, content_type='text/csv')
+            try:
+                async with self.session.post(f"{self.api_base_url}/monitor/{baseline_id}", data=data) as response:
+                    if response.status not in (200, 201):
+                        error_text = await response.text()
+                        last_error_text = error_text
+                        # Enhanced error analysis
+                        if "baseline matrix empty" in error_text.lower():
+                            logger.error(f"❌ Baseline configuration issue: baseline_id={baseline_id} not properly initialized")
+                        elif "dimension mismatch" in error_text.lower():
+                            logger.error(f"❌ Vector dimension mismatch: monitor CSV features don't match baseline configuration")
+                        elif response.status == 400:
+                            logger.error(f"❌ Bad request (400): CSV format or data validation failed")
+                        elif response.status >= 500:
+                            logger.error(f"❌ Server error ({response.status}): API processing failed (attempt {attempt}/{self.request_retries+1})")
+                            if attempt <= self.request_retries:
+                                await asyncio.sleep(1.0 * attempt)
+                                continue
+                        else:
+                            logger.error(f"❌ HTTP {response.status}: {error_text}")
+                        # Debug: Save failed batch for inspection
+                        debug_path = f"debug_failed_batch_{baseline_id}.csv"
+                        import shutil
+                        shutil.copy2(csv_file_path, debug_path)
+                        logger.error(f"🧪 Failed batch saved to: {debug_path}")
+                        logger.error(f"📄 Full API error response: {error_text}")
+                        raise Exception(f"Failed to send monitor batch (HTTP {response.status}): {error_text}")
+                    result = await response.json()
+                    logger.debug(f"✅ Batch sent successfully: {result}")
+                    return result
+            except Exception as e:
+                if attempt <= self.request_retries:
+                    logger.warning(f"⚠️  Retry sending batch due to error: {e}")
+                    await asyncio.sleep(1.0 * attempt)
+                    continue
+                raise
     
     async def get_streaming_status(self) -> Dict:
         """Get current streaming status for frontend display."""
@@ -558,13 +638,23 @@ async def main():
                        help='Number of latest points to highlight with yellow glow during streaming (default: 10)')
     parser.add_argument('--api-url', type=str, default='http://localhost:8080/api/v1',
                        help='Base API URL (default: http://localhost:8080/api/v1)')
+    # Feature filtering options for streaming stability with very wide datasets
+    parser.add_argument('--feature-max-freq', type=float, default=None,
+                       help='For freq_* headers, include only features with numeric value <= this (e.g., 1000.0)')
+    parser.add_argument('--feature-max-index', type=int, default=None,
+                       help='For f_* headers, include only features with index <= this (e.g., 1023)')
+    parser.add_argument('--include-metadata', action='store_true', default=True,
+                       help='Include non-feature columns in streamed CSV batches (default: True)')
     
     args = parser.parse_args()
     
     try:
         async with StreamingSimulator(args.api_url) as simulator:
-            # Set the latest glow count
+            # Set options from CLI
             simulator.latest_glow_count = args.latest_glow_count
+            simulator.feature_max_freq = args.feature_max_freq
+            simulator.feature_max_index = args.feature_max_index
+            simulator.include_metadata = args.include_metadata
             
             # Determine baseline_id
             if args.baseline_id:
