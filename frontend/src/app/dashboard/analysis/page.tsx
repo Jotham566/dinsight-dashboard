@@ -184,7 +184,7 @@ export default function AdvancedAnalysisPage() {
       }
     },
   });
-  
+
   // Auto-select latest (highest ID) available dinsight ID when data loads
   useEffect(() => {
     if (availableDinsightIds && availableDinsightIds.length > 0 && baselineDataset === null) {
@@ -194,7 +194,7 @@ export default function AdvancedAnalysisPage() {
       setBaselineDataset(latestDataset.dinsight_id);
     }
   }, [availableDinsightIds, baselineDataset]);
-  
+
   // Add manual refresh button handler
   const handleRefreshDinsightIds = () => {
     refetchDinsightIds();

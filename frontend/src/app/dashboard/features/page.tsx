@@ -206,11 +206,14 @@ export default function FeatureAnalysisPage() {
         let consecutiveFailures = 0;
         let totalAttempts = 0;
 
-
         // Robust: scan up to 1000 IDs, stop after 5 consecutive failures
         const maxId = 1000;
         const maxConsecutiveFailures = 5;
-        for (let id = 1, consecutiveFailures = 0; id <= maxId && consecutiveFailures < maxConsecutiveFailures; id++) {
+        for (
+          let id = 1, consecutiveFailures = 0;
+          id <= maxId && consecutiveFailures < maxConsecutiveFailures;
+          id++
+        ) {
           totalAttempts++;
           try {
             const response = await api.analysis.getFeatures(id);

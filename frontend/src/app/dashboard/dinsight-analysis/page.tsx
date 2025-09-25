@@ -111,7 +111,11 @@ export default function DinsightAnalysisPage() {
   });
 
   // --- Standardized DInsight dataset discovery ---
-  const { data: availableDinsightIds, isLoading: dinsightIdsLoading, refetch: refetchDinsightIds } = useQuery<any[]>({
+  const {
+    data: availableDinsightIds,
+    isLoading: dinsightIdsLoading,
+    refetch: refetchDinsightIds,
+  } = useQuery<any[]>({
     queryKey: ['available-dinsight-ids'],
     refetchOnWindowFocus: true,
     refetchInterval: 30000,
@@ -158,7 +162,10 @@ export default function DinsightAnalysisPage() {
       const latestDataset = availableDinsightIds.reduce((latest, current) =>
         current.dinsight_id > latest.dinsight_id ? current : latest
       );
-      setProcessingState((prev: ProcessingState) => ({ ...prev, dinsightId: latestDataset.dinsight_id }));
+      setProcessingState((prev: ProcessingState) => ({
+        ...prev,
+        dinsightId: latestDataset.dinsight_id,
+      }));
     }
   }, [availableDinsightIds, processingState.dinsightId]);
 
