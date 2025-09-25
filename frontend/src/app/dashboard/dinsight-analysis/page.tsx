@@ -110,6 +110,58 @@ export default function DinsightAnalysisPage() {
     },
   });
 
+  // --- Standardized DInsight dataset discovery ---
+  const { data: availableDinsightIds, isLoading: dinsightIdsLoading, refetch: refetchDinsightIds } = useQuery<any[]>({
+    queryKey: ['available-dinsight-ids'],
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    staleTime: 10000,
+    queryFn: async (): Promise<any[]> => {
+      const validDatasets: any[] = [];
+      let id = 1;
+      let consecutiveFailures = 0;
+      const maxConsecutiveFailures = 5;
+      const maxId = 1000;
+      while (consecutiveFailures < maxConsecutiveFailures && id <= maxId) {
+        try {
+          const response = await apiClient.get(`/dinsight/${id}`);
+          if (
+            response.data.success &&
+            response.data.data &&
+            response.data.data.dinsight_x &&
+            response.data.data.dinsight_y &&
+            Array.isArray(response.data.data.dinsight_x) &&
+            Array.isArray(response.data.data.dinsight_y) &&
+            response.data.data.dinsight_x.length > 0 &&
+            response.data.data.dinsight_y.length > 0
+          ) {
+            validDatasets.push({
+              dinsight_id: id,
+              name: `Dinsight ID ${id}`,
+              type: 'dinsight',
+            });
+            consecutiveFailures = 0;
+          } else {
+            consecutiveFailures++;
+          }
+        } catch (error: any) {
+          consecutiveFailures++;
+        }
+        id++;
+      }
+      return validDatasets;
+    },
+  });
+
+  useEffect(() => {
+    if (availableDinsightIds && availableDinsightIds.length > 0 && !processingState.dinsightId) {
+      const latestDataset = availableDinsightIds.reduce((latest, current) =>
+        current.dinsight_id > latest.dinsight_id ? current : latest
+      );
+      setProcessingState((prev: ProcessingState) => ({ ...prev, dinsightId: latestDataset.dinsight_id }));
+    }
+  }, [availableDinsightIds, processingState.dinsightId]);
+
   // Polling effect to check processing status
   useEffect(() => {
     let intervalId: NodeJS.Timeout;

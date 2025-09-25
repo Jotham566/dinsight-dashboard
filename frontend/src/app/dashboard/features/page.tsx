@@ -87,6 +87,12 @@ interface FeatureStats {
   variance: number;
 }
 
+interface FeatureDataset {
+  feature_dataset_id: number;
+  name: string;
+  type: 'feature';
+}
+
 // Helper functions
 const transformApiDataToFeatureData = (apiResponse: FeatureApiResponse): FeatureData[] => {
   if (!apiResponse?.data?.feature_values || !Array.isArray(apiResponse.data.feature_values)) {
@@ -200,14 +206,14 @@ export default function FeatureAnalysisPage() {
         let consecutiveFailures = 0;
         let totalAttempts = 0;
 
-        // **PERFORMANCE FIX**: More aggressive early termination - scan only first 8 IDs with better error handling
-        for (let id = 1; id <= 8; id++) {
-          totalAttempts++;
 
+        // Robust: scan up to 1000 IDs, stop after 5 consecutive failures
+        const maxId = 1000;
+        const maxConsecutiveFailures = 5;
+        for (let id = 1, consecutiveFailures = 0; id <= maxId && consecutiveFailures < maxConsecutiveFailures; id++) {
+          totalAttempts++;
           try {
             const response = await api.analysis.getFeatures(id);
-
-            // Validate this is a proper feature record with feature_values
             if (
               response.data.success &&
               response.data.data &&
@@ -220,48 +226,26 @@ export default function FeatureAnalysisPage() {
                 name: `Feature Analysis ID ${id} (${response.data.data.total_rows} samples)`,
                 type: 'features' as const,
               });
-              consecutiveFailures = 0; // Reset counter on success
+              consecutiveFailures = 0;
               console.log(`✅ Found valid feature dataset at ID ${id}`);
             } else {
               consecutiveFailures++;
               console.log(`⚠️ ID ${id}: Invalid response structure or empty data`);
-
-              // **IMPROVED**: Be less aggressive - allow up to 3 consecutive failures
-              if (consecutiveFailures >= 3) {
-                console.log(
-                  `🛑 Stopping feature scan at ID ${id} after ${consecutiveFailures} consecutive failures`
-                );
-                break;
-              }
             }
           } catch (error: any) {
             consecutiveFailures++;
-
             if (error?.response?.status === 404) {
               console.log(`❌ Feature ID ${id} not found (404)`);
             } else if (error?.response?.status === 500) {
               console.log(`💥 Server error for Feature ID ${id} (500)`);
             } else if (error?.code === 'ECONNREFUSED' || error?.code === 'NETWORK_ERROR') {
               console.error(`🔌 Network error scanning Feature ID ${id}:`, error.message);
-              // Network errors shouldn't stop the scan immediately
-              if (totalAttempts <= 3) {
-                consecutiveFailures = Math.max(0, consecutiveFailures - 1); // Be more forgiving for network errors
-              }
             } else {
               console.warn(`❓ Unexpected error checking feature upload ID ${id}:`, error.message);
             }
-
-            // **IMPROVED**: Allow more failures and differentiate error types
-            if (consecutiveFailures >= 3) {
-              console.log(
-                `🛑 Stopping feature scan at ID ${id} after ${consecutiveFailures} consecutive failures`
-              );
-              break;
-            }
           }
-
           // Small delay to prevent overwhelming the server
-          if (id < 8) {
+          if (id < maxId) {
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
         }
@@ -654,6 +638,66 @@ export default function FeatureAnalysisPage() {
     prev && current && prev.variance < current.variance ? prev : current
   );
 
+  // Query for available file upload IDs - performance optimized discovery
+  const {
+    data: availableFeatureDatasets,
+    isLoading: featureDatasetsLoading,
+    refetch: refetchFeatureDatasets,
+  } = useQuery<FeatureDataset[]>({
+    queryKey: ['available-feature-datasets'],
+    refetchOnWindowFocus: true, // Always refetch when window regains focus
+    refetchInterval: 30000, // Poll every 30s for new datasets
+    staleTime: 10000, // Mark as stale after 10s for quick refresh
+    queryFn: async (): Promise<FeatureDataset[]> => {
+      // Robust: fetch all available feature datasets by incrementally scanning until N consecutive misses
+      const validDatasets: FeatureDataset[] = [];
+      let id = 1;
+      let consecutiveFailures = 0;
+      const maxConsecutiveFailures = 5;
+      const maxId = 1000; // Safety cap
+      while (consecutiveFailures < maxConsecutiveFailures && id <= maxId) {
+        try {
+          const response = await api.analysis.getFeatures(id);
+          if (
+            response.data.success &&
+            response.data.data &&
+            response.data.data.features &&
+            Array.isArray(response.data.data.features) &&
+            response.data.data.features.length > 0
+          ) {
+            validDatasets.push({
+              feature_dataset_id: id,
+              name: `Feature Dataset ${id}`,
+              type: 'feature' as const,
+            });
+            consecutiveFailures = 0;
+          } else {
+            consecutiveFailures++;
+          }
+        } catch (error: any) {
+          consecutiveFailures++;
+        }
+        id++;
+      }
+      return validDatasets;
+    },
+  });
+
+  // Auto-select latest (highest ID) available feature dataset when data loads
+  useEffect(() => {
+    if (availableFeatureDatasets && availableFeatureDatasets.length > 0 && !selectedFileUploadId) {
+      const latestDataset = availableFeatureDatasets.reduce((latest, current) =>
+        current.feature_dataset_id > latest.feature_dataset_id ? current : latest
+      );
+      setSelectedFileUploadId(latestDataset.feature_dataset_id);
+    }
+  }, [availableFeatureDatasets, selectedFileUploadId]);
+
+  // Add manual refresh button handler
+  const handleRefreshFeatureDatasets = () => {
+    refetchFeatureDatasets();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Improved Non-Intrusive Toast Notification */}
@@ -747,7 +791,7 @@ export default function FeatureAnalysisPage() {
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 {/* Compact Status */}
-                {datasetsLoading ? (
+                {featureDatasetsLoading ? (
                   <div className="flex items-center justify-center py-4">
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin text-primary-600" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">

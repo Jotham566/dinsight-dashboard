@@ -110,7 +110,7 @@ export default function AdvancedAnalysisPage() {
   const {
     data: availableDinsightIds,
     isLoading: datasetsLoading,
-    refetch: refetchDatasets,
+    refetch: refetchDinsightIds,
   } = useQuery<DinsightDataset[]>({
     queryKey: ['available-dinsight-ids'],
     retry: false, // Don't retry failed requests automatically
@@ -184,6 +184,21 @@ export default function AdvancedAnalysisPage() {
       }
     },
   });
+  
+  // Auto-select latest (highest ID) available dinsight ID when data loads
+  useEffect(() => {
+    if (availableDinsightIds && availableDinsightIds.length > 0 && baselineDataset === null) {
+      const latestDataset = availableDinsightIds.reduce((latest, current) =>
+        current.dinsight_id > latest.dinsight_id ? current : latest
+      );
+      setBaselineDataset(latestDataset.dinsight_id);
+    }
+  }, [availableDinsightIds, baselineDataset]);
+  
+  // Add manual refresh button handler
+  const handleRefreshDinsightIds = () => {
+    refetchDinsightIds();
+  };
 
   // Filter baseline datasets to only those with monitoring data
   const baselinesWithMonitoring = useMemo(
@@ -567,7 +582,7 @@ export default function AdvancedAnalysisPage() {
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => refetchDatasets()}
+                  onClick={handleRefreshDinsightIds}
                   className="glass-card hover:shadow-lg transition-all duration-200"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />

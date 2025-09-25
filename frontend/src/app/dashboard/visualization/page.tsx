@@ -49,80 +49,56 @@ export default function VisualizationPage() {
   const [plotElement, setPlotElement] = useState<any>(null);
 
   // Query for available dinsight datasets
-  const { data: availableDinsightIds, isLoading: datasetsLoading } = useQuery<Dataset[]>({
+  const {
+    data: availableDinsightIds,
+    isLoading: datasetsLoading,
+    refetch: refetchDinsightIds,
+  } = useQuery<Dataset[]>({
     queryKey: ['available-dinsight-ids'],
+    refetchOnWindowFocus: true, // Always refetch when window regains focus
+    refetchInterval: 30000, // Poll every 30s for new datasets
+    staleTime: 10000, // Mark as stale after 10s for quick refresh
     queryFn: async (): Promise<Dataset[]> => {
-      try {
-        const validDatasets: Dataset[] = [];
-
-        // **PERFORMANCE FIX**: Scan only first 6 IDs with aggressive early termination
-        let consecutiveFailures = 0;
-        for (let id = 1; id <= 6; id++) {
-          try {
-            const response = await api.analysis.getDinsight(id);
-
-            // Validate this is a proper dinsight record with coordinates
-            if (
-              response.data.success &&
-              response.data.data &&
-              response.data.data.dinsight_x &&
-              response.data.data.dinsight_y &&
-              Array.isArray(response.data.data.dinsight_x) &&
-              Array.isArray(response.data.data.dinsight_y) &&
-              response.data.data.dinsight_x.length > 0 &&
-              response.data.data.dinsight_y.length > 0
-            ) {
-              validDatasets.push({
-                dinsight_id: id,
-                name: `Dinsight ID ${id}`,
-                type: 'dinsight' as const,
-              });
-              consecutiveFailures = 0; // Reset counter on success
-            } else {
-              consecutiveFailures++;
-              // Stop after 2 consecutive failures for dinsight
-              if (consecutiveFailures >= 2) {
-                console.log(
-                  `Stopping dinsight scan at ID ${id} after ${consecutiveFailures} consecutive failures`
-                );
-                break;
-              }
-            }
-          } catch (error: any) {
+      // Robust: fetch all available Dinsight IDs by incrementally scanning until N consecutive misses
+      const validDatasets: Dataset[] = [];
+      let id = 1;
+      let consecutiveFailures = 0;
+      const maxConsecutiveFailures = 5;
+      const maxId = 1000; // Safety cap
+      while (consecutiveFailures < maxConsecutiveFailures && id <= maxId) {
+        try {
+          const response = await api.analysis.getDinsight(id);
+          if (
+            response.data.success &&
+            response.data.data &&
+            response.data.data.dinsight_x &&
+            response.data.data.dinsight_y &&
+            Array.isArray(response.data.data.dinsight_x) &&
+            Array.isArray(response.data.data.dinsight_y) &&
+            response.data.data.dinsight_x.length > 0 &&
+            response.data.data.dinsight_y.length > 0
+          ) {
+            validDatasets.push({
+              dinsight_id: id,
+              name: `Dinsight ID ${id}`,
+              type: 'dinsight' as const,
+            });
+            consecutiveFailures = 0;
+          } else {
             consecutiveFailures++;
-            // If we get a 404 or any error, count as failure
-            if (error?.response?.status === 404) {
-              console.log(`Dinsight ID ${id} not found (404)`);
-            } else {
-              console.warn(`Error checking dinsight ID ${id}:`, error);
-            }
-
-            // Stop scanning after 2 consecutive failures to avoid unnecessary requests
-            if (consecutiveFailures >= 2) {
-              console.log(
-                `Stopping dinsight scan at ID ${id} after ${consecutiveFailures} consecutive failures`
-              );
-              break;
-            }
           }
+        } catch (error: any) {
+          consecutiveFailures++;
         }
-
-        console.log(
-          `Found ${validDatasets.length} valid dinsight datasets:`,
-          validDatasets.map((d) => d.dinsight_id)
-        );
-        return validDatasets;
-      } catch (error) {
-        console.warn('Failed to fetch available dinsight IDs:', error);
-        return [];
+        id++;
       }
+      return validDatasets;
     },
   });
 
   // Auto-select latest (highest ID) available dinsight ID when data loads
   useEffect(() => {
-    if (availableDinsightIds && availableDinsightIds.length > 0 && selectedDinsightId === null) {
-      // Find the dataset with the highest dinsight_id (latest data)
+    if (availableDinsightIds && availableDinsightIds.length > 0 && !selectedDinsightId) {
       const latestDataset = availableDinsightIds.reduce((latest, current) =>
         current.dinsight_id > latest.dinsight_id ? current : latest
       );
