@@ -1828,11 +1828,13 @@ export default function StreamingVisualizationPage() {
         title: { text: "D'insight X Coordinate" },
         gridcolor: '#f1f5f9',
         zerolinecolor: '#e2e8f0',
+        range: [-1, 1],
       },
       yaxis: {
         title: { text: "D'insight Y Coordinate" },
         gridcolor: '#f1f5f9',
         zerolinecolor: '#e2e8f0',
+        range: [-1, 1],
       },
       height: 600,
       margin: { l: 60, r: 30, t: 30, b: 60 },

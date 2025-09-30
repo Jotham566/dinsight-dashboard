@@ -354,8 +354,8 @@ export default function VisualizationPage() {
       // Single plot configuration (overlay mode)
       return {
         ...baseLayout,
-        xaxis: { title: { text: 'Dinsight X' } },
-        yaxis: { title: { text: 'Dinsight Y' } },
+        xaxis: { title: { text: 'Dinsight X' }, range: [-1, 1] },
+        yaxis: { title: { text: 'Dinsight Y' }, range: [-1, 1] },
         height: 700,
       };
     }

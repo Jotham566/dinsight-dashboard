@@ -513,8 +513,8 @@ export default function AdvancedAnalysisPage() {
       data,
       layout: {
         title: { text: 'Anomaly Detection Analysis - Baseline vs Monitor' },
-        xaxis: { title: { text: 'Dinsight X' } },
-        yaxis: { title: { text: 'Dinsight Y' } },
+        xaxis: { title: { text: 'Dinsight X' }, range: [-1, 1] },
+        yaxis: { title: { text: 'Dinsight Y' }, range: [-1, 1] },
         height: 700,
         template: 'plotly_white' as any,
         legend: {
