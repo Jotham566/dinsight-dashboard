@@ -90,9 +90,9 @@ export default function RegisterPage() {
                   <Check className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Free Trial</h3>
+                  <h3 className="font-semibold mb-1">Register Account</h3>
                   <p className="text-sm text-primary-100">
-                    Start with a 14-day free trial of all premium features
+                    Simple and quick registration process
                   </p>
                 </div>
               </div>
@@ -101,9 +101,9 @@ export default function RegisterPage() {
                   <Check className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">No Credit Card Required</h3>
+                  <h3 className="font-semibold mb-1">Upload & Stream</h3>
                   <p className="text-sm text-primary-100">
-                    Explore all features without any payment information
+                    Upload data or Stream direct from your Machines
                   </p>
                 </div>
               </div>
@@ -112,9 +112,9 @@ export default function RegisterPage() {
                   <Check className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Expert Support</h3>
+                  <h3 className="font-semibold mb-1">Detect and Predict</h3>
                   <p className="text-sm text-primary-100">
-                    Get help from our team of predictive maintenance experts
+                    Detect anomalies and failures before they occur
                   </p>
                 </div>
               </div>
