@@ -91,9 +91,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Register Account</h3>
-                  <p className="text-sm text-primary-100">
-                    Simple and quick registration process
-                  </p>
+                  <p className="text-sm text-primary-100">Simple and quick registration process</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
