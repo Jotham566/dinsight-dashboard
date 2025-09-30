@@ -30,6 +30,7 @@ The D'insight Real-Time Streaming feature enables live monitoring of machine hea
 **Key Features**:
 - Supports existing baseline ID or new baseline file upload
 - Configurable streaming delay and batch size
+- Interactive prompt for monitor file path
 - Progress tracking and error handling
 - Async I/O for efficient API communication
 - Comprehensive logging
@@ -39,11 +40,11 @@ The D'insight Real-Time Streaming feature enables live monitoring of machine hea
 # Use existing baseline
 python3 streaming_simulator.py --baseline-id 1
 
-# Upload new baseline and stream
+# Upload new baseline and stream (will prompt for monitor file)
 python3 streaming_simulator.py --baseline-file "test-data/Store D Line A - Baseline.csv"
 
-# Custom parameters
-python3 streaming_simulator.py --baseline-id 1 --delay 1.0 --batch-size 5
+# Custom parameters with monitor file provided
+python3 streaming_simulator.py --baseline-id 1 --monitor-file "monitor.csv" --delay 1.0 --batch-size 5
 ```
 
 ### 2. Backend API Endpoints
@@ -82,54 +83,62 @@ Clears all monitoring data for a baseline (useful for testing).
 ### 3. Frontend Streaming Page (`/dashboard/streaming`)
 
 **Key Features**:
+- **Two-Phase Workflow**: First, visualize and interact with baseline data. Then, start monitoring.
 - **Real-time visualization**: Live plotting of baseline + monitoring data
 - **Streaming controls**: Start, pause, stop, and reset functionality
-- **Interactive settings**: Point size, contours, auto-refresh intervals
+- **Interactive settings**: Point size, contours, auto-refresh intervals, and streaming speed.
 - **Status monitoring**: Progress tracking and connection status
 - **Responsive design**: Optimized for different screen sizes
 
 **Technical Implementation**:
-- **Polling-based updates**: HTTP polling every 2 seconds (configurable)
+- **Polling-based updates**: HTTP polling at configurable intervals.
 - **Plotly.js integration**: High-performance scatter plots with contours
 - **React Query**: Efficient data fetching and caching
 - **Modular design**: Based on existing Data Comparison page
 
 ## Data Flow
 
-1. **Baseline Setup**:
-   - User selects existing baseline ID OR uploads new baseline file
-   - Simulator validates baseline has coordinates available
+1.  **Baseline Setup**:
+    -   User starts the `streaming_simulator.py` with a baseline ID or file.
+    -   The script uploads and processes the baseline data, then prints a URL to the streaming page.
 
-2. **Streaming Process**:
-   - Simulator reads monitor CSV file row by row
-   - Creates temporary CSV files for batches (default: 1 point per batch)
-   - Sends batches to `/monitor/{baseline_id}` endpoint
-   - Backend processes and stores monitor coordinates
+2.  **Baseline Visualization**:
+    -   User opens the provided URL in the browser.
+    -   The frontend fetches and displays the baseline data, allowing the user to visually inspect it and use selection tools to define a "normal" area.
 
-3. **Real-time Visualization**:
-   - Frontend polls streaming status and data every 2 seconds
-   - Plotly.js renders baseline points (blue) + live monitor points (red)
-   - Users can control streaming and visualization settings
+3.  **Start Monitoring**:
+    -   The script prompts the user to enter the path to the monitoring CSV file.
+    -   Once the path is provided, the user can click "Start Monitoring" on the frontend.
+
+4.  **Streaming Process**:
+    -   The simulator reads the monitor CSV file and starts sending data in batches to the `/monitor/{baseline_id}` endpoint.
+
+5.  **Real-time Visualization**:
+    -   The frontend polls for new monitoring data at a rate determined by the selected "Speed" (`0.5x`, `1x`, `2x`).
+    -   Plotly.js renders the baseline points (blue) and live monitor points (red).
 
 ## Configuration
 
 ### Simulator Parameters
 
 | Parameter | Description | Default | Example |
-|-----------|-------------|---------|---------|
+|---|---|---|---|
 | `--baseline-id` | Use existing baseline | - | `--baseline-id 1` |
 | `--baseline-file` | Upload new baseline | - | `--baseline-file "data.csv"` |
-| `--monitor-file` | Monitor data file | `Store D Line A - Monitor.csv` | `--monitor-file "monitor.csv"` |
+| `--monitor-file` | Path to monitor CSV file (optional, will be prompted if not provided) | - | `--monitor-file "monitor.csv"` |
 | `--delay` | Delay between batches (seconds) | 2.0 | `--delay 1.0` |
 | `--batch-size` | Points per batch | 1 | `--batch-size 5` |
 | `--api-url` | API base URL | `http://localhost:8080/api/v1` | `--api-url "http://api.example.com"` |
 
 ### Frontend Settings
 
-- **Point Size**: 2-12px (default: 6px)
-- **Show Contours**: Density contours for both baseline and monitoring data
-- **Auto-refresh**: Toggle automatic data polling
-- **Refresh Interval**: Currently fixed at 2 seconds
+-   **Point Size**: 2-12px (default: 6px)
+-   **Show Contours**: Density contours for both baseline and monitoring data
+-   **Auto-refresh**: Toggle automatic data polling
+-   **Speed**: Controls the refresh interval. It is important to match this with the simulator's `--delay` for a smooth experience.
+    -   **2x**: 500ms (0.5s) - Use with `--delay 0.5`
+    -   **1x**: 1000ms (1s) - Use with `--delay 1.0`
+    -   **0.5x**: 2000ms (2s) - Use with `--delay 2.0`
 
 ## Use Cases
 
@@ -166,103 +175,105 @@ Test the complete data pipeline from sensors to visualization.
 
 ### Common Issues
 
-1. **API Connection Failed**
-   - Verify API server is running on port 8080
-   - Check API URL in simulator parameters
-   - Ensure no firewall blocking localhost connections
+1.  **API Connection Failed**
+    -   Verify API server is running on port 8080
+    -   Check API URL in simulator parameters
+    -   Ensure no firewall blocking localhost connections
 
-2. **Baseline Not Found**
-   - Verify baseline ID exists in database
-   - Check that baseline has processed coordinates (dinsight_x, dinsight_y)
-   - Wait for baseline processing to complete before streaming
+2.  **Baseline Not Found**
+    -   Verify baseline ID exists in database
+    -   Check that baseline has processed coordinates (dinsight_x, dinsight_y)
+    -   Wait for baseline processing to complete before streaming
 
-3. **CSV File Errors**
-   - Ensure monitor file has same column structure as baseline
-   - Check file encoding (UTF-8 recommended)
-   - Verify file permissions and path
+3.  **CSV File Errors**
+    -   Ensure monitor file has same column structure as baseline
+    -   Check file encoding (UTF-8 recommended)
+    -   Verify file permissions and path
 
-4. **Frontend Not Updating**
-   - Check browser network tab for API call failures
-   - Verify auto-refresh is enabled
-   - Try manual refresh button
+4.  **Frontend Not Updating**
+    -   Check browser network tab for API call failures
+    -   Verify auto-refresh is enabled
+    -   Try manual refresh button
 
 ### Performance Issues
 
-1. **Slow Visualization**
-   - Reduce point size or disable contours
-   - Consider using data sampling for very large datasets
-   - Check browser performance tab for memory usage
+1.  **Slow Visualization**
+    -   Reduce point size or disable contours
+    -   Consider using data sampling for very large datasets
+    -   Check browser performance tab for memory usage
 
-2. **High API Load**
-   - Increase streaming delay between batches
-   - Increase batch size to reduce API calls
-   - Consider implementing WebSocket for high-frequency updates
+2.  **High API Load**
+    -   Increase streaming delay between batches
+    -   Increase batch size to reduce API calls
+    -   Consider implementing WebSocket for high-frequency updates
 
 ## Future Enhancements
 
 ### Planned Features
 
-1. **WebSocket Support**: Replace HTTP polling with real-time WebSocket connections
-2. **Multiple Stream Sources**: Support concurrent streaming from multiple machines
-3. **Alert Integration**: Real-time anomaly alerts during streaming
-4. **Data Export**: Export streaming session data for further analysis
-5. **Historical Playback**: Replay past streaming sessions at variable speeds
+1.  **WebSocket Support**: Replace HTTP polling with real-time WebSocket connections
+2.  **Multiple Stream Sources**: Support concurrent streaming from multiple machines
+3.  **Alert Integration**: Real-time anomaly alerts during streaming
+4.  **Data Export**: Export streaming session data for further analysis
+5.  **Historical Playback**: Replay past streaming sessions at variable speeds
 
 ### Technical Improvements
 
-1. **Connection Resilience**: Auto-reconnection and error recovery
-2. **Data Compression**: Optimize payload size for high-frequency streams
-3. **Clustering Integration**: Scale across multiple backend instances
-4. **Mobile Optimization**: Touch-friendly controls and responsive charts
+1.  **Connection Resilience**: Auto-reconnection and error recovery
+2.  **Data Compression**: Optimize payload size for high-frequency streams
+3.  **Clustering Integration**: Scale across multiple backend instances
+4.  **Mobile Optimization**: Touch-friendly controls and responsive charts
 
 ## API Reference
 
 ### Existing Endpoints Used
 
-- `POST /api/v1/analyze` - Upload baseline files
-- `GET /api/v1/dinsight/{id}` - Get baseline coordinates
-- `POST /api/v1/monitor/{id}` - Upload monitoring data
-- `GET /api/v1/monitor/{id}/coordinates` - Get monitoring coordinates
+-   `POST /api/v1/analyze` - Upload baseline files
+-   `GET /api/v1/dinsight/{id}` - Get baseline coordinates
+-   `POST /api/v1/monitor/{id}` - Upload monitoring data
+-   `GET /api/v1/monitor/{id}/coordinates` - Get monitoring coordinates
 
 ### New Streaming Endpoints
 
-- `GET /api/v1/streaming/{baseline_id}/status` - Get streaming status
-- `GET /api/v1/streaming/{baseline_id}/latest` - Get latest points
-- `DELETE /api/v1/streaming/{baseline_id}/reset` - Reset streaming data
+-   `GET /api/v1/streaming/{baseline_id}/status` - Get streaming status
+-   `GET /api/v1/streaming/{baseline_id}/latest` - Get latest points
+-   `DELETE /api/v1/streaming/{baseline_id}/reset` - Reset streaming data
 
 ## Security Considerations
 
-- **Authentication**: All streaming endpoints require valid JWT tokens
-- **Rate Limiting**: Consider implementing rate limits for high-frequency streaming
-- **Data Validation**: Validate all uploaded CSV data for security
-- **Access Control**: Ensure users can only access their own streaming sessions
+-   **Authentication**: All streaming endpoints require valid JWT tokens
+-   **Rate Limiting**: Consider implementing rate limits for high-frequency streaming
+-   **Data Validation**: Validate all uploaded CSV data for security
+-   **Access Control**: Ensure users can only access their own streaming sessions
 
 ---
 
 ## Quick Start Guide
 
-1. **Setup Environment**:
-   ```bash
-   ./setup_streaming.sh
-   ```
+1.  **Setup Environment**:
+    ```bash
+    ./setup_streaming.sh
+    ```
 
-2. **Start Services**:
-   ```bash
-   # Terminal 1: API Server
-   cd Dinsight_API && ./dist/api-server
-   
-   # Terminal 2: Frontend
-   cd frontend && npm run dev
-   ```
+2.  **Start Services**:
+    ```bash
+    # Terminal 1: API Server
+    cd Dinsight_API && ./dist/api-server
+    
+    # Terminal 2: Frontend
+    cd frontend && npm run dev
+    ```
 
-3. **Start Streaming**:
-   ```bash
-   # Terminal 3: Simulator
-   source .venv/bin/activate
-   python3 streaming_simulator.py --baseline-id 1
-   ```
+3.  **Start Streaming**:
+    ```bash
+    # Terminal 3: Simulator
+    source .venv/bin/activate
+    python3 streaming_simulator.py --baseline-id 1
+    ```
 
-4. **View Results**:
-   Open `http://localhost:3000/dashboard/streaming`
+4.  **Visualize and Stream**:
+    -   The simulator will output a URL. Open it in your browser.
+    -   Visualize the baseline data and select a normal area if desired.
+    -   The simulator will prompt you for the path to the monitoring file. Enter the path to begin streaming.
 
 The real-time streaming feature is now ready for production use! 🚀

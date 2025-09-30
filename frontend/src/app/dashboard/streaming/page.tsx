@@ -122,7 +122,7 @@ export default function StreamingVisualizationPage() {
   const [isRunningAnomalyDetection, setIsRunningAnomalyDetection] = useState<boolean>(false);
 
   // Manual selection state
-  const [enableManualSelection, setEnableManualSelection] = useState<boolean>(false);
+  const [enableManualSelection, setEnableManualSelection] = useState<boolean>(true);
   const [selectionMode, setSelectionMode] = useState<'rectangle' | 'circle' | 'oval'>('rectangle');
   const [enableMultipleSelections, setEnableMultipleSelections] = useState<boolean>(false);
   const [manualSelectionBoundaries, setManualSelectionBoundaries] = useState<
@@ -149,12 +149,13 @@ export default function StreamingVisualizationPage() {
     normal_points: number[];
     anomaly_points: number[];
   } | null>(null);
+  const [monitoringStarted, setMonitoringStarted] = useState(false);
 
   // Update refreshInterval when streamSpeed changes
   useEffect(() => {
-    if (streamSpeed === '2x') setRefreshInterval(1000);
-    else if (streamSpeed === '0.5x') setRefreshInterval(4000);
-    else setRefreshInterval(2000);
+    if (streamSpeed === '2x') setRefreshInterval(500);
+    else if (streamSpeed === '0.5x') setRefreshInterval(2000);
+    else setRefreshInterval(1000);
   }, [streamSpeed]);
 
   // Query for available dinsight datasets
@@ -279,7 +280,9 @@ export default function StreamingVisualizationPage() {
         // Fetch baseline and monitoring data separately
         const [baselineResponse, monitoringResponse] = await Promise.all([
           apiClient.get(`/dinsight/${selectedDinsightId}`),
-          apiClient.get(`/monitor/${selectedDinsightId}/coordinates`),
+          monitoringStarted
+            ? apiClient.get(`/monitor/${selectedDinsightId}/coordinates`)
+            : Promise.resolve({ data: {} }),
         ]);
 
         const baselineData = baselineResponse.data.data;
@@ -1089,7 +1092,7 @@ export default function StreamingVisualizationPage() {
     }
 
     // Streaming monitoring data with manual selection, anomaly detection, or simple mode
-    if (dinsightData.monitoring.dinsight_x.length > 0) {
+    if (monitoringStarted && dinsightData.monitoring.dinsight_x.length > 0) {
       const monitoringCount = dinsightData.monitoring.dinsight_x.length;
 
       if (enableManualSelection && manualSelectionBoundary && manualClassification) {
@@ -1686,6 +1689,7 @@ export default function StreamingVisualizationPage() {
     anomalyResults,
     manualClassification,
     manualSelectionBoundary,
+    monitoringStarted,
   ]);
 
   // Helper function to create shape from boundary
@@ -1955,6 +1959,17 @@ export default function StreamingVisualizationPage() {
             {/* Streaming Controls - Horizontal */}
             <div className="flex items-center gap-2">
               <Button
+                onClick={() => setMonitoringStarted(true)}
+                className={cn(
+                  'transition-all duration-200',
+                  'bg-blue-500 hover:bg-blue-600 text-white'
+                )}
+                disabled={!selectedDinsightId || monitoringStarted}
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Start Monitoring
+              </Button>
+              <Button
                 onClick={toggleStreaming}
                 className={cn(
                   'transition-all duration-200',
@@ -1962,7 +1977,7 @@ export default function StreamingVisualizationPage() {
                     ? 'bg-orange-500 hover:bg-orange-600 text-white'
                     : 'bg-green-500 hover:bg-green-600 text-white'
                 )}
-                disabled={!selectedDinsightId}
+                disabled={!selectedDinsightId || !monitoringStarted}
               >
                 {isStreaming ? (
                   <Pause className="w-4 h-4 mr-2" />
@@ -1971,7 +1986,11 @@ export default function StreamingVisualizationPage() {
                 )}
                 {isStreaming ? 'Pause' : 'Start'}
               </Button>
-              <Button onClick={stopStreaming} variant="outline" disabled={!selectedDinsightId}>
+              <Button
+                onClick={stopStreaming}
+                variant="outline"
+                disabled={!selectedDinsightId || !monitoringStarted}
+              >
                 <Square className="w-4 h-4" />
               </Button>
             </div>

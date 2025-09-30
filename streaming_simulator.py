@@ -416,7 +416,8 @@ class StreamingSimulator:
         logger.info(f"🎬 Starting streaming simulation...")
         logger.info(f"   📊 Baseline ID: {baseline_id}")
         logger.info(f"   📈 Monitor points: {len(self.monitor_data)}")
-        logger.info(f"   ⏱️  Delay: {delay_seconds}s per {batch_size} point(s)")
+        logger.info(f"   ⏱️  Delay: {delay_seconds}s per batch")
+        logger.info(f"   📦 Batch size: {batch_size} point(s) per batch")
         logger.info(f"   📍 Baseline coordinates: {len(self.baseline_coordinates[0])} points")
         
         # Create a temporary CSV file for each batch
@@ -429,6 +430,10 @@ class StreamingSimulator:
                 batch_num = (i // batch_size) + 1
                 total_batches = (len(self.monitor_data) + batch_size - 1) // batch_size
                 
+                logger.info(f"--- Preparing Batch {batch_num}/{total_batches} ---")
+                logger.info(f"Slicing monitor_data from index {i} to {i + batch_size}")
+                logger.info(f"Actual batch size: {len(batch)}")
+
                 # Create temporary CSV file for this batch
                 temp_csv_path = temp_dir / f"monitor_batch_{batch_num}.csv"
                 
@@ -505,7 +510,7 @@ class StreamingSimulator:
             ) as response:
                 if response.status in (200, 201):
                     result = await response.json()
-                    logger.info(f"✅ Streaming configuration updated: latest_glow_count={latest_glow_count}")
+                    logger.info(f"✅ Streaming configuration updated: latest_glow_count={latest_glow_count}, batch_size={batch_size}")
                 else:
                     # Log warning but continue - config update is not critical
                     error_text = await response.text()
@@ -624,10 +629,9 @@ async def main():
     baseline_group.add_argument('--baseline-file', type=str,
                                help='Upload new baseline file and use its dinsight_id')
     
-    # Monitor data file (required)
+    # Monitor data file (optional)
     parser.add_argument('--monitor-file', type=str, 
-                       default='test-data/Store D Line A - Monitor.csv',
-                       help='Path to monitor CSV file (default: test-data/Store D Line A - Monitor.csv)')
+                       help='Path to monitor CSV file (optional, will be prompted if not provided)')
     
     # Streaming parameters
     parser.add_argument('--delay', type=float, default=2.0,
@@ -663,11 +667,31 @@ async def main():
             else:
                 baseline_id = await simulator.upload_baseline_file(args.baseline_file)
                 logger.info(f"📤 Uploaded baseline file and got ID: {baseline_id}")
+
+            # Visualize baseline and get normal area
+            logger.info(f"✅ Baseline data is ready for visualization.")
+            logger.info(f"👀 Please visit the streaming page to visualize the baseline and select the normal area:")
+            logger.info(f"   http://localhost:3000/dashboard/streaming?baseline_id={baseline_id}")
+
+            # Suggest frontend speed setting
+            if args.delay <= 0.5:
+                speed_suggestion = "2x"
+            elif args.delay <= 1.0:
+                speed_suggestion = "1x"
+            else:
+                speed_suggestion = "0.5x"
+            logger.info(f"🚀 For the best experience, please select '{speed_suggestion}' speed on the frontend.")
+
+            # Get monitor file path
+            if args.monitor_file:
+                monitor_file_path = args.monitor_file
+            else:
+                monitor_file_path = input("📂 Please enter the path to the monitoring file: ")
             
             # Start streaming simulation
             await simulator.simulate_streaming(
                 baseline_id=baseline_id,
-                monitor_file_path=args.monitor_file,
+                monitor_file_path=monitor_file_path,
                 delay_seconds=args.delay,
                 batch_size=args.batch_size
             )
