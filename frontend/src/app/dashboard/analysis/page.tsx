@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api-client';
 import { ErrorBoundary } from '@/components/error-boundary';
 
@@ -80,6 +82,15 @@ export default function AdvancedAnalysisPage() {
   const [anomalyResults, setAnomalyResults] = useState<AnomalyDetectionResult | null>(null);
   const [baselineData, setBaselineData] = useState<DinsightData | null>(null);
   const [monitoringData, setMonitoringData] = useState<DinsightData | null>(null);
+  const [manualBaselineId, setManualBaselineId] = useState<string>('');
+  const [isLoadingBaseline, setIsLoadingBaseline] = useState<boolean>(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+  const [isLoadingMonitoring, setIsLoadingMonitoring] = useState<boolean>(false);
+  const [monitoringError, setMonitoringError] = useState<string | null>(null);
+  const [monitoringRefreshKey, setMonitoringRefreshKey] = useState<number>(0);
+  const [hasAppliedBaselineParam, setHasAppliedBaselineParam] = useState<boolean>(false);
+
+  const searchParams = useSearchParams();
 
   // Query for available monitoring datasets (baseline IDs that have monitoring data)
   const { data: availableMonitoringDatasets, isLoading: monitoringLoading } = useQuery<
@@ -121,6 +132,7 @@ export default function AdvancedAnalysisPage() {
       console.log('🔍 Starting to fetch available datasets...');
       try {
         const validDatasets: DinsightDataset[] = [];
+        const seenDinsightIds = new Set<number>();
         let consecutiveNotFound = 0;
         const maxConsecutiveNotFound = 3; // Stop after 3 consecutive 404s
         const maxCheckLimit = 20; // Reduce from 100 to 20 to minimize API calls
@@ -130,24 +142,31 @@ export default function AdvancedAnalysisPage() {
           try {
             console.log(`📡 Checking dataset ID ${id}...`);
             const response = await api.analysis.getDinsight(id);
+            const payload = response?.data?.data;
+            const resolvedId =
+              payload && typeof payload.dinsight_id === 'number' && payload.dinsight_id > 0
+                ? payload.dinsight_id
+                : id;
 
             // Validate this is a proper dinsight record with coordinates
             if (
               response.data.success &&
-              response.data.data &&
-              response.data.data.dinsight_x &&
-              response.data.data.dinsight_y &&
-              Array.isArray(response.data.data.dinsight_x) &&
-              Array.isArray(response.data.data.dinsight_y) &&
-              response.data.data.dinsight_x.length > 0 &&
-              response.data.data.dinsight_y.length > 0
+              payload?.dinsight_x &&
+              payload?.dinsight_y &&
+              Array.isArray(payload.dinsight_x) &&
+              Array.isArray(payload.dinsight_y) &&
+              payload.dinsight_x.length > 0 &&
+              payload.dinsight_y.length > 0
             ) {
-              validDatasets.push({
-                dinsight_id: id,
-                name: `Dataset ID ${id}`,
-                type: 'dinsight' as const,
-                records: response.data.data.dinsight_x.length,
-              });
+              if (!seenDinsightIds.has(resolvedId)) {
+                validDatasets.push({
+                  dinsight_id: resolvedId,
+                  name: `Dataset ID ${resolvedId}`,
+                  type: 'dinsight' as const,
+                  records: payload.dinsight_x.length,
+                });
+                seenDinsightIds.add(resolvedId);
+              }
               consecutiveNotFound = 0; // Reset counter on successful find
             }
           } catch (error: any) {
@@ -185,153 +204,251 @@ export default function AdvancedAnalysisPage() {
     },
   });
 
+  useEffect(() => {
+    if (!searchParams || hasAppliedBaselineParam) {
+      return;
+    }
+
+    const baselineParam = searchParams.get('baselineId');
+    if (baselineParam) {
+      const parsed = Number(baselineParam);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        setBaselineDataset(parsed);
+        setManualBaselineId(baselineParam);
+      }
+    }
+
+    setHasAppliedBaselineParam(true);
+  }, [searchParams, hasAppliedBaselineParam]);
+
   // Auto-select latest (highest ID) available dinsight ID when data loads
   useEffect(() => {
-    if (availableDinsightIds && availableDinsightIds.length > 0 && baselineDataset === null) {
-      const latestDataset = availableDinsightIds.reduce((latest, current) =>
-        current.dinsight_id > latest.dinsight_id ? current : latest
-      );
-      setBaselineDataset(latestDataset.dinsight_id);
+    if (!availableDinsightIds || availableDinsightIds.length === 0) {
+      return;
     }
-  }, [availableDinsightIds, baselineDataset]);
+
+    if (!hasAppliedBaselineParam) {
+      return;
+    }
+
+    if (baselineDataset !== null) {
+      return;
+    }
+
+    const latestDataset = availableDinsightIds.reduce((latest, current) =>
+      current.dinsight_id > latest.dinsight_id ? current : latest
+    );
+    setBaselineDataset(latestDataset.dinsight_id);
+  }, [availableDinsightIds, baselineDataset, hasAppliedBaselineParam]);
 
   // Add manual refresh button handler
   const handleRefreshDinsightIds = () => {
     refetchDinsightIds();
+    setMonitoringRefreshKey((prev) => prev + 1);
+  };
+
+  const handleManualBaselineLoad = () => {
+    const trimmedId = manualBaselineId.trim();
+    if (!trimmedId) {
+      return;
+    }
+
+    const parsed = Number(trimmedId);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      setBaselineError('Enter a valid baseline DInsight ID.');
+      return;
+    }
+
+    setBaselineError(null);
+    setMonitoringError(null);
+    setAnomalyResults(null);
+    setBaselineDataset(parsed);
+    setMonitoringRefreshKey((prev) => prev + 1);
+    refetchDinsightIds();
   };
 
   // Filter baseline datasets to only those with monitoring data
-  const baselinesWithMonitoring = useMemo(
-    () =>
-      availableDinsightIds?.filter((dataset) =>
-        availableMonitoringDatasets?.some(
-          (monitoring) => monitoring.dinsight_data_id === dataset.dinsight_id
-        )
-      ) || [],
-    [availableDinsightIds, availableMonitoringDatasets]
-  );
-
-  // Auto-select first available datasets when data loads
   useEffect(() => {
-    if (baselinesWithMonitoring && baselinesWithMonitoring.length > 0) {
-      if (baselineDataset === null) {
-        setBaselineDataset(baselinesWithMonitoring[0].dinsight_id);
+    setMonitoringDataset(null);
+  }, [baselineDataset]);
+
+  useEffect(() => {
+    if (!baselineDataset) {
+      setBaselineData(null);
+      setBaselineError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchBaseline = async () => {
+      setIsLoadingBaseline(true);
+      setBaselineError(null);
+
+      try {
+        const response = await api.analysis.getDinsight(baselineDataset);
+        const data = response?.data?.data;
+
+        if (!isCancelled) {
+          if (
+            response?.data?.success &&
+            data?.dinsight_x &&
+            data?.dinsight_y &&
+            Array.isArray(data.dinsight_x) &&
+            Array.isArray(data.dinsight_y) &&
+            data.dinsight_x.length > 0 &&
+            data.dinsight_y.length > 0
+          ) {
+            setBaselineData({
+              dinsight_x: data.dinsight_x,
+              dinsight_y: data.dinsight_y,
+            });
+            setBaselineError(null);
+          } else {
+            setBaselineData(null);
+            setBaselineError('Baseline dataset does not contain valid coordinates yet.');
+          }
+        }
+      } catch (error: any) {
+        if (!isCancelled) {
+          console.warn('Failed to fetch baseline dataset:', error);
+          setBaselineData(null);
+          const message =
+            error?.response?.data?.message || error?.message || 'Unable to load baseline dataset.';
+          setBaselineError(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingBaseline(false);
+        }
       }
-    }
-  }, [baselinesWithMonitoring, baselineDataset]);
+    };
 
-  // Auto-select monitoring dataset when baseline changes
+    fetchBaseline();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [baselineDataset]);
+
   useEffect(() => {
-    if (
-      baselineDataset &&
-      availableMonitoringDatasets?.some((m) => m.dinsight_data_id === baselineDataset)
-    ) {
-      // For the current design, monitoring dataset ID = baseline dataset ID
-      // because monitoring data is linked to baseline via dinsight_data_id
-      setMonitoringDataset(baselineDataset);
+    if (!baselineDataset) {
+      setMonitoringData(null);
+      setMonitoringError(null);
+      setMonitoringDataset(null);
+      return;
     }
-  }, [baselineDataset, availableMonitoringDatasets]);
+
+    let isCancelled = false;
+
+    const fetchMonitoring = async () => {
+      setIsLoadingMonitoring(true);
+      setMonitoringError(null);
+
+      try {
+        const response = await api.monitoring.getCoordinates(baselineDataset);
+        const payload = response?.data?.data ?? response?.data;
+        const xValues = payload?.dinsight_x;
+        const yValues = payload?.dinsight_y;
+
+        if (!isCancelled) {
+          if (
+            Array.isArray(xValues) &&
+            Array.isArray(yValues) &&
+            xValues.length > 0 &&
+            yValues.length > 0
+          ) {
+            setMonitoringData({
+              dinsight_x: xValues,
+              dinsight_y: yValues,
+            });
+            setMonitoringDataset(baselineDataset);
+          } else {
+            setMonitoringData(null);
+            setMonitoringDataset(null);
+            setMonitoringError('Monitoring data not available for this baseline yet.');
+          }
+        }
+      } catch (error: any) {
+        if (!isCancelled) {
+          console.warn('Failed to fetch monitoring dataset:', error);
+          setMonitoringData(null);
+          setMonitoringDataset(null);
+          const status = error?.response?.status;
+          const message =
+            status === 404
+              ? 'Monitoring data not found for this baseline. Upload monitoring data to continue.'
+              : error?.response?.data?.message ||
+                error?.message ||
+                'Unable to load monitoring data.';
+          setMonitoringError(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingMonitoring(false);
+        }
+      }
+    };
+
+    fetchMonitoring();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [baselineDataset, monitoringRefreshKey]);
+
+  useEffect(() => {
+    if (baselineDataset) {
+      setManualBaselineId(String(baselineDataset));
+    } else {
+      setManualBaselineId('');
+    }
+  }, [baselineDataset]);
+
+  useEffect(() => {
+    setAnomalyResults(null);
+  }, [baselineDataset]);
 
   // Define handleRunAnalysis with useCallback to prevent unnecessary re-renders
   const handleRunAnalysis = useCallback(async () => {
-    if (!baselineDataset || !monitoringDataset) {
-      console.warn('Please select both baseline and monitoring datasets');
+    if (!baselineDataset) {
+      console.warn('Select a baseline dataset before running analysis.');
+      return;
+    }
+
+    if (
+      !baselineData ||
+      baselineData.dinsight_x.length === 0 ||
+      baselineData.dinsight_y.length === 0
+    ) {
+      console.warn('Baseline data is not ready yet.');
+      return;
+    }
+
+    if (
+      !monitoringData ||
+      monitoringData.dinsight_x.length === 0 ||
+      monitoringData.dinsight_y.length === 0
+    ) {
+      console.warn('Monitoring data is not available for the selected baseline.');
       return;
     }
 
     console.log('🔄 Starting anomaly analysis...');
     setIsAnalyzing(true);
     try {
-      // First, fetch the baseline coordinates and monitoring coordinates
-      console.log('📡 Fetching baseline and monitoring coordinates...');
-      console.log('📊 Baseline dataset ID:', baselineDataset);
-      console.log('📊 Monitoring dataset ID:', monitoringDataset);
-
-      const [baselineResponse, monitoringResponse] = await Promise.all([
-        api.analysis.getDinsight(baselineDataset),
-        api.monitoring.getCoordinates(baselineDataset), // Use monitoring coordinates for the baseline ID
-      ]);
-
-      console.log('✅ API responses received');
-      console.log('📊 Baseline response:', baselineResponse);
-      console.log('📊 Monitoring response:', monitoringResponse);
-
-      if (!baselineResponse.data.success || !baselineResponse.data.data) {
-        throw new Error('Failed to fetch baseline dataset coordinates');
-      }
-
-      // Check monitoring response structure
-      if (
-        !monitoringResponse.data ||
-        (!monitoringResponse.data.success && !monitoringResponse.data.dinsight_x)
-      ) {
-        throw new Error('No monitoring data available for selected baseline dataset');
-      }
-
-      // Validate baseline data
-      const baselineData = baselineResponse.data.data;
-      if (
-        !baselineData.dinsight_x ||
-        !baselineData.dinsight_y ||
-        !Array.isArray(baselineData.dinsight_x) ||
-        !Array.isArray(baselineData.dinsight_y) ||
-        baselineData.dinsight_x.length === 0 ||
-        baselineData.dinsight_y.length === 0
-      ) {
-        throw new Error('Baseline dataset has invalid or empty coordinates');
-      }
-
-      // Validate monitoring data
-      const monitoringX = monitoringResponse.data.dinsight_x || [];
-      const monitoringY = monitoringResponse.data.dinsight_y || [];
-
-      if (
-        !Array.isArray(monitoringX) ||
-        !Array.isArray(monitoringY) ||
-        monitoringX.length === 0 ||
-        monitoringY.length === 0
-      ) {
-        throw new Error('Monitoring dataset has invalid or empty coordinates');
-      }
-
-      const baselineCoords: DinsightData = {
-        dinsight_x: baselineData.dinsight_x,
-        dinsight_y: baselineData.dinsight_y,
-      };
-
-      const monitoringCoords: DinsightData = {
-        dinsight_x: monitoringX,
-        dinsight_y: monitoringY,
-      };
-
-      setBaselineData(baselineCoords);
-      setMonitoringData(monitoringCoords);
-
-      console.log('Running anomaly detection with params:', {
-        baseline_dataset_id: baselineDataset,
-        comparison_dataset_id: baselineDataset, // Backend now uses baseline ID to find monitoring data
-        sensitivity_factor: sensitivity,
-        detection_method: detectionMethod,
-      });
-
-      // Run anomaly detection with proper backend integration
       const response = await api.anomaly.detect({
         baseline_dataset_id: baselineDataset,
-        comparison_dataset_id: baselineDataset, // Backend now uses baseline ID to find monitoring data
-        sensitivity_factor: sensitivity, // Use sensitivity directly (0.5-5.0 range)
-        detection_method: detectionMethod, // Pass selected detection method
+        comparison_dataset_id: baselineDataset,
+        sensitivity_factor: sensitivity,
+        detection_method: detectionMethod,
       });
 
       console.log('Full API response:', response);
 
       if (response?.data?.success && response.data.data) {
         const result = response.data.data;
-
-        // Validate the result structure
         if (typeof result === 'object' && result !== null) {
-          console.log('Anomaly detection result:', result);
-
-          // Check if required fields exist
           const requiredFields = ['total_points', 'anomaly_count', 'anomaly_percentage'];
           const missingFields = requiredFields.filter((field) => !(field in result));
 
@@ -345,13 +462,11 @@ export default function AdvancedAnalysisPage() {
           throw new Error('API returned invalid data structure');
         }
       } else {
-        console.warn('API response structure:', response);
         throw new Error(`Invalid API response: ${response?.data?.message || 'Unknown error'}`);
       }
     } catch (error: any) {
       console.warn('Error running anomaly detection:', error);
 
-      // Show user-friendly error message
       let errorMessage = 'An unexpected error occurred during analysis';
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -359,23 +474,204 @@ export default function AdvancedAnalysisPage() {
         errorMessage = error.message;
       }
 
-      // You could add a toast notification here if you have one set up
       alert(`Analysis Error: ${errorMessage}`);
-
-      // Reset states on error
       setAnomalyResults(null);
-      setBaselineData(null);
-      setMonitoringData(null);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [baselineDataset, monitoringDataset, sensitivity, detectionMethod]);
+  }, [baselineDataset, baselineData, monitoringData, sensitivity, detectionMethod]);
+
+  // Create the scatter plot visualization - memoized to prevent infinite loops
+  const createAnomalyVisualization = useCallback(() => {
+    if (
+      !baselineData ||
+      baselineData.dinsight_x.length === 0 ||
+      baselineData.dinsight_y.length === 0
+    ) {
+      return null;
+    }
+
+    const traces: any[] = [
+      {
+        x: baselineData.dinsight_x,
+        y: baselineData.dinsight_y,
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Baseline Dataset',
+        marker: {
+          color: '#1A73E8',
+          size: 6,
+          opacity: 0.5,
+          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+        },
+        hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+      },
+    ];
+
+    const hasMonitoringPoints =
+      monitoringData &&
+      monitoringData.dinsight_x.length > 0 &&
+      monitoringData.dinsight_y.length > 0;
+
+    if (anomalyResults && anomalyResults.anomalous_points?.length) {
+      const normalPoints = anomalyResults.anomalous_points.filter((point) => !point.is_anomaly);
+      const anomalyPoints = anomalyResults.anomalous_points.filter((point) => point.is_anomaly);
+
+      if (normalPoints.length > 0) {
+        traces.push({
+          x: normalPoints.map((point) => point.x),
+          y: normalPoints.map((point) => point.y),
+          mode: 'markers' as const,
+          type: 'scattergl' as const,
+          name: 'Normal Points',
+          marker: {
+            color: '#34A853',
+            size: 6,
+            opacity: 0.7,
+            line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+          },
+          hovertemplate:
+            '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+          customdata: normalPoints.map((point) => point.mahalanobis_distance),
+        });
+      }
+
+      if (anomalyPoints.length > 0) {
+        traces.push({
+          x: anomalyPoints.map((point) => point.x),
+          y: anomalyPoints.map((point) => point.y),
+          mode: 'markers' as const,
+          type: 'scattergl' as const,
+          name: 'Anomalies',
+          marker: {
+            color: '#EA4335',
+            size: 8,
+            opacity: 0.9,
+            symbol: 'circle',
+            line: { width: 2, color: '#c62828' },
+          },
+          hovertemplate:
+            '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+          customdata: anomalyPoints.map((point) => point.mahalanobis_distance),
+        });
+      }
+
+      traces.push({
+        x: [anomalyResults.baseline_centroid.x],
+        y: [anomalyResults.baseline_centroid.y],
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Baseline Centroid',
+        marker: {
+          color: '#1A73E8',
+          size: 12,
+          symbol: 'star',
+          opacity: 1.0,
+          line: { width: 2, color: 'white' },
+        },
+        hovertemplate: `<b>Baseline Centroid</b><br>X: ${anomalyResults.baseline_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.baseline_centroid.y.toFixed(4)}<extra></extra>`,
+      });
+
+      traces.push({
+        x: [anomalyResults.comparison_centroid.x],
+        y: [anomalyResults.comparison_centroid.y],
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Monitor Centroid',
+        marker: {
+          color: '#FBBC04',
+          size: 12,
+          symbol: 'star',
+          opacity: 1.0,
+          line: { width: 2, color: 'white' },
+        },
+        hovertemplate: `<b>Monitor Centroid</b><br>X: ${anomalyResults.comparison_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.comparison_centroid.y.toFixed(4)}<extra></extra>`,
+      });
+    } else if (hasMonitoringPoints && monitoringData) {
+      traces.push({
+        x: monitoringData.dinsight_x,
+        y: monitoringData.dinsight_y,
+        mode: 'markers' as const,
+        type: 'scattergl' as const,
+        name: 'Monitoring Dataset',
+        marker: {
+          color: '#34A853',
+          size: 6,
+          opacity: 0.6,
+          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+        },
+        hovertemplate: '<b>Monitoring</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+      });
+    }
+
+    const titleText = anomalyResults
+      ? 'Anomaly Detection Analysis - Baseline vs Monitor'
+      : hasMonitoringPoints
+        ? 'Baseline vs Monitoring Scatter'
+        : 'Baseline Scatter';
+
+    return {
+      data: traces,
+      layout: {
+        title: { text: titleText },
+        xaxis: { title: { text: 'Dinsight X' }, range: [-1, 1] },
+        yaxis: { title: { text: 'Dinsight Y' }, range: [-1, 1] },
+        height: 700,
+        template: 'plotly_white' as any,
+        legend: {
+          orientation: 'h' as any,
+          yanchor: 'bottom' as any,
+          y: 1.02,
+          xanchor: 'right' as any,
+          x: 1,
+        },
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        showlegend: true,
+        hovermode: 'closest' as any,
+      },
+      config: {
+        displayModeBar: true,
+        responsive: true,
+        scrollZoom: false,
+      },
+    };
+  }, [baselineData, monitoringData, anomalyResults]);
+
+  const monitoringCounts = useMemo(() => {
+    const map = new Map<number, number>();
+    availableMonitoringDatasets?.forEach((item) => {
+      map.set(item.dinsight_data_id, item.monitor_count);
+    });
+    return map;
+  }, [availableMonitoringDatasets]);
+
+  const baselineOptions = availableDinsightIds ?? [];
+  const isDatasetListLoading = datasetsLoading || monitoringLoading;
+
+  const baselinePointCount =
+    baselineData?.dinsight_x?.length && baselineData?.dinsight_y?.length
+      ? Math.min(baselineData.dinsight_x.length, baselineData.dinsight_y.length)
+      : 0;
+  const monitoringPointCount =
+    monitoringData?.dinsight_x?.length && monitoringData?.dinsight_y?.length
+      ? Math.min(monitoringData.dinsight_x.length, monitoringData.dinsight_y.length)
+      : 0;
+
+  const hasBaselineData = baselinePointCount > 0;
+  const hasMonitoringData = monitoringPointCount > 0;
 
   // Auto-rerun analysis when sensitivity changes (for real-time updates)
   // Note: We intentionally exclude anomalyResults from dependencies to prevent infinite loops
   useEffect(() => {
     // Only re-run if we have existing results and sensitivity changed
-    if (anomalyResults && baselineDataset && monitoringDataset && !isAnalyzing) {
+    if (
+      anomalyResults &&
+      baselineDataset &&
+      monitoringDataset &&
+      hasMonitoringData &&
+      !isAnalyzing
+    ) {
       // Debounce the analysis to avoid too many API calls
       const timeoutId = setTimeout(async () => {
         if (!baselineDataset || !monitoringDataset) return;
@@ -406,141 +702,9 @@ export default function AdvancedAnalysisPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sensitivity, detectionMethod]); // Only depend on the parameters that should trigger re-runs
 
-  // Create the scatter plot visualization - memoized to prevent infinite loops
-  const createAnomalyVisualization = useCallback(() => {
-    if (!baselineData || !monitoringData || !anomalyResults) {
-      return null;
-    }
-
-    const data = [];
-
-    // Add baseline points
-    data.push({
-      x: baselineData.dinsight_x,
-      y: baselineData.dinsight_y,
-      mode: 'markers' as const,
-      type: 'scattergl' as const,
-      name: 'Baseline Dataset',
-      marker: {
-        color: '#1A73E8',
-        size: 6,
-        opacity: 0.5,
-        line: { width: 1, color: 'rgba(0,0,0,0.2)' },
-      },
-      hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-    });
-
-    // Separate normal and anomalous monitoring points
-    const normalPoints = anomalyResults.anomalous_points.filter((p) => !p.is_anomaly);
-    const anomalyPoints = anomalyResults.anomalous_points.filter((p) => p.is_anomaly);
-
-    // Add normal monitoring points
-    if (normalPoints.length > 0) {
-      data.push({
-        x: normalPoints.map((p) => p.x),
-        y: normalPoints.map((p) => p.y),
-        mode: 'markers' as const,
-        type: 'scattergl' as const,
-        name: 'Normal Points',
-        marker: {
-          color: '#34A853',
-          size: 6,
-          opacity: 0.7,
-          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
-        },
-        hovertemplate:
-          '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-        customdata: normalPoints.map((p) => p.mahalanobis_distance),
-      });
-    }
-
-    // Add anomalous monitoring points
-    if (anomalyPoints.length > 0) {
-      data.push({
-        x: anomalyPoints.map((p) => p.x),
-        y: anomalyPoints.map((p) => p.y),
-        mode: 'markers' as const,
-        type: 'scattergl' as const,
-        name: 'Anomalies',
-        marker: {
-          color: '#EA4335',
-          size: 8,
-          opacity: 0.9,
-          symbol: 'circle',
-          line: { width: 2, color: '#c62828' },
-        },
-        hovertemplate:
-          '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-        customdata: anomalyPoints.map((p) => p.mahalanobis_distance),
-      });
-    }
-
-    // Add baseline centroid marker
-    data.push({
-      x: [anomalyResults.baseline_centroid.x],
-      y: [anomalyResults.baseline_centroid.y],
-      mode: 'markers' as const,
-      type: 'scattergl' as const,
-      name: 'Baseline Centroid',
-      marker: {
-        color: '#1A73E8',
-        size: 12,
-        symbol: 'star',
-        opacity: 1.0,
-        line: { width: 2, color: 'white' },
-      },
-      hovertemplate: `<b>Baseline Centroid</b><br>X: ${anomalyResults.baseline_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.baseline_centroid.y.toFixed(4)}<extra></extra>`,
-    });
-
-    // Add monitoring centroid marker
-    data.push({
-      x: [anomalyResults.comparison_centroid.x],
-      y: [anomalyResults.comparison_centroid.y],
-      mode: 'markers' as const,
-      type: 'scattergl' as const,
-      name: 'Monitor Centroid',
-      marker: {
-        color: '#FBBC04',
-        size: 12,
-        symbol: 'star',
-        opacity: 1.0,
-        line: { width: 2, color: 'white' },
-      },
-      hovertemplate: `<b>Monitor Centroid</b><br>X: ${anomalyResults.comparison_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.comparison_centroid.y.toFixed(4)}<extra></extra>`,
-    });
-
-    return {
-      data,
-      layout: {
-        title: { text: 'Anomaly Detection Analysis - Baseline vs Monitor' },
-        xaxis: { title: { text: 'Dinsight X' }, range: [-1, 1] },
-        yaxis: { title: { text: 'Dinsight Y' }, range: [-1, 1] },
-        height: 700,
-        template: 'plotly_white' as any,
-        legend: {
-          orientation: 'h' as any,
-          yanchor: 'bottom' as any,
-          y: 1.02,
-          xanchor: 'right' as any,
-          x: 1,
-        },
-        plot_bgcolor: 'white',
-        paper_bgcolor: 'white',
-        showlegend: true,
-        hovermode: 'closest' as any,
-      },
-      config: {
-        displayModeBar: true,
-        responsive: true,
-        // Performance optimization to reduce console warnings about wheel events
-        scrollZoom: false, // Disable scroll-based zooming to reduce wheel event listeners
-      },
-    };
-  }, [baselineData, monitoringData, anomalyResults]);
-
   // Calculate analysis statistics from backend results
-  const totalSamples = anomalyResults?.total_points || 0;
-  const anomalyCount = anomalyResults?.anomaly_count || 0;
+  const totalSamples = anomalyResults ? anomalyResults.total_points : monitoringPointCount;
+  const anomalyCount = anomalyResults ? anomalyResults.anomaly_count : 0;
 
   // Calculate "Critical" as anomalies in top 25% of distance/score values among all anomalous points
   const criticalCount = (() => {
@@ -559,7 +723,26 @@ export default function AdvancedAnalysisPage() {
     return criticalThresholdCount;
   })();
 
-  const detectionRate = anomalyResults?.anomaly_percentage || 0;
+  const detectionRate = anomalyResults ? anomalyResults.anomaly_percentage : 0;
+
+  const sampleCount = monitoringPointCount > 0 ? monitoringPointCount : baselinePointCount;
+  const sampleTitle = monitoringPointCount > 0 ? 'Monitoring Samples' : 'Baseline Samples';
+  const sampleSubtitle =
+    monitoringPointCount > 0
+      ? 'Total monitoring data points loaded'
+      : 'Baseline data points available';
+
+  const displayAnomalyCount = anomalyResults ? anomalyCount.toLocaleString() : '--';
+  const displayCriticalCount =
+    anomalyResults && anomalyResults.anomalous_points?.some((p) => p.is_anomaly)
+      ? criticalCount.toLocaleString()
+      : '--';
+  const displayDetectionRate = anomalyResults ? `${detectionRate.toFixed(1)}%` : '--';
+
+  const selectedMonitoringCount =
+    baselineDataset !== null ? (monitoringCounts.get(baselineDataset) ?? 0) : 0;
+
+  const visualization = createAnomalyVisualization();
 
   return (
     <ErrorBoundary>
@@ -615,35 +798,114 @@ export default function AdvancedAnalysisPage() {
                         Baseline Dataset
                       </label>
                       <select
-                        value={baselineDataset || ''}
-                        onChange={(e) => setBaselineDataset(Number(e.target.value))}
+                        value={baselineDataset !== null ? String(baselineDataset) : ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          if (value === '') {
+                            setBaselineDataset(null);
+                            return;
+                          }
+                          setBaselineDataset(Number(value));
+                        }}
                         className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100"
-                        disabled={datasetsLoading || monitoringLoading}
+                        disabled={isDatasetListLoading}
                       >
                         {baselineDataset === null && (
                           <option value="">Select baseline dataset...</option>
                         )}
-                        {datasetsLoading || monitoringLoading ? (
+                        {isDatasetListLoading ? (
                           <option>Loading datasets...</option>
                         ) : (
-                          baselinesWithMonitoring?.map((dataset) => {
-                            const monitoringInfo = availableMonitoringDatasets?.find(
-                              (m) => m.dinsight_data_id === dataset.dinsight_id
-                            );
-                            return (
-                              <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
-                                {dataset.name} ({dataset.records} baseline,{' '}
-                                {monitoringInfo?.monitor_count || 0} monitoring)
-                              </option>
-                            );
-                          })
+                          <>
+                            {baselineDataset !== null &&
+                              !baselineOptions.some(
+                                (dataset) => dataset.dinsight_id === baselineDataset
+                              ) && (
+                                <option value={String(baselineDataset)}>
+                                  Dataset ID {baselineDataset} (manual entry)
+                                </option>
+                              )}
+                            {baselineOptions.map((dataset) => {
+                              const monitorCount = monitoringCounts.get(dataset.dinsight_id) ?? 0;
+                              const baselineLabel =
+                                dataset.records !== undefined
+                                  ? `${dataset.records} baseline`
+                                  : 'baseline count n/a';
+                              const monitoringLabel =
+                                monitorCount > 0
+                                  ? `${monitorCount} monitoring`
+                                  : 'no monitoring yet';
+
+                              return (
+                                <option
+                                  key={dataset.dinsight_id}
+                                  value={String(dataset.dinsight_id)}
+                                >
+                                  {dataset.name} ({baselineLabel}, {monitoringLabel})
+                                </option>
+                              );
+                            })}
+                            {baselineOptions.length === 0 && (
+                              <option disabled>No baseline datasets available</option>
+                            )}
+                          </>
                         )}
-                        {!datasetsLoading &&
-                          !monitoringLoading &&
-                          baselinesWithMonitoring?.length === 0 && (
-                            <option disabled>No datasets with monitoring data available</option>
-                          )}
                       </select>
+                      <div className="mt-4 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={manualBaselineId}
+                            onChange={(event) =>
+                              setManualBaselineId(event.target.value.replace(/[^0-9]/g, ''))
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                handleManualBaselineLoad();
+                              }
+                            }}
+                            className="flex-1 min-w-[160px]"
+                            placeholder="Enter baseline DInsight ID"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleManualBaselineLoad}
+                            className="flex items-center gap-2"
+                            disabled={!manualBaselineId || isLoadingBaseline}
+                          >
+                            Load ID
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRefreshDinsightIds}
+                            className="flex items-center gap-2"
+                            disabled={!baselineDataset || isLoadingMonitoring}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Refresh Monitoring
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                          Use the baseline ID from a previous upload to visualize results
+                          immediately. Refresh monitoring data after uploading new monitoring files.
+                        </p>
+                        {baselineDataset && (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-200">
+                            {isLoadingBaseline
+                              ? 'Loading baseline coordinates...'
+                              : baselineError
+                                ? baselineError
+                                : hasBaselineData
+                                  ? `Baseline dataset ready with ${baselinePointCount.toLocaleString()} points.`
+                                  : 'Baseline coordinates are not available yet. Processing may still be in progress.'}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -655,8 +917,14 @@ export default function AdvancedAnalysisPage() {
                             <span className="text-gray-700 dark:text-gray-300">
                               Monitoring data for Dataset ID {baselineDataset}
                             </span>
-                            <span className="text-sm text-accent-teal-600 dark:text-accent-teal-400 bg-accent-teal-100 dark:bg-accent-teal-900/30 px-2 py-1 rounded-md">
-                              Auto-linked
+                            <span
+                              className={`text-sm px-2 py-1 rounded-md ${
+                                hasMonitoringData
+                                  ? 'text-accent-teal-600 dark:text-accent-teal-400 bg-accent-teal-100 dark:bg-accent-teal-900/30'
+                                  : 'text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30'
+                              }`}
+                            >
+                              {hasMonitoringData ? 'Ready' : 'Pending'}
                             </span>
                           </div>
                         ) : (
@@ -667,11 +935,32 @@ export default function AdvancedAnalysisPage() {
                       </div>
                       <div className="glass-card px-4 py-3 mt-3 bg-gradient-to-r from-primary-100/80 to-accent-teal-100/60 dark:from-primary-900/50 dark:to-accent-teal-900/40 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
                         <p className="text-xs text-primary-800 dark:text-primary-200 leading-relaxed">
-                          {baselinesWithMonitoring && baselinesWithMonitoring.length > 0
-                            ? 'Monitoring data is automatically linked to the selected baseline dataset'
-                            : 'Upload baseline and monitoring data to begin anomaly detection'}
+                          {selectedMonitoringCount > 0 || hasMonitoringData
+                            ? 'Monitoring data is linked to this baseline. You can rerun anomaly detection as needed.'
+                            : 'Upload monitoring data for this baseline or refresh once new monitoring files are processed.'}
                         </p>
                       </div>
+                      {baselineDataset && (
+                        <div
+                          className={`mt-3 p-3 rounded-lg border text-sm ${
+                            isLoadingMonitoring
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+                              : monitoringError
+                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
+                                : hasMonitoringData
+                                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                                  : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200'
+                          }`}
+                        >
+                          {isLoadingMonitoring
+                            ? 'Loading monitoring data...'
+                            : monitoringError
+                              ? monitoringError
+                              : hasMonitoringData
+                                ? `Monitoring dataset ready with ${monitoringPointCount.toLocaleString()} points.`
+                                : 'No monitoring points available yet. Upload monitoring data or refresh after processing completes.'}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -788,7 +1077,9 @@ export default function AdvancedAnalysisPage() {
                 <CardContent className="p-6">
                   <Button
                     onClick={handleRunAnalysis}
-                    disabled={isAnalyzing || !baselineDataset || !monitoringDataset}
+                    disabled={
+                      isAnalyzing || !baselineDataset || !hasBaselineData || !hasMonitoringData
+                    }
                     className="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-12 text-base font-semibold"
                   >
                     {isAnalyzing ? (
@@ -817,13 +1108,13 @@ export default function AdvancedAnalysisPage() {
                       <Activity className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-2xl font-bold gradient-text mb-1">
-                      {totalSamples.toLocaleString()}
+                      {sampleCount.toLocaleString()}
                     </div>
                     <div className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                      Monitoring Samples
+                      {sampleTitle}
                     </div>
                     <div className="text-xs text-primary-600 dark:text-primary-400 mt-1 opacity-80">
-                      Total data points analyzed
+                      {sampleSubtitle}
                     </div>
                   </CardContent>
                 </Card>
@@ -833,7 +1124,7 @@ export default function AdvancedAnalysisPage() {
                       <AlertTriangle className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-2xl font-bold text-red-900 dark:text-red-100 mb-1">
-                      {anomalyCount.toLocaleString()}
+                      {displayAnomalyCount}
                     </div>
                     <div className="text-sm font-medium text-red-700 dark:text-red-300">
                       Anomalies Detected
@@ -849,7 +1140,7 @@ export default function AdvancedAnalysisPage() {
                       <XCircle className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-2xl font-bold text-accent-orange-900 dark:text-accent-orange-100 mb-1">
-                      {criticalCount.toLocaleString()}
+                      {displayCriticalCount}
                     </div>
                     <div className="text-sm font-medium text-accent-orange-700 dark:text-accent-orange-300">
                       Critical Anomalies
@@ -865,7 +1156,7 @@ export default function AdvancedAnalysisPage() {
                       <TrendingUp className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-2xl font-bold text-accent-purple-900 dark:text-accent-purple-100 mb-1">
-                      {detectionRate.toFixed(1)}%
+                      {displayDetectionRate}
                     </div>
                     <div className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300">
                       Detection Rate
@@ -910,18 +1201,36 @@ export default function AdvancedAnalysisPage() {
                         </p>
                       </div>
                     </div>
-                  ) : !anomalyResults || !baselineData || !monitoringData ? (
+                  ) : isLoadingBaseline ? (
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <div className="relative">
+                          <div className="w-20 h-20 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin mx-auto mb-6"></div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Activity className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                          </div>
+                        </div>
+                        <h3 className="text-2xl font-bold gradient-text mb-3">
+                          Preparing Baseline
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300">
+                          Loading baseline coordinates for visualization...
+                        </p>
+                      </div>
+                    </div>
+                  ) : !visualization ? (
                     <div className="flex items-center justify-center h-96">
                       <div className="text-center">
                         <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
                           <Activity className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                         </div>
                         <h3 className="text-2xl font-bold gradient-text mb-3">
-                          No Analysis Results
+                          Baseline Not Ready
                         </h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
-                          Select datasets and run anomaly detection to visualize baseline vs monitor
-                          data comparison.
+                          {baselineError
+                            ? baselineError
+                            : 'Upload or load a baseline dataset to start visualizing your data.'}
                         </p>
                       </div>
                     </div>
@@ -929,9 +1238,9 @@ export default function AdvancedAnalysisPage() {
                     <div className="relative h-[700px] w-full p-6">
                       <div className="bg-white rounded-lg border border-gray-200 dark:border-gray-600 p-2 h-full">
                         <Plot
-                          data={createAnomalyVisualization()?.data || []}
-                          layout={createAnomalyVisualization()?.layout || {}}
-                          config={createAnomalyVisualization()?.config || {}}
+                          data={visualization.data || []}
+                          layout={visualization.layout || {}}
+                          config={visualization.config || {}}
                           style={{ width: '100%', height: '100%' }}
                           useResizeHandler={true}
                         />

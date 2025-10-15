@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api-client';
 
 // Dynamic import for Plotly to avoid SSR issues
@@ -34,11 +35,17 @@ interface Dataset {
   type: 'dinsight';
 }
 
+interface CoordinateSeries {
+  dinsight_x: number[];
+  dinsight_y: number[];
+}
+
 // Real data now comes from API endpoints
 
 export default function VisualizationPage() {
   // State management - single dinsight_id for both baseline and monitoring
   const [selectedDinsightId, setSelectedDinsightId] = useState<number | null>(null);
+  const [manualDinsightId, setManualDinsightId] = useState<string>('');
   const [pointSize, setPointSize] = useState<number>(12);
   const [showContours, setShowContours] = useState<boolean>(false);
   const [sideBySide, setSideBySide] = useState<boolean>(false);
@@ -47,6 +54,13 @@ export default function VisualizationPage() {
     message: string;
   } | null>(null);
   const [plotElement, setPlotElement] = useState<any>(null);
+  const [baselineData, setBaselineData] = useState<CoordinateSeries | null>(null);
+  const [isLoadingBaseline, setIsLoadingBaseline] = useState<boolean>(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+  const [monitoringData, setMonitoringData] = useState<CoordinateSeries | null>(null);
+  const [isLoadingMonitoring, setIsLoadingMonitoring] = useState<boolean>(false);
+  const [monitoringError, setMonitoringError] = useState<string | null>(null);
+  const [monitoringRefreshKey, setMonitoringRefreshKey] = useState<number>(0);
 
   // Query for available dinsight datasets
   const {
@@ -61,6 +75,7 @@ export default function VisualizationPage() {
     queryFn: async (): Promise<Dataset[]> => {
       // Robust: fetch all available Dinsight IDs by incrementally scanning until N consecutive misses
       const validDatasets: Dataset[] = [];
+      const seenDinsightIds = new Set<number>();
       let id = 1;
       let consecutiveFailures = 0;
       const maxConsecutiveFailures = 5;
@@ -68,21 +83,28 @@ export default function VisualizationPage() {
       while (consecutiveFailures < maxConsecutiveFailures && id <= maxId) {
         try {
           const response = await api.analysis.getDinsight(id);
+          const payload = response?.data?.data;
+          const resolvedId =
+            payload && typeof payload.dinsight_id === 'number' && payload.dinsight_id > 0
+              ? payload.dinsight_id
+              : id;
           if (
             response.data.success &&
-            response.data.data &&
-            response.data.data.dinsight_x &&
-            response.data.data.dinsight_y &&
-            Array.isArray(response.data.data.dinsight_x) &&
-            Array.isArray(response.data.data.dinsight_y) &&
-            response.data.data.dinsight_x.length > 0 &&
-            response.data.data.dinsight_y.length > 0
+            payload?.dinsight_x &&
+            payload?.dinsight_y &&
+            Array.isArray(payload.dinsight_x) &&
+            Array.isArray(payload.dinsight_y) &&
+            payload.dinsight_x.length > 0 &&
+            payload.dinsight_y.length > 0
           ) {
-            validDatasets.push({
-              dinsight_id: id,
-              name: `Dinsight ID ${id}`,
-              type: 'dinsight' as const,
-            });
+            if (!seenDinsightIds.has(resolvedId)) {
+              validDatasets.push({
+                dinsight_id: resolvedId,
+                name: `DInsight ID ${resolvedId}`,
+                type: 'dinsight' as const,
+              });
+              seenDinsightIds.add(resolvedId);
+            }
             consecutiveFailures = 0;
           } else {
             consecutiveFailures++;
@@ -106,48 +128,133 @@ export default function VisualizationPage() {
     }
   }, [availableDinsightIds, selectedDinsightId]);
 
-  // Query for both baseline and monitoring coordinates
-  const {
-    data: dinsightData,
-    isLoading: dataLoading,
-    refetch: refetchData,
-  } = useQuery({
-    queryKey: ['dinsight-coordinates', selectedDinsightId],
-    queryFn: async () => {
-      if (!selectedDinsightId) return null;
+  useEffect(() => {
+    if (selectedDinsightId) {
+      setManualDinsightId(String(selectedDinsightId));
+    } else {
+      setManualDinsightId('');
+    }
+  }, [selectedDinsightId]);
+
+  useEffect(() => {
+    if (!selectedDinsightId) {
+      setBaselineData(null);
+      setBaselineError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchBaseline = async () => {
+      setIsLoadingBaseline(true);
+      setBaselineError(null);
 
       try {
-        // Fetch baseline and monitoring data separately using correct endpoints
-        const [baselineResponse, monitoringResponse] = await Promise.all([
-          api.analysis.getDinsight(selectedDinsightId),
-          api.monitoring.getCoordinates(selectedDinsightId),
-        ]);
+        const response = await api.analysis.getDinsight(selectedDinsightId);
+        const payload = response?.data?.data;
 
-        const baselineData = baselineResponse.data.data;
-        const monitoringData = monitoringResponse.data;
-
-        return {
-          // Baseline/Reference coordinates from dinsight endpoint
-          baseline: {
-            dinsight_x: baselineData.dinsight_x || [],
-            dinsight_y: baselineData.dinsight_y || [],
-            labels: (baselineData.dinsight_x || []).map((_: any, i: number) => `baseline_${i}`),
-          },
-          // Monitoring coordinates from monitoring endpoint
-          monitoring: {
-            dinsight_x: monitoringData.dinsight_x || [],
-            dinsight_y: monitoringData.dinsight_y || [],
-            labels: (monitoringData.dinsight_x || []).map((_: any, i: number) => `monitoring_${i}`),
-            anomaly_scores: (monitoringData.dinsight_x || []).map(() => Math.random() * 0.3),
-          },
-        };
-      } catch (error) {
-        console.warn(`Failed to fetch dinsight data for ID ${selectedDinsightId}:`, error);
-        return null;
+        if (!isCancelled) {
+          if (
+            response?.data?.success &&
+            payload?.dinsight_x &&
+            payload?.dinsight_y &&
+            Array.isArray(payload.dinsight_x) &&
+            Array.isArray(payload.dinsight_y) &&
+            payload.dinsight_x.length > 0 &&
+            payload.dinsight_y.length > 0
+          ) {
+            setBaselineData({
+              dinsight_x: payload.dinsight_x,
+              dinsight_y: payload.dinsight_y,
+            });
+          } else {
+            setBaselineData(null);
+            setBaselineError('Baseline dataset does not contain valid coordinates yet.');
+          }
+        }
+      } catch (error: any) {
+        if (!isCancelled) {
+          console.warn(`Failed to fetch baseline dataset ${selectedDinsightId}:`, error);
+          const message =
+            error?.response?.data?.message || error?.message || 'Unable to load baseline dataset.';
+          setBaselineData(null);
+          setBaselineError(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingBaseline(false);
+        }
       }
-    },
-    enabled: !!selectedDinsightId,
-  });
+    };
+
+    fetchBaseline();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedDinsightId, monitoringRefreshKey]);
+
+  useEffect(() => {
+    if (!selectedDinsightId) {
+      setMonitoringData(null);
+      setMonitoringError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchMonitoring = async () => {
+      setIsLoadingMonitoring(true);
+      setMonitoringError(null);
+
+      try {
+        const response = await api.monitoring.getCoordinates(selectedDinsightId);
+        const payload = response?.data;
+        const xValues = payload?.dinsight_x;
+        const yValues = payload?.dinsight_y;
+
+        if (!isCancelled) {
+          if (
+            Array.isArray(xValues) &&
+            Array.isArray(yValues) &&
+            xValues.length > 0 &&
+            yValues.length > 0
+          ) {
+            setMonitoringData({
+              dinsight_x: xValues,
+              dinsight_y: yValues,
+            });
+          } else {
+            setMonitoringData(null);
+            setMonitoringError('Monitoring data not available for this baseline yet.');
+          }
+        }
+      } catch (error: any) {
+        if (!isCancelled) {
+          console.warn(`Failed to fetch monitoring data for ${selectedDinsightId}:`, error);
+          const status = error?.response?.status;
+          const message =
+            status === 404
+              ? 'Monitoring data not found for this baseline. Upload monitoring data to continue.'
+              : error?.response?.data?.message ||
+                error?.message ||
+                'Unable to load monitoring data.';
+          setMonitoringData(null);
+          setMonitoringError(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingMonitoring(false);
+        }
+      }
+    };
+
+    fetchMonitoring();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedDinsightId, monitoringRefreshKey]);
 
   // Auto-hide notification after 3 seconds
   useEffect(() => {
@@ -205,22 +312,49 @@ export default function VisualizationPage() {
   };
 
   const refreshData = () => {
-    refetchData();
+    refetchDinsightIds();
+    setMonitoringRefreshKey((prev) => prev + 1);
   };
+
+  const handleManualLoad = () => {
+    const trimmedId = manualDinsightId.trim();
+    if (!trimmedId) {
+      return;
+    }
+
+    const parsed = Number(trimmedId);
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      setBaselineError('Enter a valid DInsight ID.');
+      return;
+    }
+
+    setBaselineError(null);
+    setMonitoringError(null);
+    setSelectedDinsightId(parsed);
+    setMonitoringRefreshKey((prev) => prev + 1);
+    refetchDinsightIds();
+  };
+
+  const baselinePointCount =
+    baselineData?.dinsight_x?.length && baselineData?.dinsight_y?.length
+      ? Math.min(baselineData.dinsight_x.length, baselineData.dinsight_y.length)
+      : 0;
+  const monitoringPointCount =
+    monitoringData?.dinsight_x?.length && monitoringData?.dinsight_y?.length
+      ? Math.min(monitoringData.dinsight_x.length, monitoringData.dinsight_y.length)
+      : 0;
+
+  const hasBaselineData = baselinePointCount > 0;
+  const hasMonitoringData = monitoringPointCount > 0;
+  const activeSideBySide = sideBySide && hasMonitoringData;
 
   const createPlotData = useCallback(() => {
     const data: any[] = [];
 
-    // Baseline data
-    if (
-      dinsightData?.baseline &&
-      Array.isArray(dinsightData.baseline.dinsight_x) &&
-      dinsightData.baseline.dinsight_x.length > 0 &&
-      Array.isArray(dinsightData.baseline.dinsight_y)
-    ) {
-      const baselineTrace = {
-        x: dinsightData.baseline.dinsight_x,
-        y: dinsightData.baseline.dinsight_y,
+    if (hasBaselineData && baselineData) {
+      data.push({
+        x: baselineData.dinsight_x,
+        y: baselineData.dinsight_y,
         mode: 'markers' as const,
         type: 'scattergl' as const,
         name: 'Baseline Dataset',
@@ -231,17 +365,13 @@ export default function VisualizationPage() {
           line: { width: 1, color: 'rgba(0,0,0,0.2)' },
         },
         hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-        // For side-by-side mode, use subplot positioning
-        ...(sideBySide && { xaxis: 'x', yaxis: 'y' }),
-      };
+        ...(activeSideBySide && { xaxis: 'x', yaxis: 'y' }),
+      });
 
-      data.push(baselineTrace);
-
-      // Add contour plot for baseline if enabled
-      if (showContours && dinsightData.baseline.dinsight_x.length > 10) {
+      if (showContours && baselineData.dinsight_x.length > 10) {
         data.push({
-          x: dinsightData.baseline.dinsight_x,
-          y: dinsightData.baseline.dinsight_y,
+          x: baselineData.dinsight_x,
+          y: baselineData.dinsight_y,
           type: 'histogram2dcontour',
           name: 'Baseline Density',
           showlegend: false,
@@ -253,21 +383,15 @@ export default function VisualizationPage() {
             showlines: false,
           },
           hoverinfo: 'skip',
-          ...(sideBySide && { xaxis: 'x', yaxis: 'y' }),
+          ...(activeSideBySide && { xaxis: 'x', yaxis: 'y' }),
         });
       }
     }
 
-    // Monitoring data
-    if (
-      dinsightData?.monitoring &&
-      Array.isArray(dinsightData.monitoring.dinsight_x) &&
-      dinsightData.monitoring.dinsight_x.length > 0 &&
-      Array.isArray(dinsightData.monitoring.dinsight_y)
-    ) {
-      const monitoringTrace = {
-        x: dinsightData.monitoring.dinsight_x,
-        y: dinsightData.monitoring.dinsight_y,
+    if (hasMonitoringData && monitoringData) {
+      data.push({
+        x: monitoringData.dinsight_x,
+        y: monitoringData.dinsight_y,
         mode: 'markers' as const,
         type: 'scattergl' as const,
         name: 'Monitoring Dataset',
@@ -278,17 +402,13 @@ export default function VisualizationPage() {
           line: { width: 1, color: 'rgba(0,0,0,0.2)' },
         },
         hovertemplate: '<b>Monitoring</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-        // For side-by-side mode, use second subplot
-        ...(sideBySide && { xaxis: 'x2', yaxis: 'y2' }),
-      };
+        ...(activeSideBySide && { xaxis: 'x2', yaxis: 'y2' }),
+      });
 
-      data.push(monitoringTrace);
-
-      // Add contour plot for monitoring if enabled
-      if (showContours && dinsightData.monitoring.dinsight_x.length > 10) {
+      if (showContours && monitoringData.dinsight_x.length > 10) {
         data.push({
-          x: dinsightData.monitoring.dinsight_x,
-          y: dinsightData.monitoring.dinsight_y,
+          x: monitoringData.dinsight_x,
+          y: monitoringData.dinsight_y,
           type: 'histogram2dcontour',
           name: 'Monitoring Density',
           showlegend: false,
@@ -300,13 +420,21 @@ export default function VisualizationPage() {
             showlines: false,
           },
           hoverinfo: 'skip',
-          ...(sideBySide && { xaxis: 'x2', yaxis: 'y2' }),
+          ...(activeSideBySide && { xaxis: 'x2', yaxis: 'y2' }),
         });
       }
     }
 
     return data;
-  }, [dinsightData, pointSize, showContours, sideBySide]);
+  }, [
+    activeSideBySide,
+    baselineData,
+    hasBaselineData,
+    hasMonitoringData,
+    monitoringData,
+    pointSize,
+    showContours,
+  ]);
 
   const plotLayout = useMemo(() => {
     const baseLayout = {
@@ -327,7 +455,7 @@ export default function VisualizationPage() {
       margin: { l: 60, r: 30, t: 30, b: 60 },
     };
 
-    if (sideBySide) {
+    if (activeSideBySide) {
       // Side-by-side subplot configuration
       return {
         ...baseLayout,
@@ -359,7 +487,13 @@ export default function VisualizationPage() {
         height: 700,
       };
     }
-  }, [sideBySide]);
+  }, [activeSideBySide]);
+
+  const viewDescription = activeSideBySide
+    ? 'Side-by-side baseline vs monitoring comparison'
+    : hasMonitoringData
+      ? 'Overlay comparison with anomaly highlighting'
+      : 'Baseline visualization until monitoring data is uploaded';
 
   const plotConfig = useMemo(
     () => ({
@@ -457,8 +591,15 @@ export default function VisualizationPage() {
                     Dinsight ID
                   </label>
                   <select
-                    value={selectedDinsightId || ''}
-                    onChange={(e) => setSelectedDinsightId(Number(e.target.value))}
+                    value={selectedDinsightId !== null ? String(selectedDinsightId) : ''}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === '') {
+                        setSelectedDinsightId(null);
+                        return;
+                      }
+                      setSelectedDinsightId(Number(value));
+                    }}
                     className="w-full px-4 py-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md text-gray-900 dark:text-gray-100"
                     disabled={datasetsLoading}
                   >
@@ -469,11 +610,20 @@ export default function VisualizationPage() {
                       availableDinsightIds
                         ?.sort((a, b) => b.dinsight_id - a.dinsight_id)
                         ?.map((dataset) => (
-                          <option key={dataset.dinsight_id} value={dataset.dinsight_id}>
+                          <option key={dataset.dinsight_id} value={String(dataset.dinsight_id)}>
                             {dataset.name}
                           </option>
                         ))
                     )}
+                    {selectedDinsightId !== null &&
+                      !datasetsLoading &&
+                      !availableDinsightIds?.some(
+                        (dataset) => dataset.dinsight_id === selectedDinsightId
+                      ) && (
+                        <option value={String(selectedDinsightId)}>
+                          Dataset ID {selectedDinsightId} (manual entry)
+                        </option>
+                      )}
                     {!datasetsLoading && availableDinsightIds?.length === 0 && (
                       <option disabled>No data available</option>
                     )}
@@ -485,6 +635,92 @@ export default function VisualizationPage() {
                       ? 'Comparing baseline and monitoring coordinates for anomaly detection'
                       : 'Upload baseline data to begin visualization'}
                   </p>
+                </div>
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={manualDinsightId}
+                      onChange={(event) =>
+                        setManualDinsightId(event.target.value.replace(/[^0-9]/g, ''))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          handleManualLoad();
+                        }
+                      }}
+                      className="flex-1 min-w-[160px]"
+                      placeholder="Enter DInsight ID"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleManualLoad}
+                      className="flex items-center gap-2"
+                      disabled={!manualDinsightId || isLoadingBaseline}
+                    >
+                      Load ID
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={refreshData}
+                      className="flex items-center gap-2"
+                      disabled={!selectedDinsightId || isLoadingMonitoring}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Refresh Monitoring
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Use a baseline ID from a previous upload to visualize data immediately. Refresh
+                    monitoring data after uploading new monitoring files.
+                  </p>
+                  {selectedDinsightId && (
+                    <div
+                      className={`p-3 rounded-lg border text-sm ${
+                        isLoadingBaseline
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+                          : baselineError
+                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
+                            : hasBaselineData
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                              : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200'
+                      }`}
+                    >
+                      {isLoadingBaseline
+                        ? 'Loading baseline coordinates...'
+                        : baselineError
+                          ? baselineError
+                          : hasBaselineData
+                            ? `Baseline ready with ${baselinePointCount.toLocaleString()} points.`
+                            : 'Baseline coordinates are not available yet. Processing may still be in progress.'}
+                    </div>
+                  )}
+                  {selectedDinsightId && (
+                    <div
+                      className={`p-3 rounded-lg border text-sm ${
+                        isLoadingMonitoring
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+                          : monitoringError
+                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
+                            : hasMonitoringData
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                              : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200'
+                      }`}
+                    >
+                      {isLoadingMonitoring
+                        ? 'Loading monitoring data...'
+                        : monitoringError
+                          ? monitoringError
+                          : hasMonitoringData
+                            ? `Monitoring ready with ${monitoringPointCount.toLocaleString()} points.`
+                            : 'No monitoring points available yet. Upload monitoring data or refresh after processing completes.'}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -621,9 +857,7 @@ export default function VisualizationPage() {
                       Interactive Visualization
                     </CardTitle>
                     <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
-                      {sideBySide
-                        ? 'Side-by-side baseline vs monitoring comparison'
-                        : 'Overlay comparison with anomaly highlighting'}
+                      {viewDescription}
                     </CardDescription>
                   </div>
                 </div>
@@ -636,7 +870,7 @@ export default function VisualizationPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                {dataLoading ? (
+                {isLoadingBaseline ? (
                   <div className="flex items-center justify-center h-[600px]">
                     <div className="text-center">
                       <div className="relative">
@@ -645,19 +879,16 @@ export default function VisualizationPage() {
                           <BarChart3 className="w-8 h-8 text-primary-600 dark:text-primary-400" />
                         </div>
                       </div>
-                      <h3 className="text-2xl font-bold gradient-text mb-3">
-                        Loading Visualization
-                      </h3>
+                      <h3 className="text-2xl font-bold gradient-text mb-3">Preparing Baseline</h3>
                       <p className="text-gray-600 dark:text-gray-300">
-                        Processing coordinate data...
+                        Loading baseline coordinates for visualization...
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="relative h-[700px] w-full">
                     {(() => {
-                      const plotData = createPlotData();
-                      if (plotData.length === 0) {
+                      if (!hasBaselineData) {
                         return (
                           <div className="flex items-center justify-center h-full">
                             <div className="text-center">
@@ -665,11 +896,12 @@ export default function VisualizationPage() {
                                 <BarChart3 className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                               </div>
                               <h3 className="text-2xl font-bold gradient-text mb-3">
-                                No Data Available
+                                Baseline Not Ready
                               </h3>
                               <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-sm leading-relaxed">
-                                Upload baseline data to begin visualizing coordinate patterns and
-                                anomalies.
+                                {baselineError
+                                  ? baselineError
+                                  : 'Upload or load a baseline dataset to start visualizing your data.'}
                               </p>
                               <Link href="/dashboard/data-summary">
                                 <Button className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl transition-all duration-200">
@@ -681,8 +913,21 @@ export default function VisualizationPage() {
                           </div>
                         );
                       }
+
+                      const plotData = createPlotData();
+
                       return (
                         <div className="relative h-full w-full bg-white rounded-lg border border-gray-200 dark:border-gray-600 p-2">
+                          {!hasMonitoringData && !isLoadingMonitoring && (
+                            <div className="absolute top-4 left-4 z-10 px-4 py-2 rounded-lg text-sm font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border border-yellow-200/70 dark:border-yellow-800/70 shadow-md">
+                              Monitoring data pending. Displaying baseline coordinates only.
+                            </div>
+                          )}
+                          {isLoadingMonitoring && (
+                            <div className="absolute top-4 left-4 z-10 px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200/70 dark:border-blue-800/70 shadow-md">
+                              Loading monitoring coordinates...
+                            </div>
+                          )}
                           <Plot
                             data={plotData}
                             layout={plotLayout}
@@ -690,11 +935,9 @@ export default function VisualizationPage() {
                             style={{ width: '100%', height: '100%' }}
                             useResizeHandler={true}
                             onInitialized={(_figure, graphDiv) => {
-                              // Store reference for export functionality
                               setPlotElement(graphDiv);
                             }}
                             onUpdate={(_figure, graphDiv) => {
-                              // Store reference for export functionality
                               setPlotElement(graphDiv);
                             }}
                           />

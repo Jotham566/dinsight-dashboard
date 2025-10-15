@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Settings,
@@ -67,6 +67,8 @@ export default function DinsightAnalysisPage() {
     step: 'baseline',
     status: 'idle',
   });
+  const [monitoringBaselineId, setMonitoringBaselineId] = useState<string>('');
+  const [baselineIdDirty, setBaselineIdDirty] = useState(false);
 
   // Config editing state
   const [isEditingConfig, setIsEditingConfig] = useState(false);
@@ -122,6 +124,7 @@ export default function DinsightAnalysisPage() {
     staleTime: 10000,
     queryFn: async (): Promise<any[]> => {
       const validDatasets: any[] = [];
+      const seenDinsightIds = new Set<number>();
       let id = 1;
       let consecutiveFailures = 0;
       const maxConsecutiveFailures = 5;
@@ -129,21 +132,28 @@ export default function DinsightAnalysisPage() {
       while (consecutiveFailures < maxConsecutiveFailures && id <= maxId) {
         try {
           const response = await apiClient.get(`/dinsight/${id}`);
+          const payload = response?.data?.data;
+          const resolvedId =
+            payload && typeof payload.dinsight_id === 'number' && payload.dinsight_id > 0
+              ? payload.dinsight_id
+              : id;
           if (
             response.data.success &&
-            response.data.data &&
-            response.data.data.dinsight_x &&
-            response.data.data.dinsight_y &&
-            Array.isArray(response.data.data.dinsight_x) &&
-            Array.isArray(response.data.data.dinsight_y) &&
-            response.data.data.dinsight_x.length > 0 &&
-            response.data.data.dinsight_y.length > 0
+            payload?.dinsight_x &&
+            payload?.dinsight_y &&
+            Array.isArray(payload.dinsight_x) &&
+            Array.isArray(payload.dinsight_y) &&
+            payload.dinsight_x.length > 0 &&
+            payload.dinsight_y.length > 0
           ) {
-            validDatasets.push({
-              dinsight_id: id,
-              name: `Dinsight ID ${id}`,
-              type: 'dinsight',
-            });
+            if (!seenDinsightIds.has(resolvedId)) {
+              validDatasets.push({
+                dinsight_id: resolvedId,
+                name: `DInsight ID ${resolvedId}`,
+                type: 'dinsight',
+              });
+              seenDinsightIds.add(resolvedId);
+            }
             consecutiveFailures = 0;
           } else {
             consecutiveFailures++;
@@ -168,6 +178,30 @@ export default function DinsightAnalysisPage() {
       }));
     }
   }, [availableDinsightIds, processingState.dinsightId]);
+
+  useEffect(() => {
+    if (!processingState.dinsightId) {
+      return;
+    }
+
+    if (!baselineIdDirty) {
+      const targetId = String(processingState.dinsightId);
+      if (monitoringBaselineId !== targetId) {
+        setMonitoringBaselineId(targetId);
+      }
+    }
+  }, [processingState.dinsightId, baselineIdDirty, monitoringBaselineId]);
+
+  const resolvedBaselineId = useMemo(() => {
+    const trimmed = monitoringBaselineId.trim();
+    if (trimmed !== '') {
+      const parsed = Number(trimmed);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return processingState.dinsightId ?? null;
+  }, [monitoringBaselineId, processingState.dinsightId]);
 
   // Polling effect to check processing status
   useEffect(() => {
@@ -212,6 +246,8 @@ export default function DinsightAnalysisPage() {
                 step: 'monitoring',
                 pollCount: undefined,
               }));
+
+              setBaselineIdDirty(false);
 
               // Show baseline completion dialog
               setProcessingDialogType('completed');
@@ -352,23 +388,28 @@ export default function DinsightAnalysisPage() {
   };
 
   const handleMonitoringUpload = async (uploadFiles: File[]) => {
-    if (!processingState.dinsightId) {
+    const baselineId = resolvedBaselineId;
+
+    if (!baselineId) {
       setProcessingState((prev) => ({
         ...prev,
         status: 'error',
-        errorMessage: 'No dinsight ID available. Please upload baseline data first.',
+        errorMessage:
+          'No baseline DInsight ID available. Enter the baseline ID or upload baseline data first.',
       }));
+      setProcessingDialogType('error');
+      setShowProcessingDialog(true);
       return;
     }
 
     // Double-check that baseline processing is actually complete before allowing monitoring upload
     try {
-      const baselineCheck = await apiClient.get(`/dinsight/${processingState.dinsightId}`);
+      const baselineCheck = await apiClient.get(`/dinsight/${baselineId}`);
       if (!baselineCheck.data.success || !baselineCheck.data.data) {
         setProcessingState((prev) => ({
           ...prev,
           status: 'error',
-          errorMessage: 'Baseline data not found. Please upload baseline data first.',
+          errorMessage: `Baseline data not found for DInsight ID ${baselineId}.`,
         }));
         setProcessingDialogType('error');
         setShowProcessingDialog(true);
@@ -401,7 +442,7 @@ export default function DinsightAnalysisPage() {
         ...prev,
         status: 'error',
         errorMessage:
-          'Unable to verify baseline data. Please ensure baseline processing is complete.',
+          'Unable to verify baseline data. Please ensure the baseline ID is correct and processing is complete.',
       }));
       setProcessingDialogType('error');
       setShowProcessingDialog(true);
@@ -422,7 +463,7 @@ export default function DinsightAnalysisPage() {
       formData.append('file', uploadFiles[0]);
 
       // Upload to /monitor/:dinsight_id endpoint with infinite timeout; progress updates if available
-      const response = await apiClient.post(`/monitor/${processingState.dinsightId}`, formData, {
+      const response = await apiClient.post(`/monitor/${baselineId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -441,7 +482,11 @@ export default function DinsightAnalysisPage() {
         ...prev,
         status: 'completed',
         step: 'complete',
+        dinsightId: baselineId,
       }));
+
+      setMonitoringBaselineId(String(baselineId));
+      setBaselineIdDirty(false);
 
       // Show completion dialog
       setProcessingDialogType('completed');
@@ -481,6 +526,8 @@ export default function DinsightAnalysisPage() {
     setBaselineFiles([]);
     setMonitoringFiles([]);
     setShowProcessingDialog(false);
+    setMonitoringBaselineId('');
+    setBaselineIdDirty(false);
   };
 
   const handleCancelEdit = () => {
@@ -515,6 +562,16 @@ export default function DinsightAnalysisPage() {
     } finally {
       setIsSavingConfig(false);
     }
+  };
+
+  const switchToMonitoringStep = () => {
+    setBaselineIdDirty(false);
+    setProcessingState((prev) => ({
+      ...prev,
+      step: 'monitoring',
+      status: 'idle',
+      errorMessage: undefined,
+    }));
   };
 
   const handleConfigFieldChange = (field: string, value: any) => {
@@ -603,6 +660,15 @@ export default function DinsightAnalysisPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={switchToMonitoringStep}
+                disabled={isMonitoringStep}
+                className="glass-card hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+              >
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Upload Monitoring Only
+              </Button>
               <Button
                 variant="outline"
                 onClick={resetWorkflow}
@@ -850,6 +916,28 @@ export default function DinsightAnalysisPage() {
                       </div>
                     </div>
                   )}
+                  {processingState.dinsightId && (
+                    <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="glass-card hover:shadow-lg justify-center"
+                      >
+                        <a href={`/dashboard/analysis?baselineId=${processingState.dinsightId}`}>
+                          <Activity className="w-4 h-4 mr-2" />
+                          Visualize Baseline
+                        </a>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={switchToMonitoringStep}
+                        className="glass-card hover:shadow-lg justify-center"
+                      >
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        Upload Monitoring Data
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -880,30 +968,56 @@ export default function DinsightAnalysisPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {processingState.dinsightId && (
-                    <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                      <div className="flex items-center text-sm text-emerald-800 dark:text-emerald-200">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        <span className="font-medium">Dinsight ID:</span>
-                        <span className="ml-1 font-mono">{processingState.dinsightId}</span>
-                      </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="monitoring-baseline-id" className="text-sm font-medium">
+                        Baseline DInsight ID
+                      </Label>
+                      <Input
+                        id="monitoring-baseline-id"
+                        value={monitoringBaselineId}
+                        onChange={(event) => {
+                          setBaselineIdDirty(true);
+                          setMonitoringBaselineId(event.target.value.replace(/[^0-9]/g, ''));
+                        }}
+                        placeholder="Enter baseline DInsight ID"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
+                        Provide the DInsight ID for the baseline dataset you want to monitor. Leave
+                        this field blank to use the most recent baseline processed in this session.
+                      </p>
                     </div>
-                  )}
-                  <FileUpload
-                    onFilesChange={setMonitoringFiles}
-                    onUpload={handleMonitoringUpload}
-                    maxFiles={1}
-                    maxSize={300 * 1024 * 1024} // 100MB
-                    disabled={!isMonitoringStep || isUploading || !processingState.dinsightId}
-                    uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
-                  />
-                  {!processingState.dinsightId && isMonitoringStep && (
-                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                      <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                        Waiting for baseline processing to complete...
+
+                    {resolvedBaselineId ? (
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                        <div className="flex items-center text-sm text-emerald-800 dark:text-emerald-200">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <span className="font-medium">Using DInsight ID:</span>
+                          <span className="ml-1 font-mono">{resolvedBaselineId}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      isMonitoringStep && (
+                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                          <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                            Enter a valid baseline DInsight ID or upload baseline data first.
+                          </div>
+                        </div>
+                      )
+                    )}
+
+                    <FileUpload
+                      onFilesChange={setMonitoringFiles}
+                      onUpload={handleMonitoringUpload}
+                      maxFiles={1}
+                      maxSize={300 * 1024 * 1024} // 100MB
+                      disabled={!isMonitoringStep || isUploading || !resolvedBaselineId}
+                      uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
