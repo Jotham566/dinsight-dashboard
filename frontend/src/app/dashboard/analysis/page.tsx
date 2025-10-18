@@ -18,6 +18,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api-client';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { useMetadataHover } from '@/hooks/useMetadataHover';
+import { MetadataHoverControls } from '@/components/metadata-hover-controls';
+import { MetadataEntry } from '@/types/metadata';
+import {
+  normalizeMetadataArray,
+  normalizeMetadataEntry,
+  alignMetadataLength,
+} from '@/utils/metadata';
 
 // Dynamic import for Plotly to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -39,6 +47,7 @@ interface AvailableMonitoringDataset {
 interface DinsightData {
   dinsight_x: number[];
   dinsight_y: number[];
+  metadata: MetadataEntry[];
 }
 
 interface AnomalyPoint {
@@ -299,9 +308,14 @@ export default function AdvancedAnalysisPage() {
             data.dinsight_x.length > 0 &&
             data.dinsight_y.length > 0
           ) {
+            const baselineMetadata = alignMetadataLength(
+              normalizeMetadataArray(data.point_metadata),
+              data.dinsight_x.length
+            );
             setBaselineData({
               dinsight_x: data.dinsight_x,
               dinsight_y: data.dinsight_y,
+              metadata: baselineMetadata,
             });
             setBaselineError(null);
           } else {
@@ -346,23 +360,47 @@ export default function AdvancedAnalysisPage() {
       setMonitoringError(null);
 
       try {
-        const response = await api.monitoring.getCoordinates(baselineDataset);
-        const payload = response?.data?.data ?? response?.data;
-        const xValues = payload?.dinsight_x;
-        const yValues = payload?.dinsight_y;
+        const response = await api.monitoring.get(baselineDataset);
+        const payload = response?.data;
+
+        let rows: any[] = [];
+        if (Array.isArray(payload)) {
+          rows = payload;
+        } else if (Array.isArray(payload?.data)) {
+          rows = payload.data;
+        } else if (Array.isArray(payload?.dinsight_x) && Array.isArray(payload?.dinsight_y)) {
+          rows = payload.dinsight_x.map((value: unknown, index: number) => ({
+            dinsight_x: value,
+            dinsight_y: payload.dinsight_y[index],
+            metadata: payload?.metadata?.[index],
+          }));
+        }
 
         if (!isCancelled) {
-          if (
-            Array.isArray(xValues) &&
-            Array.isArray(yValues) &&
-            xValues.length > 0 &&
-            yValues.length > 0
-          ) {
-            setMonitoringData({
-              dinsight_x: xValues,
-              dinsight_y: yValues,
-            });
-            setMonitoringDataset(baselineDataset);
+          if (rows.length > 0) {
+            const xValues = rows.map((row: any) =>
+              typeof row?.dinsight_x === 'number' ? row.dinsight_x : Number(row?.dinsight_x ?? 0)
+            );
+            const yValues = rows.map((row: any) =>
+              typeof row?.dinsight_y === 'number' ? row.dinsight_y : Number(row?.dinsight_y ?? 0)
+            );
+            const metadata = alignMetadataLength(
+              rows.map((row: any) => normalizeMetadataEntry(row?.metadata)),
+              xValues.length
+            );
+
+            if (xValues.length > 0 && yValues.length > 0) {
+              setMonitoringData({
+                dinsight_x: xValues,
+                dinsight_y: yValues,
+                metadata,
+              });
+              setMonitoringDataset(baselineDataset);
+            } else {
+              setMonitoringData(null);
+              setMonitoringDataset(null);
+              setMonitoringError('Monitoring data not available for this baseline yet.');
+            }
           } else {
             setMonitoringData(null);
             setMonitoringDataset(null);
@@ -408,6 +446,28 @@ export default function AdvancedAnalysisPage() {
   useEffect(() => {
     setAnomalyResults(null);
   }, [baselineDataset]);
+
+  const baselineMetadata = useMemo(() => baselineData?.metadata ?? [], [baselineData?.metadata]);
+  const monitoringMetadata = useMemo(
+    () => monitoringData?.metadata ?? [],
+    [monitoringData?.metadata]
+  );
+  const metadataSources = useMemo(
+    () => [baselineMetadata, monitoringMetadata],
+    [baselineMetadata, monitoringMetadata]
+  );
+
+  const {
+    metadataEnabled,
+    setMetadataEnabled,
+    selectedKeys: selectedMetadataKeys,
+    toggleKey: toggleMetadataKey,
+    selectAll: selectAllMetadataKeys,
+    clearAll: clearMetadataKeys,
+    availableKeys: availableMetadataKeys,
+    buildHoverText,
+    hasActiveMetadata,
+  } = useMetadataHover({ metadataSources });
 
   // Define handleRunAnalysis with useCallback to prevent unnecessary re-renders
   const handleRunAnalysis = useCallback(async () => {
@@ -491,21 +551,59 @@ export default function AdvancedAnalysisPage() {
       return null;
     }
 
+    const addMetadataToTemplate = (template: string, textArray?: string[]) => {
+      if (!hasActiveMetadata || !textArray || textArray.length === 0) {
+        return template;
+      }
+
+      const hasContent = textArray.some((entry) => entry && entry.trim().length > 0);
+      if (!hasContent) {
+        return template;
+      }
+
+      return template.replace('<extra></extra>', '<br>%{text}<extra></extra>');
+    };
+
+    const attachMetadata = (trace: any, textArray?: string[]) => {
+      if (!hasActiveMetadata || !textArray || textArray.length === 0) {
+        return trace;
+      }
+
+      return {
+        ...trace,
+        text: textArray,
+        hovertemplate: addMetadataToTemplate(trace.hovertemplate, textArray),
+      };
+    };
+
+    const baselineMetadataText = hasActiveMetadata
+      ? buildHoverText(baselineData.metadata)
+      : undefined;
+    const monitoringMetadataText =
+      hasActiveMetadata && monitoringData ? buildHoverText(monitoringData.metadata) : undefined;
+    const monitoringMetadataForIndices = (indices: number[]) =>
+      hasActiveMetadata && monitoringData && indices.length > 0
+        ? buildHoverText(monitoringData.metadata, indices)
+        : undefined;
+
     const traces: any[] = [
-      {
-        x: baselineData.dinsight_x,
-        y: baselineData.dinsight_y,
-        mode: 'markers' as const,
-        type: 'scattergl' as const,
-        name: 'Baseline Dataset',
-        marker: {
-          color: '#1A73E8',
-          size: 6,
-          opacity: 0.5,
-          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+      attachMetadata(
+        {
+          x: baselineData.dinsight_x,
+          y: baselineData.dinsight_y,
+          mode: 'markers' as const,
+          type: 'scattergl' as const,
+          name: 'Baseline Dataset',
+          marker: {
+            color: '#1A73E8',
+            size: 6,
+            opacity: 0.5,
+            line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+          },
+          hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
         },
-        hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-      },
+        baselineMetadataText
+      ),
     ];
 
     const hasMonitoringPoints =
@@ -518,42 +616,52 @@ export default function AdvancedAnalysisPage() {
       const anomalyPoints = anomalyResults.anomalous_points.filter((point) => point.is_anomaly);
 
       if (normalPoints.length > 0) {
-        traces.push({
-          x: normalPoints.map((point) => point.x),
-          y: normalPoints.map((point) => point.y),
-          mode: 'markers' as const,
-          type: 'scattergl' as const,
-          name: 'Normal Points',
-          marker: {
-            color: '#34A853',
-            size: 6,
-            opacity: 0.7,
-            line: { width: 1, color: 'rgba(0,0,0,0.2)' },
-          },
-          hovertemplate:
-            '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-          customdata: normalPoints.map((point) => point.mahalanobis_distance),
-        });
+        traces.push(
+          attachMetadata(
+            {
+              x: normalPoints.map((point) => point.x),
+              y: normalPoints.map((point) => point.y),
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: 'Normal Points',
+              marker: {
+                color: '#34A853',
+                size: 6,
+                opacity: 0.7,
+                line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+              },
+              hovertemplate:
+                '<b>Normal</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+              customdata: normalPoints.map((point) => point.mahalanobis_distance),
+            },
+            monitoringMetadataForIndices(normalPoints.map((point) => point.index))
+          )
+        );
       }
 
       if (anomalyPoints.length > 0) {
-        traces.push({
-          x: anomalyPoints.map((point) => point.x),
-          y: anomalyPoints.map((point) => point.y),
-          mode: 'markers' as const,
-          type: 'scattergl' as const,
-          name: 'Anomalies',
-          marker: {
-            color: '#EA4335',
-            size: 8,
-            opacity: 0.9,
-            symbol: 'circle',
-            line: { width: 2, color: '#c62828' },
-          },
-          hovertemplate:
-            '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
-          customdata: anomalyPoints.map((point) => point.mahalanobis_distance),
-        });
+        traces.push(
+          attachMetadata(
+            {
+              x: anomalyPoints.map((point) => point.x),
+              y: anomalyPoints.map((point) => point.y),
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: 'Anomalies',
+              marker: {
+                color: '#EA4335',
+                size: 8,
+                opacity: 0.9,
+                symbol: 'circle',
+                line: { width: 2, color: '#c62828' },
+              },
+              hovertemplate:
+                '<b>Anomaly</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>',
+              customdata: anomalyPoints.map((point) => point.mahalanobis_distance),
+            },
+            monitoringMetadataForIndices(anomalyPoints.map((point) => point.index))
+          )
+        );
       }
 
       traces.push({
@@ -588,20 +696,25 @@ export default function AdvancedAnalysisPage() {
         hovertemplate: `<b>Monitor Centroid</b><br>X: ${anomalyResults.comparison_centroid.x.toFixed(4)}<br>Y: ${anomalyResults.comparison_centroid.y.toFixed(4)}<extra></extra>`,
       });
     } else if (hasMonitoringPoints && monitoringData) {
-      traces.push({
-        x: monitoringData.dinsight_x,
-        y: monitoringData.dinsight_y,
-        mode: 'markers' as const,
-        type: 'scattergl' as const,
-        name: 'Monitoring Dataset',
-        marker: {
-          color: '#34A853',
-          size: 6,
-          opacity: 0.6,
-          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
-        },
-        hovertemplate: '<b>Monitoring</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-      });
+      traces.push(
+        attachMetadata(
+          {
+            x: monitoringData.dinsight_x,
+            y: monitoringData.dinsight_y,
+            mode: 'markers' as const,
+            type: 'scattergl' as const,
+            name: 'Monitoring Dataset',
+            marker: {
+              color: '#34A853',
+              size: 6,
+              opacity: 0.6,
+              line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+            },
+            hovertemplate: '<b>Monitoring</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
+          },
+          monitoringMetadataText
+        )
+      );
     }
 
     const titleText = anomalyResults
@@ -636,7 +749,7 @@ export default function AdvancedAnalysisPage() {
         scrollZoom: false,
       },
     };
-  }, [baselineData, monitoringData, anomalyResults]);
+  }, [baselineData, monitoringData, anomalyResults, buildHoverText, hasActiveMetadata]);
 
   const monitoringCounts = useMemo(() => {
     const map = new Map<number, number>();
@@ -962,6 +1075,18 @@ export default function AdvancedAnalysisPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <MetadataHoverControls
+                      availableKeys={availableMetadataKeys}
+                      selectedKeys={selectedMetadataKeys}
+                      onToggleKey={toggleMetadataKey}
+                      onSelectAll={selectAllMetadataKeys}
+                      onClearAll={clearMetadataKeys}
+                      metadataEnabled={metadataEnabled}
+                      onToggleEnabled={setMetadataEnabled}
+                      disabled={!baselineData && !monitoringData}
+                    />
                   </div>
                 </CardContent>
               </Card>

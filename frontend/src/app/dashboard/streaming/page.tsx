@@ -32,6 +32,14 @@ import { Progress } from '@/components/ui/progress';
 import { apiClient } from '@/lib/api-client';
 import { api } from '@/lib/api-client';
 import { cn } from '@/utils/cn';
+import { useMetadataHover } from '@/hooks/useMetadataHover';
+import { MetadataEntry } from '@/types/metadata';
+import { MetadataHoverControls } from '@/components/metadata-hover-controls';
+import {
+  normalizeMetadataArray,
+  normalizeMetadataEntry,
+  alignMetadataLength,
+} from '@/utils/metadata';
 
 // Dynamically import Plot to avoid SSR issues
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -60,6 +68,7 @@ interface DinsightData {
     dinsight_x: number[];
     dinsight_y: number[];
     labels: string[];
+    metadata: MetadataEntry[];
   };
   monitoring: {
     dinsight_x: number[];
@@ -67,6 +76,7 @@ interface DinsightData {
     labels: string[];
     timestamps: string[];
     processOrders?: number[]; // Added for gradient coloring
+    metadata: MetadataEntry[];
   };
 }
 
@@ -277,30 +287,66 @@ export default function StreamingVisualizationPage() {
       if (!selectedDinsightId) return null;
 
       try {
-        // Fetch baseline and monitoring data separately
         const [baselineResponse, monitoringResponse] = await Promise.all([
           apiClient.get(`/dinsight/${selectedDinsightId}`),
           monitoringStarted
-            ? apiClient.get(`/monitor/${selectedDinsightId}/coordinates`)
-            : Promise.resolve({ data: {} }),
+            ? api.monitoring.get(selectedDinsightId)
+            : Promise.resolve({ data: [] as unknown[] }),
         ]);
 
-        const baselineData = baselineResponse.data.data;
-        const monitoringData = monitoringResponse.data;
+        const baselinePayload = baselineResponse?.data?.data || {};
+        const baselineX = Array.isArray(baselinePayload.dinsight_x)
+          ? (baselinePayload.dinsight_x as number[])
+          : [];
+        const baselineY = Array.isArray(baselinePayload.dinsight_y)
+          ? (baselinePayload.dinsight_y as number[])
+          : [];
+        const baselineMetadata = alignMetadataLength(
+          normalizeMetadataArray(baselinePayload.point_metadata),
+          baselineX.length
+        );
+
+        const monitoringPayload = monitoringResponse?.data;
+        const monitoringRows: any[] = Array.isArray(monitoringPayload)
+          ? monitoringPayload
+          : Array.isArray(monitoringPayload?.data)
+            ? monitoringPayload.data
+            : [];
+
+        const monitoringX = monitoringRows.map((row: any) =>
+          typeof row?.dinsight_x === 'number' ? row.dinsight_x : Number(row?.dinsight_x ?? 0)
+        );
+        const monitoringY = monitoringRows.map((row: any) =>
+          typeof row?.dinsight_y === 'number' ? row.dinsight_y : Number(row?.dinsight_y ?? 0)
+        );
+        const monitoringMetadataRaw = monitoringRows.map((row: any) =>
+          normalizeMetadataEntry(row?.metadata)
+        );
+        const monitoringMetadata = alignMetadataLength(monitoringMetadataRaw, monitoringX.length);
+        const monitoringLabels = monitoringX.map((_, index) => `monitor_${index}`);
+        const monitoringTimestamps = monitoringRows.map((row: any) =>
+          row?.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString()
+        );
+        const processOrders = monitoringRows.map((row: any, index: number) =>
+          typeof row?.process_order === 'number'
+            ? row.process_order
+            : Number(row?.process_order ?? index + 1)
+        );
 
         return {
           baseline: {
-            dinsight_x: baselineData.dinsight_x || [],
-            dinsight_y: baselineData.dinsight_y || [],
-            labels: (baselineData.dinsight_x || []).map((_: any, i: number) => `baseline_${i}`),
+            dinsight_x: baselineX,
+            dinsight_y: baselineY,
+            labels: baselineX.map((_, index) => `baseline_${index}`),
+            metadata: baselineMetadata,
           },
           monitoring: {
-            dinsight_x: monitoringData.dinsight_x || [],
-            dinsight_y: monitoringData.dinsight_y || [],
-            labels: (monitoringData.dinsight_x || []).map((_: any, i: number) => `monitor_${i}`),
-            timestamps: (monitoringData.dinsight_x || []).map(() => new Date().toISOString()),
-            // Generate process orders since API returns data already ordered by process_order
-            processOrders: (monitoringData.dinsight_x || []).map((_: any, i: number) => i + 1),
+            dinsight_x: monitoringX,
+            dinsight_y: monitoringY,
+            labels: monitoringLabels,
+            timestamps: monitoringTimestamps,
+            processOrders,
+            metadata: monitoringMetadata,
           },
         };
       } catch (error) {
@@ -311,6 +357,31 @@ export default function StreamingVisualizationPage() {
     enabled: !!selectedDinsightId,
     refetchInterval: smartRefreshInterval,
   });
+
+  const baselineMetadata = useMemo(
+    () => dinsightData?.baseline.metadata ?? [],
+    [dinsightData?.baseline.metadata]
+  );
+  const monitoringMetadata = useMemo(
+    () => dinsightData?.monitoring.metadata ?? [],
+    [dinsightData?.monitoring.metadata]
+  );
+  const metadataSources = useMemo(
+    () => [baselineMetadata, monitoringMetadata],
+    [baselineMetadata, monitoringMetadata]
+  );
+
+  const {
+    metadataEnabled,
+    setMetadataEnabled,
+    selectedKeys: selectedMetadataKeys,
+    toggleKey: toggleMetadataKey,
+    selectAll: selectAllMetadataKeys,
+    clearAll: clearMetadataKeys,
+    availableKeys: availableMetadataKeys,
+    buildHoverText,
+    hasActiveMetadata,
+  } = useMetadataHover({ metadataSources });
 
   // Update streaming status when data changes
   useEffect(() => {
@@ -1053,22 +1124,61 @@ export default function StreamingVisualizationPage() {
 
     if (!dinsightData) return data;
 
+    const addMetadataToTemplate = (template: string, textArray?: string[]) => {
+      if (!hasActiveMetadata || !textArray || textArray.length === 0) {
+        return template;
+      }
+
+      const hasReadableContent = textArray.some((entry) => entry && entry.trim().length > 0);
+      if (!hasReadableContent) {
+        return template;
+      }
+
+      return template.replace('<extra></extra>', '<br>%{text}<extra></extra>');
+    };
+
+    const attachMetadata = (trace: any, textArray?: string[]) => {
+      if (!hasActiveMetadata || !textArray || textArray.length === 0) {
+        return trace;
+      }
+
+      return {
+        ...trace,
+        text: textArray,
+        hovertemplate: addMetadataToTemplate(trace.hovertemplate, textArray),
+      };
+    };
+
+    const baselineMetadataText = hasActiveMetadata
+      ? buildHoverText(dinsightData.baseline.metadata)
+      : undefined;
+    const monitoringMetadataAll = hasActiveMetadata
+      ? buildHoverText(dinsightData.monitoring.metadata)
+      : undefined;
+    const monitoringMetadataForIndices = (indices: number[]) =>
+      hasActiveMetadata && indices.length > 0
+        ? buildHoverText(dinsightData.monitoring.metadata, indices)
+        : undefined;
+
     // Baseline data (always show)
     if (dinsightData.baseline.dinsight_x.length > 0) {
-      const baselineTrace = {
-        x: dinsightData.baseline.dinsight_x,
-        y: dinsightData.baseline.dinsight_y,
-        mode: 'markers' as const,
-        type: 'scattergl' as const,
-        name: 'Baseline (Reference)',
-        marker: {
-          color: '#1A73E8',
-          size: pointSize,
-          opacity: 0.6,
-          line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+      const baselineTrace = attachMetadata(
+        {
+          x: dinsightData.baseline.dinsight_x,
+          y: dinsightData.baseline.dinsight_y,
+          mode: 'markers' as const,
+          type: 'scattergl' as const,
+          name: 'Baseline (Reference)',
+          marker: {
+            color: '#1A73E8',
+            size: pointSize,
+            opacity: 0.6,
+            line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+          },
+          hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
         },
-        hovertemplate: '<b>Baseline</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-      };
+        baselineMetadataText
+      );
       data.push(baselineTrace);
 
       // Add contour plot for baseline if enabled
@@ -1117,6 +1227,10 @@ export default function StreamingVisualizationPage() {
         const anomalyY: number[] = [];
         const anomalyXGlow: number[] = [];
         const anomalyYGlow: number[] = [];
+        const normalIndicesList: number[] = [];
+        const normalGlowIndicesList: number[] = [];
+        const anomalyIndicesList: number[] = [];
+        const anomalyGlowIndicesList: number[] = [];
 
         dinsightData.monitoring.dinsight_x.forEach((x, index) => {
           const y = dinsightData.monitoring.dinsight_y[index];
@@ -1126,95 +1240,115 @@ export default function StreamingVisualizationPage() {
             if (isLatest) {
               normalXGlow.push(x);
               normalYGlow.push(y);
+              normalGlowIndicesList.push(index);
             } else {
               normalX.push(x);
               normalY.push(y);
+              normalIndicesList.push(index);
             }
           } else if (anomalyIndices.has(index)) {
             if (isLatest) {
               anomalyXGlow.push(x);
               anomalyYGlow.push(y);
+              anomalyGlowIndicesList.push(index);
             } else {
               anomalyX.push(x);
               anomalyY.push(y);
+              anomalyIndicesList.push(index);
             }
           }
         });
 
         // Add regular normal points (bright green)
         if (normalX.length > 0) {
-          data.push({
-            x: normalX,
-            y: normalY,
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Normal Points (${normalX.length})`,
-            marker: {
-              color: '#22C55E', // Bright green for manual
-              size: pointSize + 1,
-              opacity: 0.8,
-              line: { width: 2, color: '#16A34A' },
+          const trace = attachMetadata(
+            {
+              x: normalX,
+              y: normalY,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Normal Points (${normalX.length})`,
+              marker: {
+                color: '#22C55E', // Bright green for manual
+                size: pointSize + 1,
+                opacity: 0.8,
+                line: { width: 2, color: '#16A34A' },
+              },
+              hovertemplate:
+                '<b>Normal (Manual Stream)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
             },
-            hovertemplate:
-              '<b>Normal (Manual Stream)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-          });
+            monitoringMetadataForIndices(normalIndicesList)
+          );
+          data.push(trace);
         }
 
         // Add glowing normal points (latest)
         if (normalXGlow.length > 0) {
-          data.push({
-            x: normalXGlow,
-            y: normalYGlow,
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Normal (Latest ${normalXGlow.length})`,
-            marker: {
-              color: '#22C55E', // Bright green
-              size: pointSize + 3,
-              opacity: 0.9,
-              line: { width: 4, color: '#FBBF24' }, // Gold glow
+          const trace = attachMetadata(
+            {
+              x: normalXGlow,
+              y: normalYGlow,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Normal (Latest ${normalXGlow.length})`,
+              marker: {
+                color: '#22C55E', // Bright green
+                size: pointSize + 3,
+                opacity: 0.9,
+                line: { width: 4, color: '#FBBF24' }, // Gold glow
+              },
+              hovertemplate:
+                '<b>Normal (Manual Stream, Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
             },
-            hovertemplate:
-              '<b>Normal (Manual Stream, Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-          });
+            monitoringMetadataForIndices(normalGlowIndicesList)
+          );
+          data.push(trace);
         }
 
         // Add regular anomaly points (bright red)
         if (anomalyX.length > 0) {
-          data.push({
-            x: anomalyX,
-            y: anomalyY,
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Anomaly Points (${anomalyX.length})`,
-            marker: {
-              color: '#EF4444', // Bright red for manual
-              size: pointSize + 2,
-              opacity: 0.9,
-              line: { width: 3, color: '#DC2626' },
+          const trace = attachMetadata(
+            {
+              x: anomalyX,
+              y: anomalyY,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Anomaly Points (${anomalyX.length})`,
+              marker: {
+                color: '#EF4444', // Bright red for manual
+                size: pointSize + 2,
+                opacity: 0.9,
+                line: { width: 3, color: '#DC2626' },
+              },
+              hovertemplate:
+                '<b>Anomaly (Manual Stream)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
             },
-            hovertemplate:
-              '<b>Anomaly (Manual Stream)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-          });
+            monitoringMetadataForIndices(anomalyIndicesList)
+          );
+          data.push(trace);
         }
 
         // Add glowing anomaly points (latest)
         if (anomalyXGlow.length > 0) {
-          data.push({
-            x: anomalyXGlow,
-            y: anomalyYGlow,
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Anomaly (Latest ${anomalyXGlow.length})`,
-            marker: {
-              color: '#EF4444', // Bright red
-              size: pointSize + 4,
-              opacity: 0.95,
-              line: { width: 4, color: '#FBBF24' }, // Gold glow
+          const trace = attachMetadata(
+            {
+              x: anomalyXGlow,
+              y: anomalyYGlow,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Anomaly (Latest ${anomalyXGlow.length})`,
+              marker: {
+                color: '#EF4444', // Bright red
+                size: pointSize + 4,
+                opacity: 0.95,
+                line: { width: 4, color: '#FBBF24' }, // Gold glow
+              },
+              hovertemplate:
+                '<b>Anomaly (Manual Stream, Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
             },
-            hovertemplate:
-              '<b>Anomaly (Manual Stream, Latest)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-          });
+            monitoringMetadataForIndices(anomalyGlowIndicesList)
+          );
+          data.push(trace);
         }
 
         // Add manual selection boundary
@@ -1317,86 +1451,102 @@ export default function StreamingVisualizationPage() {
 
         // Add regular normal monitoring points (no glow)
         if (normalPointsRegular.length > 0) {
-          data.push({
-            x: normalPointsRegular.map((p) => p.x),
-            y: normalPointsRegular.map((p) => p.y),
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Normal Points (${normalPointsRegular.length})`,
-            marker: {
-              color: manualClassification ? '#22C55E' : '#34A853', // Brighter green for manual selection
-              size: pointSize,
-              opacity: manualClassification ? 0.8 : 0.7, // Higher opacity for manual selection
-              line: {
-                width: manualClassification ? 2 : 1,
-                color: manualClassification ? '#16A34A' : 'rgba(0,0,0,0.2)',
+          const normalRegularTrace = attachMetadata(
+            {
+              x: normalPointsRegular.map((p) => p.x),
+              y: normalPointsRegular.map((p) => p.y),
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Normal Points (${normalPointsRegular.length})`,
+              marker: {
+                color: manualClassification ? '#22C55E' : '#34A853', // Brighter green for manual selection
+                size: pointSize,
+                opacity: manualClassification ? 0.8 : 0.7, // Higher opacity for manual selection
+                line: {
+                  width: manualClassification ? 2 : 1,
+                  color: manualClassification ? '#16A34A' : 'rgba(0,0,0,0.2)',
+                },
               },
+              hovertemplate: `<b>${manualClassification ? 'Normal (Manual)' : 'Normal'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
+              customdata: normalPointsRegular.map((p) => p.mahalanobis_distance),
             },
-            hovertemplate: `<b>${manualClassification ? 'Normal (Manual)' : 'Normal'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
-            customdata: normalPointsRegular.map((p) => p.mahalanobis_distance),
-          });
+            monitoringMetadataForIndices(normalPointsRegular.map((p) => p.index))
+          );
+          data.push(normalRegularTrace);
         }
 
         // Add glowing normal monitoring points (latest points)
         if (normalPointsGlow.length > 0) {
-          data.push({
-            x: normalPointsGlow.map((p) => p.x),
-            y: normalPointsGlow.map((p) => p.y),
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Normal (Latest ${normalPointsGlow.length})`,
-            marker: {
-              color: manualClassification ? '#22C55E' : '#34A853', // Brighter green for manual selection
-              size: pointSize + 2, // Slightly larger for emphasis
-              opacity: 0.9,
-              line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for visibility
+          const normalGlowTrace = attachMetadata(
+            {
+              x: normalPointsGlow.map((p) => p.x),
+              y: normalPointsGlow.map((p) => p.y),
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Normal (Latest ${normalPointsGlow.length})`,
+              marker: {
+                color: manualClassification ? '#22C55E' : '#34A853', // Brighter green for manual selection
+                size: pointSize + 2, // Slightly larger for emphasis
+                opacity: 0.9,
+                line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for visibility
+              },
+              hovertemplate: `<b>${manualClassification ? 'Normal (Manual, Latest)' : 'Normal (Latest)'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
+              customdata: normalPointsGlow.map((p) => p.mahalanobis_distance),
             },
-            hovertemplate: `<b>${manualClassification ? 'Normal (Manual, Latest)' : 'Normal (Latest)'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
-            customdata: normalPointsGlow.map((p) => p.mahalanobis_distance),
-          });
+            monitoringMetadataForIndices(normalPointsGlow.map((p) => p.index))
+          );
+          data.push(normalGlowTrace);
         }
 
         // Add regular anomalous monitoring points (no glow)
         if (anomalyPointsRegular.length > 0) {
-          data.push({
-            x: anomalyPointsRegular.map((p) => p.x),
-            y: anomalyPointsRegular.map((p) => p.y),
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Anomalies (${anomalyPointsRegular.length})`,
-            marker: {
-              color: manualClassification ? '#EF4444' : '#EA4335', // Brighter red for manual selection
-              size: pointSize + (manualClassification ? 3 : 2), // Larger for manual selection emphasis
-              opacity: manualClassification ? 0.9 : 0.9,
-              symbol: 'circle',
-              line: {
-                width: manualClassification ? 3 : 2,
-                color: manualClassification ? '#DC2626' : '#c62828',
+          const anomalyRegularTrace = attachMetadata(
+            {
+              x: anomalyPointsRegular.map((p) => p.x),
+              y: anomalyPointsRegular.map((p) => p.y),
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Anomalies (${anomalyPointsRegular.length})`,
+              marker: {
+                color: manualClassification ? '#EF4444' : '#EA4335', // Brighter red for manual selection
+                size: pointSize + (manualClassification ? 3 : 2), // Larger for manual selection emphasis
+                opacity: manualClassification ? 0.9 : 0.9,
+                symbol: 'circle',
+                line: {
+                  width: manualClassification ? 3 : 2,
+                  color: manualClassification ? '#DC2626' : '#c62828',
+                },
               },
+              hovertemplate: `<b>${manualClassification ? 'Anomaly (Manual)' : 'Anomaly'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
+              customdata: anomalyPointsRegular.map((p) => p.mahalanobis_distance),
             },
-            hovertemplate: `<b>${manualClassification ? 'Anomaly (Manual)' : 'Anomaly'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
-            customdata: anomalyPointsRegular.map((p) => p.mahalanobis_distance),
-          });
+            monitoringMetadataForIndices(anomalyPointsRegular.map((p) => p.index))
+          );
+          data.push(anomalyRegularTrace);
         }
 
         // Add glowing anomalous monitoring points (latest anomalies)
         if (anomalyPointsGlow.length > 0) {
-          data.push({
-            x: anomalyPointsGlow.map((p) => p.x),
-            y: anomalyPointsGlow.map((p) => p.y),
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Anomalies (Latest ${anomalyPointsGlow.length})`,
-            marker: {
-              color: manualClassification ? '#EF4444' : '#EA4335', // Brighter red for manual selection
-              size: pointSize + (manualClassification ? 4 : 2), // Even larger for manual selection + latest
-              opacity: 0.9,
-              symbol: 'circle',
-              line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for consistency
+          const anomalyGlowTrace = attachMetadata(
+            {
+              x: anomalyPointsGlow.map((p) => p.x),
+              y: anomalyPointsGlow.map((p) => p.y),
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Anomalies (Latest ${anomalyPointsGlow.length})`,
+              marker: {
+                color: manualClassification ? '#EF4444' : '#EA4335', // Brighter red for manual selection
+                size: pointSize + (manualClassification ? 4 : 2), // Even larger for manual selection + latest
+                opacity: 0.9,
+                symbol: 'circle',
+                line: { width: 4, color: '#FBBF24' }, // Bright yellow/gold glow effect for consistency
+              },
+              hovertemplate: `<b>${manualClassification ? 'Anomaly (Manual, Latest)' : 'Anomaly (Latest)'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
+              customdata: anomalyPointsGlow.map((p) => p.mahalanobis_distance),
             },
-            hovertemplate: `<b>${manualClassification ? 'Anomaly (Manual, Latest)' : 'Anomaly (Latest)'}</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br>M-Dist: %{customdata:.3f}<extra></extra>`,
-            customdata: anomalyPointsGlow.map((p) => p.mahalanobis_distance),
-          });
+            monitoringMetadataForIndices(anomalyPointsGlow.map((p) => p.index))
+          );
+          data.push(anomalyGlowTrace);
         }
 
         // Add baseline and comparison centroids if anomaly detection is active
@@ -1502,73 +1652,93 @@ export default function StreamingVisualizationPage() {
           const anomalyY: number[] = [];
           const unclassifiedX: number[] = [];
           const unclassifiedY: number[] = [];
+          const manualNormalIndices: number[] = [];
+          const manualAnomalyIndices: number[] = [];
+          const manualUnclassifiedIndices: number[] = [];
 
           dinsightData.monitoring.dinsight_x.forEach((x, index) => {
             const y = dinsightData.monitoring.dinsight_y[index];
             if (normalIndices.has(index)) {
               normalX.push(x);
               normalY.push(y);
+              manualNormalIndices.push(index);
             } else if (anomalyIndices.has(index)) {
               anomalyX.push(x);
               anomalyY.push(y);
+              manualAnomalyIndices.push(index);
             } else {
               unclassifiedX.push(x);
               unclassifiedY.push(y);
+              manualUnclassifiedIndices.push(index);
             }
           });
 
           // Add normal points (bright green)
           if (normalX.length > 0) {
-            data.push({
-              x: normalX,
-              y: normalY,
-              mode: 'markers' as const,
-              type: 'scattergl' as const,
-              name: `Normal Points (${normalX.length})`,
-              marker: {
-                color: '#22C55E', // Bright green
-                size: pointSize + 1,
-                opacity: 0.8,
-                line: { width: 2, color: '#16A34A' },
+            const normalManualTrace = attachMetadata(
+              {
+                x: normalX,
+                y: normalY,
+                mode: 'markers' as const,
+                type: 'scattergl' as const,
+                name: `Normal Points (${normalX.length})`,
+                marker: {
+                  color: '#22C55E', // Bright green
+                  size: pointSize + 1,
+                  opacity: 0.8,
+                  line: { width: 2, color: '#16A34A' },
+                },
+                hovertemplate:
+                  '<b>Normal (Manual)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
               },
-              hovertemplate: '<b>Normal (Manual)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-            });
+              monitoringMetadataForIndices(manualNormalIndices)
+            );
+            data.push(normalManualTrace);
           }
 
           // Add anomaly points (bright red)
           if (anomalyX.length > 0) {
-            data.push({
-              x: anomalyX,
-              y: anomalyY,
-              mode: 'markers' as const,
-              type: 'scattergl' as const,
-              name: `Anomaly Points (${anomalyX.length})`,
-              marker: {
-                color: '#EF4444', // Bright red
-                size: pointSize + 2,
-                opacity: 0.9,
-                line: { width: 3, color: '#DC2626' },
+            const anomalyManualTrace = attachMetadata(
+              {
+                x: anomalyX,
+                y: anomalyY,
+                mode: 'markers' as const,
+                type: 'scattergl' as const,
+                name: `Anomaly Points (${anomalyX.length})`,
+                marker: {
+                  color: '#EF4444', // Bright red
+                  size: pointSize + 2,
+                  opacity: 0.9,
+                  line: { width: 3, color: '#DC2626' },
+                },
+                hovertemplate:
+                  '<b>Anomaly (Manual)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
               },
-              hovertemplate: '<b>Anomaly (Manual)</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-            });
+              monitoringMetadataForIndices(manualAnomalyIndices)
+            );
+            data.push(anomalyManualTrace);
           }
 
           // Add unclassified points (gray)
           if (unclassifiedX.length > 0) {
-            data.push({
-              x: unclassifiedX,
-              y: unclassifiedY,
-              mode: 'markers' as const,
-              type: 'scattergl' as const,
-              name: `Unclassified (${unclassifiedX.length})`,
-              marker: {
-                color: '#9CA3AF', // Gray
-                size: pointSize,
-                opacity: 0.5,
-                line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+            const unclassifiedManualTrace = attachMetadata(
+              {
+                x: unclassifiedX,
+                y: unclassifiedY,
+                mode: 'markers' as const,
+                type: 'scattergl' as const,
+                name: `Unclassified (${unclassifiedX.length})`,
+                marker: {
+                  color: '#9CA3AF', // Gray
+                  size: pointSize,
+                  opacity: 0.5,
+                  line: { width: 1, color: 'rgba(0,0,0,0.2)' },
+                },
+                hovertemplate: '<b>Unclassified</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
               },
-              hovertemplate: '<b>Unclassified</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<extra></extra>',
-            });
+              monitoringMetadataForIndices(manualUnclassifiedIndices)
+            );
+            data.push(unclassifiedManualTrace);
           }
 
           // Add manual selection boundary
@@ -1624,35 +1794,38 @@ export default function StreamingVisualizationPage() {
             streamingStatus || undefined
           );
 
-          const monitoringTrace = {
-            x: dinsightData.monitoring.dinsight_x,
-            y: dinsightData.monitoring.dinsight_y,
-            mode: 'markers' as const,
-            type: 'scattergl' as const,
-            name: `Live Monitoring (${monitoringCount} points)`,
-            marker: {
-              color: colors,
-              size: sizes,
-              opacity: 0.8,
-              line: {
-                width: lineWidths,
-                color: lineColors,
+          const processInfo = dinsightData.monitoring.processOrders
+            ? dinsightData.monitoring.processOrders.map((order, i) => {
+                const totalPoints = monitoringCount;
+                const relativePosition = dinsightData.monitoring.processOrders!.filter(
+                  (o) => o <= order
+                ).length;
+                return `Point ${order} (${relativePosition}/${totalPoints})`;
+              })
+            : dinsightData.monitoring.dinsight_x.map((_, i) => `Point ${i + 1}/${monitoringCount}`);
+
+          const monitoringTrace = attachMetadata(
+            {
+              x: dinsightData.monitoring.dinsight_x,
+              y: dinsightData.monitoring.dinsight_y,
+              mode: 'markers' as const,
+              type: 'scattergl' as const,
+              name: `Live Monitoring (${monitoringCount} points)`,
+              marker: {
+                color: colors,
+                size: sizes,
+                opacity: 0.8,
+                line: {
+                  width: lineWidths,
+                  color: lineColors,
+                },
               },
+              hovertemplate:
+                '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{customdata}</i><extra></extra>',
+              customdata: processInfo,
             },
-            hovertemplate:
-              '<b>Live Monitor</b><br>X: %{x:.6f}<br>Y: %{y:.6f}<br><i>%{text}</i><extra></extra>',
-            text: dinsightData.monitoring.processOrders
-              ? dinsightData.monitoring.processOrders.map((order, i) => {
-                  const totalPoints = monitoringCount;
-                  const relativePosition = dinsightData.monitoring.processOrders!.filter(
-                    (o) => o <= order
-                  ).length;
-                  return `Point ${order} (${relativePosition}/${totalPoints})`;
-                })
-              : dinsightData.monitoring.dinsight_x.map(
-                  (_, i) => `Point ${i + 1}/${monitoringCount}`
-                ),
-          };
+            monitoringMetadataAll
+          );
           data.push(monitoringTrace);
         }
       }
@@ -1690,6 +1863,8 @@ export default function StreamingVisualizationPage() {
     manualClassification,
     manualSelectionBoundary,
     monitoringStarted,
+    buildHoverText,
+    hasActiveMetadata,
   ]);
 
   // Helper function to create shape from boundary
@@ -2479,6 +2654,18 @@ export default function StreamingVisualizationPage() {
                       Auto-refresh ({refreshInterval / 1000}s)
                     </label>
                   </div>
+                </div>
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <MetadataHoverControls
+                    availableKeys={availableMetadataKeys}
+                    selectedKeys={selectedMetadataKeys}
+                    onToggleKey={toggleMetadataKey}
+                    onSelectAll={selectAllMetadataKeys}
+                    onClearAll={clearMetadataKeys}
+                    metadataEnabled={metadataEnabled}
+                    onToggleEnabled={setMetadataEnabled}
+                    disabled={!dinsightData}
+                  />
                 </div>
               </CardContent>
             </Card>

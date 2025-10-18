@@ -7,6 +7,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 
 export interface ConfigDialogProps {
@@ -38,6 +40,9 @@ export function ConfigDialog({
           )}
         </AlertDialogHeader>
         <div className="mt-6">{children}</div>
+        <AlertDialogFooter className="mt-8">
+          <AlertDialogCancel onClick={() => onOpenChange(false)}>Close</AlertDialogCancel>
+        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
