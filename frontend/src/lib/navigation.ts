@@ -7,6 +7,7 @@ import {
   Settings,
   Bell,
   Upload,
+  Activity,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
@@ -42,6 +43,13 @@ export const mainNavItems: NavItem[] = [
     icon: LineChart,
     requiresAuth: true,
     description: 'Interactive comparison between datasets',
+  },
+  {
+    label: 'Deterioration Analysis',
+    href: '/dashboard/deterioration-analysis',
+    icon: Activity,
+    requiresAuth: true,
+    description: 'Track baseline drift and deterioration trends over time',
   },
   {
     label: 'Real-Time Streaming',

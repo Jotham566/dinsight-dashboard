@@ -241,6 +241,22 @@ export const api = {
     getForBaseline: (baselineId: number) => apiClient.get(`/monitor/baseline/${baselineId}`),
   },
 
+  // Deterioration endpoints
+  deterioration: {
+    getMetadata: (dinsightId: number) => apiClient.get(`/deterioration/${dinsightId}/metadata`),
+    analyze: (
+      dinsightId: number,
+      data: {
+        metadata_column: string;
+        include_monitoring?: boolean;
+        baseline_cluster?: {
+          values?: string[];
+          range?: { start: string; end: string };
+        };
+      }
+    ) => apiClient.post(`/deterioration/${dinsightId}/analyze`, data),
+  },
+
   // Anomaly detection endpoints
   anomaly: {
     detect: (data: any) => {
