@@ -1062,9 +1062,7 @@ export default function DeteriorationAnalysisPage() {
                         {/* Column Headers */}
                         <div className="flex items-center gap-3 px-3 py-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground">
                           <div className="w-4"></div>
-                          <span className="flex-1 capitalize">
-                            {metadataColumn || 'Interval'}
-                          </span>
+                          <span className="flex-1 capitalize">{metadataColumn || 'Interval'}</span>
                           <span className="text-right min-w-[60px]">Data Points</span>
                         </div>
 
@@ -1088,7 +1086,10 @@ export default function DeteriorationAnalysisPage() {
                                 <span className="text-sm flex-1 capitalize">
                                   {interval.metadata_value}
                                 </span>
-                                <Badge variant="outline" className="text-xs min-w-[60px] justify-center">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs min-w-[60px] justify-center"
+                                >
                                   {interval.point_count}
                                 </Badge>
                               </label>
@@ -1248,7 +1249,9 @@ export default function DeteriorationAnalysisPage() {
                             onClick={() => setShowAllIntervals(!showAllIntervals)}
                             className="text-xs text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded px-1"
                           >
-                            {showAllIntervals ? 'Show less' : `Show all (${analysisData.g0.labels.length})`}
+                            {showAllIntervals
+                              ? 'Show less'
+                              : `Show all (${analysisData.g0.labels.length})`}
                           </button>
                         )}
                       </div>
