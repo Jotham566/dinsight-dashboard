@@ -857,8 +857,8 @@ export default function DeteriorationAnalysisPage() {
               <div>
                 <h1 className="text-3xl font-bold gradient-text">Deterioration Insights</h1>
                 <p className="text-gray-600 dark:text-gray-300 mt-1 max-w-2xl">
-                  Stay aligned with visualization and streaming dashboards while tracking drift from
-                  the baseline gravity center and volatility between intervals.
+                  Monitor machine health by tracking drift from baseline behavior and detecting
+                  volatility patterns over time.
                 </p>
               </div>
             </div>
