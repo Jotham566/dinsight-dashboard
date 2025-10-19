@@ -30,7 +30,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { api } from '@/lib/api-client';
+import { api, apiClient } from '@/lib/api-client';
 import { ApiResponse } from '@/types';
 import type { Layout, Shape, Annotations } from 'plotly.js';
 
@@ -182,6 +182,7 @@ export default function DeteriorationAnalysisPage() {
   const [transitionPageSize, setTransitionPageSize] = useState(10);
   const [showAllIntervals, setShowAllIntervals] = useState(false);
   const [baselineFilterText, setBaselineFilterText] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
 
   // Local storage keys
   const STORAGE_KEYS = {
@@ -286,6 +287,30 @@ export default function DeteriorationAnalysisPage() {
     staleTime: 15000,
   });
 
+  // Query for streaming status to enable real-time updates
+  const streamingStatusQuery = useQuery({
+    queryKey: ['streaming-status', selectedDinsightId],
+    enabled: selectedDinsightId != null,
+    refetchInterval: 5000, // Check every 5 seconds
+    queryFn: async () => {
+      if (!selectedDinsightId) return null;
+      try {
+        const response = await apiClient.get(`/streaming/${selectedDinsightId}/status`);
+        return response?.data?.data || null;
+      } catch (error) {
+        console.warn('Failed to fetch streaming status:', error);
+        return null;
+      }
+    },
+  });
+
+  // Update streaming state
+  useEffect(() => {
+    if (streamingStatusQuery.data) {
+      setIsStreaming(streamingStatusQuery.data.is_active === true);
+    }
+  }, [streamingStatusQuery.data]);
+
   const metadataColumnsQuery = useQuery<string[]>({
     queryKey: ['deterioration-metadata-columns', selectedDinsightId],
     enabled: selectedDinsightId != null,
@@ -313,6 +338,8 @@ export default function DeteriorationAnalysisPage() {
       rangeKey,
     ],
     enabled: Boolean(selectedDinsightId && metadataColumn),
+    refetchInterval: isStreaming ? 10000 : false, // Refetch every 10 seconds when streaming
+    staleTime: isStreaming ? 5000 : 30000, // Consider data stale faster when streaming
     queryFn: async () => {
       if (!selectedDinsightId || !metadataColumn) {
         return undefined;
@@ -836,6 +863,15 @@ export default function DeteriorationAnalysisPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {isStreaming && (
+                <Badge variant="secondary" className="animate-pulse">
+                  <span className="relative flex h-2 w-2 mr-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  Live Updates
+                </Badge>
+              )}
               <Button
                 variant="outline"
                 onClick={handleRefresh}
