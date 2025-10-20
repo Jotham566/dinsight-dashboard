@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   RefreshCw,
@@ -15,6 +16,7 @@ import {
   Settings2,
   Search,
   X,
+  HelpCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -162,6 +164,139 @@ const truncateLabel = (value: string, maxLength = 14) => {
     return value;
   }
   return `${value.slice(0, maxLength - 1)}…`;
+};
+
+// Info tooltip component (portalled, fixed-position with collision handling)
+const InfoTooltip = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [position, setPosition] = useState<{
+    top: number;
+    left: number;
+    placement: 'top' | 'bottom';
+  }>({ top: 0, left: 0, placement: 'bottom' });
+  const [closeTimer, setCloseTimer] = useState<number | null>(null);
+  const tooltipId = useMemo(() => `tooltip-${Math.random().toString(36).slice(2)}`, []);
+
+  useEffect(() => setMounted(true), []);
+
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const margin = 8; // px gap between trigger and tooltip
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft;
+
+    const provisionalWidth = 320; // ~w-80 (20rem)
+    const centerLeft = rect.left + rect.width / 2 + scrollX;
+    let left = centerLeft; // translateX(-50%) applied via style
+    let top = rect.bottom + margin + scrollY;
+    let placement: 'top' | 'bottom' = 'bottom';
+
+    // If not enough space below, place on top based on measured height
+    if (tooltipRef.current) {
+      const ttHeight = tooltipRef.current.offsetHeight;
+      if (rect.bottom + margin + ttHeight > window.innerHeight) {
+        top = rect.top - margin - ttHeight + scrollY;
+        placement = 'top';
+      }
+      const ttWidth = tooltipRef.current.offsetWidth || provisionalWidth;
+      const half = ttWidth / 2;
+      const minLeft = scrollX + margin + half;
+      const maxLeft = scrollX + window.innerWidth - margin - half;
+      left = Math.min(Math.max(left, minLeft), maxLeft);
+    } else {
+      const half = provisionalWidth / 2;
+      const minLeft = scrollX + margin + half;
+      const maxLeft = scrollX + window.innerWidth - margin - half;
+      left = Math.min(Math.max(left, minLeft), maxLeft);
+    }
+
+    setPosition({ top, left, placement });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+    const onScroll = () => updatePosition();
+    const onResize = () => updatePosition();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [isOpen, updatePosition]);
+
+  // Recalculate after first paint to use actual tooltip size
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = window.setTimeout(() => updatePosition(), 0);
+    return () => window.clearTimeout(id);
+  }, [isOpen, updatePosition]);
+
+  const open = useCallback(() => {
+    if (closeTimer) {
+      window.clearTimeout(closeTimer);
+      setCloseTimer(null);
+    }
+    setIsOpen(true);
+  }, [closeTimer]);
+
+  const delayedClose = useCallback(() => {
+    const id = window.setTimeout(() => setIsOpen(false), 150);
+    setCloseTimer(id as unknown as number);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
+
+  return (
+    <span className="inline-flex">
+      <button
+        ref={triggerRef}
+        onClick={() => (isOpen ? setIsOpen(false) : open())}
+        onMouseEnter={open}
+        onMouseLeave={delayedClose}
+        onFocus={open}
+        onBlur={delayedClose}
+        className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+        aria-label={title}
+        aria-expanded={isOpen}
+        aria-describedby={isOpen ? tooltipId : undefined}
+        type="button"
+      >
+        <HelpCircle className="h-4 w-4" />
+      </button>
+      {mounted && isOpen && typeof window !== 'undefined'
+        ? createPortal(
+            <div
+              ref={tooltipRef}
+              id={tooltipId}
+              role="tooltip"
+              aria-live="polite"
+              onMouseEnter={open}
+              onMouseLeave={delayedClose}
+              className="pointer-events-auto z-[9999] fixed w-80 max-w-[90vw] p-4 text-sm backdrop-blur-xl bg-white/95 dark:bg-gray-900/95 border-2 border-primary/20 dark:border-primary/30 rounded-lg shadow-2xl ring-1 ring-black/5 dark:ring-white/10"
+              style={{ top: position.top, left: position.left, transform: 'translateX(-50%)' }}
+            >
+              <div className="space-y-2">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h4>
+                <div className="text-gray-700 dark:text-gray-300 leading-relaxed">{children}</div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </span>
+  );
 };
 
 export default function DeteriorationAnalysisPage() {
@@ -1226,7 +1361,16 @@ export default function DeteriorationAnalysisPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mt-6">
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
                   <CardHeader className="pb-2 bg-gradient-to-r from-emerald-50/30 to-accent-teal-50/20 dark:from-emerald-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
-                    <CardTitle className="text-base">Baseline Gravity Center (G₀)</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      Baseline Gravity Center (G₀)
+                      <InfoTooltip title="G₀ (Baseline Center)">
+                        <p>
+                          The machine&apos;s <strong>normal state</strong> — an average of data when
+                          performing well.
+                        </p>
+                        <p className="mt-2">This is your reference point for healthy operation.</p>
+                      </InfoTooltip>
+                    </CardTitle>
                     <CardDescription>Derived from your selected baseline cluster.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -1292,13 +1436,35 @@ export default function DeteriorationAnalysisPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Mean G₀ → Gᵢ</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        Mean G₀ → Gᵢ
+                        <InfoTooltip title="G₀ → Gᵢ (Distance from Normal)">
+                          <p>
+                            <strong>How far</strong> the current condition has moved from the normal
+                            state.
+                          </p>
+                          <p className="mt-2">
+                            Bigger distance = more deterioration from healthy operation.
+                          </p>
+                        </InfoTooltip>
+                      </span>
                       <span className="font-medium">
                         {formatDecimal(analysisData?.distances.g0_to_gi_mean)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Mean Gᵢ → Gᵢ₊₁</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        Mean Gᵢ → Gᵢ₊₁
+                        <InfoTooltip title="Gᵢ → Gᵢ₊₁ (Change Between Periods)">
+                          <p>
+                            <strong>How much</strong> the machine&apos;s condition changes from one
+                            period to the next.
+                          </p>
+                          <p className="mt-2">
+                            Large or inconsistent changes indicate instability or fluctuations.
+                          </p>
+                        </InfoTooltip>
+                      </span>
                       <span className="font-medium">
                         {formatDecimal(analysisData?.distances.gi_to_gi_plus_1_mean)}
                       </span>
@@ -1349,7 +1515,21 @@ export default function DeteriorationAnalysisPage() {
               <TabsContent value="baseline" className="space-y-6 mt-6">
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover flex h-full flex-col">
                   <CardHeader className="bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
-                    <CardTitle>Average Deviation from the Baseline (Selected Normal Operation Cluster) (G₀ → Gᵢ)</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Average Deviation from the Baseline (Selected Normal Operation Cluster) (G₀ →
+                      Gᵢ)
+                      <InfoTooltip title="Understanding This Chart">
+                        <p>
+                          <strong>Each point (Gᵢ)</strong> shows the machine&apos;s average
+                          condition at a specific time.
+                        </p>
+                        <p className="mt-2">
+                          <strong>Distance from G₀</strong> shows how far it has drifted from normal
+                          operation.
+                        </p>
+                        <p className="mt-2">Rising trend = deterioration over time.</p>
+                      </InfoTooltip>
+                    </CardTitle>
                     <CardDescription>
                       Track how each interval&apos;s centroid diverges from the baseline gravity
                       center. Baseline intervals are shaded for quick reference.
@@ -1558,7 +1738,17 @@ export default function DeteriorationAnalysisPage() {
                 {/* Transitions Chart */}
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
                   <CardHeader className="pb-3 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
-                    <CardTitle className="text-lg">Average Change Between Consecutive {metadataColumn || 'Intervals'}(s)</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      Average Change Between Consecutive {metadataColumn || 'Intervals'}(s)
+                      <InfoTooltip title="Understanding This Chart">
+                        <p>
+                          <strong>Measures stability</strong> — how much the condition changes
+                          period-to-period.
+                        </p>
+                        <p className="mt-2">Large spikes = sudden changes or instability.</p>
+                        <p className="mt-2">Consistent low values = stable operation.</p>
+                      </InfoTooltip>
+                    </CardTitle>
                     <CardDescription>
                       Distance from Gᵢ → Gᵢ₊₁ showing volatility or stability between consecutive
                       intervals.
