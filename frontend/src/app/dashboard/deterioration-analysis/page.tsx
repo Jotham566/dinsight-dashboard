@@ -338,7 +338,7 @@ const Collapsible = ({
     <div className="mt-3 rounded-md bg-muted/40">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/60 rounded-md"
         aria-expanded={open}
         aria-controls={storageKey ? `${storageKey}-content` : undefined}
@@ -879,7 +879,7 @@ export default function DeteriorationAnalysisPage() {
         displaylogo: false,
       },
     };
-  }, [analysisData, metadataColumn, includeMonitoring]);
+  }, [analysisData, metadataColumn]);
 
   const consecutiveChart = useMemo(() => {
     if (!analysisData) {
@@ -1055,7 +1055,59 @@ export default function DeteriorationAnalysisPage() {
         displaylogo: false,
       },
     };
-  }, [analysisData, metadataColumn, includeMonitoring]);
+  }, [analysisData, metadataColumn]);
+
+  // Derived means for card display: split by dataset type and show Δ = Monitoring - Baseline
+  const g0ToGiMeans = useMemo(() => {
+    if (!analysisData)
+      return {
+        baseline: null as number | null,
+        monitoring: null as number | null,
+        delta: null as number | null,
+      };
+    const pts = analysisData.distances.g0_to_gi || [];
+    const baseArr = pts.filter((d) => d.dataset_type === 'baseline').map((d) => d.distance);
+    const monArr = pts.filter((d) => d.dataset_type === 'monitoring').map((d) => d.distance);
+    const mean = (arr: number[]) =>
+      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const baseline = mean(baseArr);
+    const monitoring = mean(monArr);
+    const delta = baseline != null && monitoring != null ? monitoring - baseline : null;
+    return { baseline, monitoring, delta };
+  }, [analysisData]);
+
+  const giToGi1Means = useMemo(() => {
+    if (!analysisData)
+      return {
+        baseline: null as number | null,
+        monitoring: null as number | null,
+        delta: null as number | null,
+      };
+    // Compute within-type consecutive means using the same approach as the chart for consistency
+    const baselineIntervalsOnly = analysisData.intervals
+      .filter((i) => i.dataset_type === 'baseline')
+      .sort((a, b) => a.sort_index - b.sort_index);
+    const monitoringIntervalsOnly = analysisData.intervals
+      .filter((i) => i.dataset_type === 'monitoring')
+      .sort((a, b) => a.sort_index - b.sort_index);
+
+    const consecutiveDistances = (arr: typeof baselineIntervalsOnly) => {
+      const out: number[] = [];
+      for (let i = 1; i < arr.length; i++) {
+        const prev = arr[i - 1].centroid;
+        const curr = arr[i].centroid;
+        out.push(Math.hypot(curr.x - prev.x, curr.y - prev.y));
+      }
+      return out;
+    };
+
+    const mean = (arr: number[]) =>
+      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const baseline = mean(consecutiveDistances(baselineIntervalsOnly));
+    const monitoring = mean(consecutiveDistances(monitoringIntervalsOnly));
+    const delta = baseline != null && monitoring != null ? monitoring - baseline : null;
+    return { baseline, monitoring, delta };
+  }, [analysisData]);
 
   const intervalTableRows = useMemo(() => {
     if (!analysisData) return [];
@@ -1531,7 +1583,9 @@ export default function DeteriorationAnalysisPage() {
                           <div className="mt-2">
                             <p className="text-xs font-medium mb-1">Symbols</p>
                             <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
-                              <li>N<sub>B</sub>: number of baseline points used to compute G₀</li>
+                              <li>
+                                N<sub>B</sub>: number of baseline points used to compute G₀
+                              </li>
                               <li>p: an individual point with coordinates (x, y)</li>
                               <li>(x₀, y₀): coordinates of G₀ (the baseline reference)</li>
                               <li>baseline: points from the selected baseline intervals only</li>
@@ -1540,7 +1594,9 @@ export default function DeteriorationAnalysisPage() {
                         </Collapsible>
                       </InfoTooltip>
                     </CardTitle>
-                    <CardDescription>Based only on your selected baseline intervals.</CardDescription>
+                    <CardDescription>
+                      Based only on your selected baseline intervals.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
@@ -1601,98 +1657,194 @@ export default function DeteriorationAnalysisPage() {
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
                   <CardHeader className="pb-2 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
                     <CardTitle className="text-base">Mean Distances</CardTitle>
-                    <CardDescription>Average deviations across the timeline.</CardDescription>
+                    <CardDescription>
+                      Monitoring-focused means with baseline context.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        Mean distance to baseline (G₀ → Gᵢ)
-                        <InfoTooltip title="What does this mean?">
-                          <p>
-                            For each {metadataColumn || 'interval'}, we take its <strong>average
-                            position</strong> (Gᵢ) and measure its distance to the baseline
-                            reference G₀.
-                          </p>
-                          <p className="mt-2">
-                            The mean is the <strong>average of those distances</strong>. On the
-                            chart, the <span className="text-blue-600 font-medium">blue line</span> shows the
-                            <strong>baseline-only</strong> mean and the <span className="text-red-600 font-medium">red line</span>
-                            shows the <strong>monitoring-only</strong> mean (when monitoring is
-                            included).
-                          </p>
-                          <Collapsible initiallyOpen={true} storageKey="tooltip:g0_to_gi:formulas">
-                            <p className="text-xs font-medium mb-1">Formulas</p>
-                            <ul className="text-xs list-disc pl-5 space-y-1">
-                              <li>
-                                d<sub>i</sub> = ∥G<sub>i</sub> − G₀∥ = sqrt((x<sub>i</sub> − x₀)² + (y<sub>i</sub> − y₀)²)
-                              </li>
-                              <li>
-                                Baseline mean = (1 / |B|) · Σ<sub>i ∈ B</sub> d<sub>i</sub>
-                              </li>
-                              <li>
-                                Monitoring mean = (1 / |M|) · Σ<sub>i ∈ M</sub> d<sub>i</sub>
-                              </li>
-                            </ul>
-                            <div className="mt-2">
-                              <p className="text-xs font-medium mb-1">Symbols</p>
-                              <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
-                                <li>G<sub>i</sub> = (x<sub>i</sub>, y<sub>i</sub>): average position for interval i</li>
-                                <li>G₀ = (x₀, y₀): baseline reference (from selected baseline intervals)</li>
-                                <li>d<sub>i</sub>: distance from interval i to the baseline reference</li>
-                                <li>B: set of baseline intervals; |B| is the number of baseline intervals</li>
-                                <li>M: set of monitoring intervals; |M| is the number of monitoring intervals</li>
+                    {/* G0 -> Gi */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          Mean distance to baseline (G₀ → Gᵢ)
+                          <InfoTooltip title="What does this mean?">
+                            <p>
+                              For each {metadataColumn || 'interval'}, we take its{' '}
+                              <strong>average position</strong> (Gᵢ) and measure its distance to the
+                              baseline reference G₀.
+                            </p>
+                            <p className="mt-2">
+                              The monitoring number below focuses on current behavior. The chart
+                              shows <span className="text-blue-600 font-medium">baseline-only</span>{' '}
+                              and <span className="text-red-600 font-medium">monitoring-only</span>
+                              mean lines.
+                            </p>
+                            <Collapsible
+                              initiallyOpen={true}
+                              storageKey="tooltip:g0_to_gi:formulas"
+                            >
+                              <p className="text-xs font-medium mb-1">Formulas</p>
+                              <ul className="text-xs list-disc pl-5 space-y-1">
+                                <li>
+                                  d<sub>i</sub> = ∥G<sub>i</sub> − G₀∥ = sqrt((x<sub>i</sub> − x₀)²
+                                  + (y<sub>i</sub> − y₀)²)
+                                </li>
+                                <li>
+                                  Baseline mean = (1 / |B|) · Σ<sub>i ∈ B</sub> d<sub>i</sub>
+                                </li>
+                                <li>
+                                  Monitoring mean = (1 / |M|) · Σ<sub>i ∈ M</sub> d<sub>i</sub>
+                                </li>
                               </ul>
-                            </div>
-                          </Collapsible>
-                        </InfoTooltip>
-                      </span>
-                      <span className="font-medium">
-                        {formatDecimal(analysisData?.distances.g0_to_gi_mean)}
-                      </span>
+                              <div className="mt-2">
+                                <p className="text-xs font-medium mb-1">Symbols</p>
+                                <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
+                                  <li>
+                                    G<sub>i</sub> = (x<sub>i</sub>, y<sub>i</sub>): average position
+                                    for interval i
+                                  </li>
+                                  <li>
+                                    G₀ = (x₀, y₀): baseline reference (from selected baseline
+                                    intervals)
+                                  </li>
+                                  <li>
+                                    d<sub>i</sub>: distance from interval i to the baseline
+                                    reference
+                                  </li>
+                                  <li>
+                                    B: set of baseline intervals; |B| is the number of baseline
+                                    intervals
+                                  </li>
+                                  <li>
+                                    M: set of monitoring intervals; |M| is the number of monitoring
+                                    intervals
+                                  </li>
+                                </ul>
+                              </div>
+                            </Collapsible>
+                          </InfoTooltip>
+                        </span>
+                        <span className="font-semibold">
+                          {g0ToGiMeans.monitoring != null
+                            ? formatDecimal(g0ToGiMeans.monitoring)
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between">
+                          <span>Baseline</span>
+                          <span className="font-medium text-foreground tabular-nums">
+                            {g0ToGiMeans.baseline != null
+                              ? formatDecimal(g0ToGiMeans.baseline)
+                              : '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Monitoring</span>
+                          <span className="font-medium text-foreground tabular-nums">
+                            {g0ToGiMeans.monitoring != null
+                              ? formatDecimal(g0ToGiMeans.monitoring)
+                              : '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Δ</span>
+                          <span className="font-medium text-foreground tabular-nums">
+                            {g0ToGiMeans.delta != null ? formatDecimal(g0ToGiMeans.delta) : '—'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        Mean change between intervals (Gᵢ → Gᵢ₊₁)
-                        <InfoTooltip title="What does this mean?">
-                          <p>
-                            We look at <strong>how much the average position changes</strong> from
-                            one {metadataColumn || 'interval'} to the next.
-                          </p>
-                          <p className="mt-2">
-                            The mean is the <strong>average of those step-to-step changes</strong>.
-                            On the chart, blue indicates <strong>baseline-only</strong> and red
-                            indicates <strong>monitoring-only</strong> (when monitoring is
-                            included).
-                          </p>
-                          <Collapsible initiallyOpen={true} storageKey="tooltip:gi_to_gi1:formulas">
-                            <p className="text-xs font-medium mb-1">Formulas</p>
-                            <ul className="text-xs list-disc pl-5 space-y-1">
-                              <li>
-                                c<sub>i</sub> = ∥G<sub>i+1</sub> − G<sub>i</sub>∥ = sqrt((x<sub>i+1</sub> − x<sub>i</sub>)² + (y<sub>i+1</sub> − y<sub>i</sub>)²)
-                              </li>
-                              <li>
-                                Baseline mean = (1 / (|B| − 1)) · Σ consecutive pairs in baseline c<sub>i</sub>
-                              </li>
-                              <li>
-                                Monitoring mean = (1 / (|M| − 1)) · Σ consecutive pairs in monitoring c<sub>i</sub>
-                              </li>
-                            </ul>
-                            <div className="mt-2">
-                              <p className="text-xs font-medium mb-1">Symbols</p>
-                              <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
-                                <li>G<sub>i</sub> = (x<sub>i</sub>, y<sub>i</sub>): average position for interval i</li>
-                                <li>c<sub>i</sub>: consecutive distance between G<sub>i</sub> and G<sub>i+1</sub></li>
-                                <li>B: ordered list of baseline intervals (|B| − 1 consecutive pairs)</li>
-                                <li>M: ordered list of monitoring intervals (|M| − 1 consecutive pairs)</li>
+
+                    {/* Gi -> Gi+1 */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          Mean change between intervals (Gᵢ → Gᵢ₊₁)
+                          <InfoTooltip title="What does this mean?">
+                            <p>
+                              We look at <strong>how much the average position changes</strong> from
+                              one {metadataColumn || 'interval'} to the next.
+                            </p>
+                            <p className="mt-2">
+                              Below we show baseline and monitoring means separately, plus Δ.
+                            </p>
+                            <Collapsible
+                              initiallyOpen={true}
+                              storageKey="tooltip:gi_to_gi1:formulas"
+                            >
+                              <p className="text-xs font-medium mb-1">Formulas</p>
+                              <ul className="text-xs list-disc pl-5 space-y-1">
+                                <li>
+                                  c<sub>i</sub> = ∥G<sub>i+1</sub> − G<sub>i</sub>∥ = sqrt((x
+                                  <sub>i+1</sub> − x<sub>i</sub>)² + (y<sub>i+1</sub> − y
+                                  <sub>i</sub>)²)
+                                </li>
+                                <li>
+                                  Baseline mean = (1 / (|B| − 1)) · Σ consecutive pairs in baseline
+                                  c<sub>i</sub>
+                                </li>
+                                <li>
+                                  Monitoring mean = (1 / (|M| − 1)) · Σ consecutive pairs in
+                                  monitoring c<sub>i</sub>
+                                </li>
                               </ul>
-                            </div>
-                          </Collapsible>
-                        </InfoTooltip>
-                      </span>
-                      <span className="font-medium">
-                        {formatDecimal(analysisData?.distances.gi_to_gi_plus_1_mean)}
-                      </span>
+                              <div className="mt-2">
+                                <p className="text-xs font-medium mb-1">Symbols</p>
+                                <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
+                                  <li>
+                                    G<sub>i</sub> = (x<sub>i</sub>, y<sub>i</sub>): average position
+                                    for interval i
+                                  </li>
+                                  <li>
+                                    c<sub>i</sub>: consecutive distance between G<sub>i</sub> and G
+                                    <sub>i+1</sub>
+                                  </li>
+                                  <li>
+                                    B: ordered list of baseline intervals (|B| − 1 consecutive
+                                    pairs)
+                                  </li>
+                                  <li>
+                                    M: ordered list of monitoring intervals (|M| − 1 consecutive
+                                    pairs)
+                                  </li>
+                                </ul>
+                              </div>
+                            </Collapsible>
+                          </InfoTooltip>
+                        </span>
+                        <span className="font-semibold">
+                          {giToGi1Means.monitoring != null
+                            ? formatDecimal(giToGi1Means.monitoring)
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between">
+                          <span>Baseline</span>
+                          <span className="font-medium text-foreground tabular-nums">
+                            {giToGi1Means.baseline != null
+                              ? formatDecimal(giToGi1Means.baseline)
+                              : '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Monitoring</span>
+                          <span className="font-medium text-foreground tabular-nums">
+                            {giToGi1Means.monitoring != null
+                              ? formatDecimal(giToGi1Means.monitoring)
+                              : '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>Δ</span>
+                          <span className="font-medium text-foreground tabular-nums">
+                            {giToGi1Means.delta != null ? formatDecimal(giToGi1Means.delta) : '—'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="rounded-md border border-dashed border-muted p-3">
                       <p className="flex items-start gap-2 text-xs text-muted-foreground">
                         <Info className="h-4 w-4 flex-shrink-0" />
@@ -1743,22 +1895,28 @@ export default function DeteriorationAnalysisPage() {
                       Distance from Baseline (G₀ → Gᵢ)
                       <InfoTooltip title="How to read this">
                         <p>
-                          Each dot is an <strong>average position</strong> (Gᵢ) for each {metadataColumn || 'interval'} over time. Blue
-                          points are <strong>baseline</strong>, red points are <strong>monitoring</strong>.
+                          Each dot is an <strong>average position</strong> (Gᵢ) for each{' '}
+                          {metadataColumn || 'interval'} over time. Blue points are{' '}
+                          <strong>baseline</strong>, red points are <strong>monitoring</strong>.
                         </p>
                         <p className="mt-2">
-                          The Y-axis is the <strong>distance to G₀</strong> (your baseline reference). Larger values = farther from normal.
+                          The Y-axis is the <strong>distance to G₀</strong> (your baseline
+                          reference). Larger values = farther from normal.
                         </p>
                         <p className="mt-2">
-                          The dotted <span className="text-blue-600 font-medium">blue mean</span> is computed from baseline intervals only. The dashed
-                          <span className="text-red-600 font-medium"> red mean</span> is from monitoring intervals only (when monitoring is included).
+                          The dotted <span className="text-blue-600 font-medium">blue mean</span> is
+                          computed from baseline intervals only. The dashed
+                          <span className="text-red-600 font-medium"> red mean</span> is from
+                          monitoring intervals only (when monitoring is included).
                         </p>
-                        <p className="mt-2">A rising pattern over time can indicate deterioration.</p>
+                        <p className="mt-2">
+                          A rising pattern over time can indicate deterioration.
+                        </p>
                       </InfoTooltip>
                     </CardTitle>
                     <CardDescription>
-                      Track how each interval&apos;s <strong>average position</strong> moves away from
-                      your baseline reference. Baseline intervals are shaded.
+                      Track how each interval&apos;s <strong>average position</strong> moves away
+                      from your baseline reference. Baseline intervals are shaded.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1">
@@ -1788,7 +1946,8 @@ export default function DeteriorationAnalysisPage() {
                       <div>
                         <CardTitle>Interval Summary</CardTitle>
                         <CardDescription>
-                          Average coordinates, point counts, and distance metrics for each {metadataColumn || 'interval'} in chronological order.
+                          Average coordinates, point counts, and distance metrics for each{' '}
+                          {metadataColumn || 'interval'} in chronological order.
                         </CardDescription>
                       </div>
                       <Button
@@ -2141,8 +2300,8 @@ export default function DeteriorationAnalysisPage() {
                     ) : (
                       <CardContent className="pt-0">
                         <p className="text-sm text-muted-foreground">
-                          Expand to review how consecutive average-position transitions contribute to
-                          volatility.
+                          Expand to review how consecutive average-position transitions contribute
+                          to volatility.
                         </p>
                       </CardContent>
                     )}
