@@ -1346,7 +1346,7 @@ export default function DeteriorationAnalysisPage() {
               <TabsContent value="baseline" className="space-y-6 mt-6">
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover flex h-full flex-col">
                   <CardHeader className="bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
-                    <CardTitle>Distance from Baseline (G₀ → Gᵢ)</CardTitle>
+                    <CardTitle>Average Deviation from the Baseline (Selected Normal Operation Cluster) (G₀ → Gᵢ)</CardTitle>
                     <CardDescription>
                       Track how each interval&apos;s centroid diverges from the baseline gravity
                       center. Baseline intervals are shaded for quick reference.
@@ -1555,7 +1555,7 @@ export default function DeteriorationAnalysisPage() {
                 {/* Transitions Chart */}
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
                   <CardHeader className="pb-3 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
-                    <CardTitle className="text-lg">Change Between Intervals</CardTitle>
+                    <CardTitle className="text-lg">Average Change Between Consecutive {metadataColumn || 'Intervals'}(s)</CardTitle>
                     <CardDescription>
                       Distance from Gᵢ → Gᵢ₊₁ showing volatility or stability between consecutive
                       intervals.
