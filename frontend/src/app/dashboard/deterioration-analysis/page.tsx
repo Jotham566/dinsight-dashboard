@@ -299,6 +299,62 @@ const InfoTooltip = ({ title, children }: { title: string; children: React.React
   );
 };
 
+// Small collapsible block used for toggling formula sections inside tooltips
+const Collapsible = ({
+  title = 'Formulas',
+  initiallyOpen = false,
+  storageKey,
+  children,
+}: {
+  title?: string;
+  initiallyOpen?: boolean;
+  storageKey?: string;
+  children: React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(initiallyOpen);
+
+  // Load persisted state
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved === 'true' || saved === 'false') {
+        setOpen(saved === 'true');
+      } else if (saved == null && initiallyOpen) {
+        setOpen(true);
+      }
+    } catch {}
+  }, [storageKey, initiallyOpen]);
+
+  // Persist on change
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(storageKey, String(open));
+    } catch {}
+  }, [open, storageKey]);
+
+  return (
+    <div className="mt-3 rounded-md bg-muted/40">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/60 rounded-md"
+        aria-expanded={open}
+        aria-controls={storageKey ? `${storageKey}-content` : undefined}
+      >
+        <span>{open ? 'Hide formulas' : 'Show formulas'}</span>
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      </button>
+      {open && (
+        <div id={storageKey ? `${storageKey}-content` : undefined} className="p-2 pt-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function DeteriorationAnalysisPage() {
   const [selectedDinsightId, setSelectedDinsightId] = useState<number | null>(null);
   const [manualId, setManualId] = useState('');
@@ -667,34 +723,77 @@ export default function DeteriorationAnalysisPage() {
         })
       );
 
-    const meanLine: Partial<Shape> = {
+    // Compute baseline-only and monitoring-only means for G0 -> Gi distances
+    const g0All = analysisData.distances.g0_to_gi || [];
+    const baselineOnly = g0All.filter((d) => d.dataset_type === 'baseline').map((d) => d.distance);
+    const monitoringOnly = g0All
+      .filter((d) => d.dataset_type === 'monitoring')
+      .map((d) => d.distance);
+    const mean = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+    const baselineMean = mean(baselineOnly);
+    const monitoringMean = mean(monitoringOnly);
+
+    const baselineMeanLine: Partial<Shape> = {
       type: 'line',
       xref: 'paper',
       yref: 'y',
       x0: 0,
       x1: 1,
-      y0: analysisData.distances.g0_to_gi_mean,
-      y1: analysisData.distances.g0_to_gi_mean,
+      y0: baselineMean,
+      y1: baselineMean,
       line: {
-        color: 'rgba(148, 163, 184, 0.7)',
-        dash: 'dash',
+        color: '#2563EB', // baseline color
+        dash: 'dot',
         width: 2,
       },
     };
 
+    const monitoringMeanLine: Partial<Shape> | null = monitoringOnly.length
+      ? {
+          type: 'line',
+          xref: 'paper',
+          yref: 'y',
+          x0: 0,
+          x1: 1,
+          y0: monitoringMean,
+          y1: monitoringMean,
+          line: {
+            color: '#DC2626', // monitoring color
+            dash: 'dash',
+            width: 2,
+          },
+        }
+      : null;
+
     const annotations: Partial<Annotations>[] = [
       {
-        xref: 'paper',
-        yref: 'y',
+        xref: 'paper' as const,
+        yref: 'y' as const,
         x: 0.98,
-        y: analysisData.distances.g0_to_gi_mean,
-        text: `Mean distance: ${formatDecimal(analysisData.distances.g0_to_gi_mean)}`,
+        y: baselineMean,
+        text: `Baseline mean: ${formatDecimal(baselineMean)}`,
         showarrow: false,
-        align: 'right',
+        align: 'right' as const,
         font: { size: 12, color: 'rgba(30, 41, 59, 0.85)' },
         bgcolor: 'rgba(241, 245, 249, 0.7)',
         borderpad: 4,
       },
+      ...(monitoringMeanLine
+        ? [
+            {
+              xref: 'paper' as const,
+              yref: 'y' as const,
+              x: 0.02,
+              y: monitoringMean,
+              text: `Monitoring mean: ${formatDecimal(monitoringMean)}`,
+              showarrow: false,
+              align: 'left' as const,
+              font: { size: 12, color: 'rgba(30, 41, 59, 0.85)' },
+              bgcolor: 'rgba(241, 245, 249, 0.7)',
+              borderpad: 4,
+            },
+          ]
+        : []),
     ];
 
     const layout: Partial<Layout> = {
@@ -722,7 +821,9 @@ export default function DeteriorationAnalysisPage() {
         xanchor: 'right',
         x: 1,
       },
-      shapes: [...clusterShapes, meanLine],
+      shapes: monitoringMeanLine
+        ? [...clusterShapes, baselineMeanLine, monitoringMeanLine]
+        : [...clusterShapes, baselineMeanLine],
       annotations,
       hovermode: 'closest',
       plot_bgcolor: '#FFFFFF',
@@ -778,7 +879,7 @@ export default function DeteriorationAnalysisPage() {
         displaylogo: false,
       },
     };
-  }, [analysisData, metadataColumn]);
+  }, [analysisData, metadataColumn, includeMonitoring]);
 
   const consecutiveChart = useMemo(() => {
     if (!analysisData) {
@@ -812,34 +913,82 @@ export default function DeteriorationAnalysisPage() {
       entry.to_dataset_type === 'baseline' ? 'Baseline' : 'Monitoring',
     ]);
 
-    const meanLine: Partial<Shape> = {
+    // Compute baseline-only and monitoring-only consecutive means using interval centroids
+    const baselineIntervalsOnly = analysisData.intervals
+      .filter((i) => i.dataset_type === 'baseline')
+      .sort((a, b) => a.sort_index - b.sort_index);
+    const monitoringIntervalsOnly = analysisData.intervals
+      .filter((i) => i.dataset_type === 'monitoring')
+      .sort((a, b) => a.sort_index - b.sort_index);
+
+    const consecutiveDistances = (arr: typeof baselineIntervalsOnly) => {
+      const out: number[] = [];
+      for (let i = 1; i < arr.length; i++) {
+        const prev = arr[i - 1].centroid;
+        const curr = arr[i].centroid;
+        const d = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+        out.push(d);
+      }
+      return out;
+    };
+
+    const mean = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+    const blConsecMean = mean(consecutiveDistances(baselineIntervalsOnly));
+    const monConsecArray = consecutiveDistances(monitoringIntervalsOnly);
+    const monConsecMean = mean(monConsecArray);
+
+    const baselineMeanLine: Partial<Shape> = {
       type: 'line',
       xref: 'paper',
       yref: 'y',
       x0: 0,
       x1: 1,
-      y0: analysisData.distances.gi_to_gi_plus_1_mean,
-      y1: analysisData.distances.gi_to_gi_plus_1_mean,
-      line: {
-        color: 'rgba(148, 163, 184, 0.7)',
-        dash: 'dash',
-        width: 2,
-      },
+      y0: blConsecMean,
+      y1: blConsecMean,
+      line: { color: '#2563EB', dash: 'dot', width: 2 },
     };
+    const monitoringMeanLine: Partial<Shape> | null = monConsecArray.length
+      ? {
+          type: 'line',
+          xref: 'paper',
+          yref: 'y',
+          x0: 0,
+          x1: 1,
+          y0: monConsecMean,
+          y1: monConsecMean,
+          line: { color: '#DC2626', dash: 'dash', width: 2 },
+        }
+      : null;
 
     const annotations: Partial<Annotations>[] = [
       {
-        xref: 'paper',
-        yref: 'y',
+        xref: 'paper' as const,
+        yref: 'y' as const,
         x: 0.98,
-        y: analysisData.distances.gi_to_gi_plus_1_mean,
-        text: `Mean distance: ${formatDecimal(analysisData.distances.gi_to_gi_plus_1_mean)}`,
+        y: blConsecMean,
+        text: `Baseline mean: ${formatDecimal(blConsecMean)}`,
         showarrow: false,
-        align: 'right',
+        align: 'right' as const,
         font: { size: 12, color: 'rgba(30, 41, 59, 0.85)' },
         bgcolor: 'rgba(241, 245, 249, 0.7)',
         borderpad: 4,
       },
+      ...(monitoringMeanLine
+        ? [
+            {
+              xref: 'paper' as const,
+              yref: 'y' as const,
+              x: 0.02,
+              y: monConsecMean,
+              text: `Monitoring mean: ${formatDecimal(monConsecMean)}`,
+              showarrow: false,
+              align: 'left' as const,
+              font: { size: 12, color: 'rgba(30, 41, 59, 0.85)' },
+              bgcolor: 'rgba(241, 245, 249, 0.7)',
+              borderpad: 4,
+            },
+          ]
+        : []),
     ];
 
     const layout: Partial<Layout> = {
@@ -864,7 +1013,7 @@ export default function DeteriorationAnalysisPage() {
         zerolinecolor: 'rgba(148, 163, 184, 0.35)',
         gridcolor: 'rgba(148, 163, 184, 0.2)',
       },
-      shapes: [meanLine],
+      shapes: monitoringMeanLine ? [baselineMeanLine, monitoringMeanLine] : [baselineMeanLine],
       annotations,
       hovermode: 'closest',
       legend: {
@@ -906,7 +1055,7 @@ export default function DeteriorationAnalysisPage() {
         displaylogo: false,
       },
     };
-  }, [analysisData, metadataColumn]);
+  }, [analysisData, metadataColumn, includeMonitoring]);
 
   const intervalTableRows = useMemo(() => {
     if (!analysisData) return [];
@@ -1362,16 +1511,36 @@ export default function DeteriorationAnalysisPage() {
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
                   <CardHeader className="pb-2 bg-gradient-to-r from-emerald-50/30 to-accent-teal-50/20 dark:from-emerald-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
                     <CardTitle className="text-base flex items-center gap-2">
-                      Baseline Gravity Center (G₀)
-                      <InfoTooltip title="G₀ (Baseline Center)">
+                      Baseline Reference (G₀)
+                      <InfoTooltip title="What is G₀?">
                         <p>
-                          The machine&apos;s <strong>normal state</strong> — an average of data when
-                          performing well.
+                          G₀ is your <strong>baseline reference</strong> — the average X/Y position
+                          from the <strong>baseline intervals</strong> you selected.
                         </p>
-                        <p className="mt-2">This is your reference point for healthy operation.</p>
+                        <p className="mt-2">
+                          It <strong>does not</strong> include any monitoring points. Changing the
+                          selected {metadataColumn || 'intervals'} updates G₀.
+                        </p>
+                        <Collapsible initiallyOpen={true} storageKey="tooltip:g0:formulas">
+                          <p className="text-xs font-medium mb-1">Formula</p>
+                          <ul className="text-xs list-disc pl-5 space-y-1">
+                            <li>
+                              G₀ = (1 / N<sub>B</sub>) · Σ<sub>p ∈ baseline</sub> p = (x₀, y₀)
+                            </li>
+                          </ul>
+                          <div className="mt-2">
+                            <p className="text-xs font-medium mb-1">Symbols</p>
+                            <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
+                              <li>N<sub>B</sub>: number of baseline points used to compute G₀</li>
+                              <li>p: an individual point with coordinates (x, y)</li>
+                              <li>(x₀, y₀): coordinates of G₀ (the baseline reference)</li>
+                              <li>baseline: points from the selected baseline intervals only</li>
+                            </ul>
+                          </div>
+                        </Collapsible>
                       </InfoTooltip>
                     </CardTitle>
-                    <CardDescription>Derived from your selected baseline cluster.</CardDescription>
+                    <CardDescription>Based only on your selected baseline intervals.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
@@ -1437,15 +1606,44 @@ export default function DeteriorationAnalysisPage() {
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        Mean G₀ → Gᵢ
-                        <InfoTooltip title="G₀ → Gᵢ (Distance from Normal)">
+                        Mean distance to baseline (G₀ → Gᵢ)
+                        <InfoTooltip title="What does this mean?">
                           <p>
-                            <strong>How far</strong> the current condition has moved from the normal
-                            state.
+                            For each {metadataColumn || 'interval'}, we take its <strong>average
+                            position</strong> (Gᵢ) and measure its distance to the baseline
+                            reference G₀.
                           </p>
                           <p className="mt-2">
-                            Bigger distance = more deterioration from healthy operation.
+                            The mean is the <strong>average of those distances</strong>. On the
+                            chart, the <span className="text-blue-600 font-medium">blue line</span> shows the
+                            <strong>baseline-only</strong> mean and the <span className="text-red-600 font-medium">red line</span>
+                            shows the <strong>monitoring-only</strong> mean (when monitoring is
+                            included).
                           </p>
+                          <Collapsible initiallyOpen={true} storageKey="tooltip:g0_to_gi:formulas">
+                            <p className="text-xs font-medium mb-1">Formulas</p>
+                            <ul className="text-xs list-disc pl-5 space-y-1">
+                              <li>
+                                d<sub>i</sub> = ∥G<sub>i</sub> − G₀∥ = sqrt((x<sub>i</sub> − x₀)² + (y<sub>i</sub> − y₀)²)
+                              </li>
+                              <li>
+                                Baseline mean = (1 / |B|) · Σ<sub>i ∈ B</sub> d<sub>i</sub>
+                              </li>
+                              <li>
+                                Monitoring mean = (1 / |M|) · Σ<sub>i ∈ M</sub> d<sub>i</sub>
+                              </li>
+                            </ul>
+                            <div className="mt-2">
+                              <p className="text-xs font-medium mb-1">Symbols</p>
+                              <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
+                                <li>G<sub>i</sub> = (x<sub>i</sub>, y<sub>i</sub>): average position for interval i</li>
+                                <li>G₀ = (x₀, y₀): baseline reference (from selected baseline intervals)</li>
+                                <li>d<sub>i</sub>: distance from interval i to the baseline reference</li>
+                                <li>B: set of baseline intervals; |B| is the number of baseline intervals</li>
+                                <li>M: set of monitoring intervals; |M| is the number of monitoring intervals</li>
+                              </ul>
+                            </div>
+                          </Collapsible>
                         </InfoTooltip>
                       </span>
                       <span className="font-medium">
@@ -1454,15 +1652,41 @@ export default function DeteriorationAnalysisPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-1">
-                        Mean Gᵢ → Gᵢ₊₁
-                        <InfoTooltip title="Gᵢ → Gᵢ₊₁ (Change Between Periods)">
+                        Mean change between intervals (Gᵢ → Gᵢ₊₁)
+                        <InfoTooltip title="What does this mean?">
                           <p>
-                            <strong>How much</strong> the machine&apos;s condition changes from one
-                            period to the next.
+                            We look at <strong>how much the average position changes</strong> from
+                            one {metadataColumn || 'interval'} to the next.
                           </p>
                           <p className="mt-2">
-                            Large or inconsistent changes indicate instability or fluctuations.
+                            The mean is the <strong>average of those step-to-step changes</strong>.
+                            On the chart, blue indicates <strong>baseline-only</strong> and red
+                            indicates <strong>monitoring-only</strong> (when monitoring is
+                            included).
                           </p>
+                          <Collapsible initiallyOpen={true} storageKey="tooltip:gi_to_gi1:formulas">
+                            <p className="text-xs font-medium mb-1">Formulas</p>
+                            <ul className="text-xs list-disc pl-5 space-y-1">
+                              <li>
+                                c<sub>i</sub> = ∥G<sub>i+1</sub> − G<sub>i</sub>∥ = sqrt((x<sub>i+1</sub> − x<sub>i</sub>)² + (y<sub>i+1</sub> − y<sub>i</sub>)²)
+                              </li>
+                              <li>
+                                Baseline mean = (1 / (|B| − 1)) · Σ consecutive pairs in baseline c<sub>i</sub>
+                              </li>
+                              <li>
+                                Monitoring mean = (1 / (|M| − 1)) · Σ consecutive pairs in monitoring c<sub>i</sub>
+                              </li>
+                            </ul>
+                            <div className="mt-2">
+                              <p className="text-xs font-medium mb-1">Symbols</p>
+                              <ul className="text-[11px] list-disc pl-5 space-y-1 text-muted-foreground">
+                                <li>G<sub>i</sub> = (x<sub>i</sub>, y<sub>i</sub>): average position for interval i</li>
+                                <li>c<sub>i</sub>: consecutive distance between G<sub>i</sub> and G<sub>i+1</sub></li>
+                                <li>B: ordered list of baseline intervals (|B| − 1 consecutive pairs)</li>
+                                <li>M: ordered list of monitoring intervals (|M| − 1 consecutive pairs)</li>
+                              </ul>
+                            </div>
+                          </Collapsible>
                         </InfoTooltip>
                       </span>
                       <span className="font-medium">
@@ -1516,23 +1740,25 @@ export default function DeteriorationAnalysisPage() {
                 <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover flex h-full flex-col">
                   <CardHeader className="bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
                     <CardTitle className="flex items-center gap-2">
-                      Average Deviation from the Baseline (Selected Normal Operation Cluster) (G₀ →
-                      Gᵢ)
-                      <InfoTooltip title="Understanding This Chart">
+                      Distance from Baseline (G₀ → Gᵢ)
+                      <InfoTooltip title="How to read this">
                         <p>
-                          <strong>Each point (Gᵢ)</strong> shows the machine&apos;s average
-                          condition at a specific time.
+                          Each dot is an <strong>average position</strong> (Gᵢ) for each {metadataColumn || 'interval'} over time. Blue
+                          points are <strong>baseline</strong>, red points are <strong>monitoring</strong>.
                         </p>
                         <p className="mt-2">
-                          <strong>Distance from G₀</strong> shows how far it has drifted from normal
-                          operation.
+                          The Y-axis is the <strong>distance to G₀</strong> (your baseline reference). Larger values = farther from normal.
                         </p>
-                        <p className="mt-2">Rising trend = deterioration over time.</p>
+                        <p className="mt-2">
+                          The dotted <span className="text-blue-600 font-medium">blue mean</span> is computed from baseline intervals only. The dashed
+                          <span className="text-red-600 font-medium"> red mean</span> is from monitoring intervals only (when monitoring is included).
+                        </p>
+                        <p className="mt-2">A rising pattern over time can indicate deterioration.</p>
                       </InfoTooltip>
                     </CardTitle>
                     <CardDescription>
-                      Track how each interval&apos;s centroid diverges from the baseline gravity
-                      center. Baseline intervals are shaded for quick reference.
+                      Track how each interval&apos;s <strong>average position</strong> moves away from
+                      your baseline reference. Baseline intervals are shaded.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1">
@@ -1562,8 +1788,7 @@ export default function DeteriorationAnalysisPage() {
                       <div>
                         <CardTitle>Interval Summary</CardTitle>
                         <CardDescription>
-                          Centroid coordinates, point counts, and distance metrics for each metadata
-                          interval in chronological order.
+                          Average coordinates, point counts, and distance metrics for each {metadataColumn || 'interval'} in chronological order.
                         </CardDescription>
                       </div>
                       <Button
@@ -1622,8 +1847,8 @@ export default function DeteriorationAnalysisPage() {
                                   Interval: r.metadata_value,
                                   Type: r.dataset_type,
                                   Points: r.point_count,
-                                  'Centroid X': r.centroid?.x,
-                                  'Centroid Y': r.centroid?.y,
+                                  'Average X': r.centroid?.x,
+                                  'Average Y': r.centroid?.y,
                                   'Distance G0': r.distance_from_g0,
                                   'Distance Prev': r.distance_from_previous ?? '',
                                 }));
@@ -1645,8 +1870,8 @@ export default function DeteriorationAnalysisPage() {
                                 <th className="w-32 pb-2 text-left">Interval</th>
                                 <th className="w-20 pb-2 text-left">Type</th>
                                 <th className="w-20 pb-2 text-right">Points</th>
-                                <th className="w-24 pb-2 text-right">Centroid X</th>
-                                <th className="w-24 pb-2 text-right">Centroid Y</th>
+                                <th className="w-24 pb-2 text-right">Average X</th>
+                                <th className="w-24 pb-2 text-right">Average Y</th>
                                 <th className="w-28 pb-2 text-right">Distance G₀</th>
                                 <th className="w-28 pb-2 text-right">Distance Prev</th>
                               </tr>
@@ -1725,7 +1950,7 @@ export default function DeteriorationAnalysisPage() {
                     ) : (
                       <CardContent className="pt-0">
                         <p className="text-sm text-muted-foreground">
-                          Expand to explore per-interval centroid metrics and drift details.
+                          Expand to explore per-interval average-position metrics and drift details.
                         </p>
                       </CardContent>
                     )}
@@ -1916,7 +2141,7 @@ export default function DeteriorationAnalysisPage() {
                     ) : (
                       <CardContent className="pt-0">
                         <p className="text-sm text-muted-foreground">
-                          Expand to review how consecutive centroid transitions contribute to
+                          Expand to review how consecutive average-position transitions contribute to
                           volatility.
                         </p>
                       </CardContent>
