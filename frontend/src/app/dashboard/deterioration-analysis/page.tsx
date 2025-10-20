@@ -340,6 +340,9 @@ export default function DeteriorationAnalysisPage() {
     enabled: Boolean(selectedDinsightId && metadataColumn),
     refetchInterval: isStreaming ? 10000 : false, // Refetch every 10 seconds when streaming
     staleTime: isStreaming ? 5000 : 30000, // Consider data stale faster when streaming
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on component mount if data exists
+    placeholderData: (previousData) => previousData, // Keep previous data while loading new data
     queryFn: async () => {
       if (!selectedDinsightId || !metadataColumn) {
         return undefined;
