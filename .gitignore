@@ -6,6 +6,7 @@ screenshots/
 temp_streaming/
 # Data files
 test-data/
+specs/data/ims-bearing-prep.md
 
 # Dependencies
 node_modules/

@@ -974,7 +974,7 @@ export default function DataSummaryPage() {
                   onFilesChange={setBaselineFiles}
                   onUpload={handleBaselineUpload}
                   maxFiles={10}
-                  maxSize={300 * 1024 * 1024} // 100MB
+                  maxSize={1024 * 1024 * 1024} // 1GB
                   disabled={!isBaselineStep || isUploading}
                   uploadText={isUploading ? 'Uploading...' : 'Upload Baseline Data'}
                 />
@@ -1047,7 +1047,7 @@ export default function DataSummaryPage() {
                   onFilesChange={setMonitoringFiles}
                   onUpload={handleMonitoringUpload}
                   maxFiles={1} // Monitoring endpoint accepts single file
-                  maxSize={300 * 1024 * 1024} // 100MB
+                  maxSize={1024 * 1024 * 1024} // 1GB
                   disabled={!isMonitoringStep || isUploading || !processingState.dinsightId}
                   uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
                 />

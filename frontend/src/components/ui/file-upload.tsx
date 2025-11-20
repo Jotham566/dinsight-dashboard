@@ -29,7 +29,7 @@ interface FileUploadProps {
 
 export function FileUpload({
   accept = '.csv',
-  maxSize = 300 * 1024 * 1024, // 100MB
+  maxSize = 1024 * 1024 * 1024, // 1GB
   maxFiles = 10,
   onFilesChange,
   onUpload,

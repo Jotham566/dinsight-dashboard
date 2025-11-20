@@ -903,7 +903,7 @@ export default function DinsightAnalysisPage() {
                     onFilesChange={setBaselineFiles}
                     onUpload={handleBaselineUpload}
                     maxFiles={10}
-                    maxSize={300 * 1024 * 1024} // 100MB
+                    maxSize={1024 * 1024 * 1024} // 1GB
                     disabled={!isBaselineStep || isUploading}
                     uploadText={isUploading ? 'Uploading...' : 'Upload Baseline Data'}
                   />
@@ -1013,7 +1013,7 @@ export default function DinsightAnalysisPage() {
                       onFilesChange={setMonitoringFiles}
                       onUpload={handleMonitoringUpload}
                       maxFiles={1}
-                      maxSize={300 * 1024 * 1024} // 100MB
+                      maxSize={1 * 1024 * 1024 * 1024} // 1GB
                       disabled={!isMonitoringStep || isUploading || !resolvedBaselineId}
                       uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
                     />
