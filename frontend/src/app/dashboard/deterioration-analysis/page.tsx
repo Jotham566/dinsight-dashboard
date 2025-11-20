@@ -723,9 +723,17 @@ export default function DeteriorationAnalysisPage() {
         })
       );
 
-    // Compute baseline-only and monitoring-only means for G0 -> Gi distances
+    // Compute baseline-cluster-only and monitoring-only means for G0 -> Gi distances
     const g0All = analysisData.distances.g0_to_gi || [];
-    const baselineOnly = g0All.filter((d) => d.dataset_type === 'baseline').map((d) => d.distance);
+    // Create a map of baseline cluster intervals for efficient lookup
+    const baselineClusterLabels = new Set(
+      analysisData.intervals
+        .filter((i) => i.is_baseline_cluster)
+        .map((i) => i.metadata_value)
+    );
+    const baselineOnly = g0All
+      .filter((d) => d.dataset_type === 'baseline' && baselineClusterLabels.has(d.label))
+      .map((d) => d.distance);
     const monitoringOnly = g0All
       .filter((d) => d.dataset_type === 'monitoring')
       .map((d) => d.distance);
@@ -913,9 +921,9 @@ export default function DeteriorationAnalysisPage() {
       entry.to_dataset_type === 'baseline' ? 'Baseline' : 'Monitoring',
     ]);
 
-    // Compute baseline-only and monitoring-only consecutive means using interval centroids
+    // Compute baseline-cluster-only and monitoring-only consecutive means using interval centroids
     const baselineIntervalsOnly = analysisData.intervals
-      .filter((i) => i.dataset_type === 'baseline')
+      .filter((i) => i.is_baseline_cluster)
       .sort((a, b) => a.sort_index - b.sort_index);
     const monitoringIntervalsOnly = analysisData.intervals
       .filter((i) => i.dataset_type === 'monitoring')
@@ -1066,7 +1074,15 @@ export default function DeteriorationAnalysisPage() {
         delta: null as number | null,
       };
     const pts = analysisData.distances.g0_to_gi || [];
-    const baseArr = pts.filter((d) => d.dataset_type === 'baseline').map((d) => d.distance);
+    // Use baseline cluster only, matching the chart calculation
+    const baselineClusterLabels = new Set(
+      analysisData.intervals
+        .filter((i) => i.is_baseline_cluster)
+        .map((i) => i.metadata_value)
+    );
+    const baseArr = pts
+      .filter((d) => d.dataset_type === 'baseline' && baselineClusterLabels.has(d.label))
+      .map((d) => d.distance);
     const monArr = pts.filter((d) => d.dataset_type === 'monitoring').map((d) => d.distance);
     const mean = (arr: number[]) =>
       arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
@@ -1085,7 +1101,7 @@ export default function DeteriorationAnalysisPage() {
       };
     // Compute within-type consecutive means using the same approach as the chart for consistency
     const baselineIntervalsOnly = analysisData.intervals
-      .filter((i) => i.dataset_type === 'baseline')
+      .filter((i) => i.is_baseline_cluster)
       .sort((a, b) => a.sort_index - b.sort_index);
     const monitoringIntervalsOnly = analysisData.intervals
       .filter((i) => i.dataset_type === 'monitoring')
