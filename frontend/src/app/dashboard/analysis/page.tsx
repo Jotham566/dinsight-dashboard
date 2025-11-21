@@ -727,8 +727,8 @@ export default function AdvancedAnalysisPage() {
       data: traces,
       layout: {
         title: { text: titleText },
-        xaxis: { title: { text: 'Dinsight X' }, range: [-1, 1] },
-        yaxis: { title: { text: 'Dinsight Y' }, range: [-1, 1] },
+        xaxis: { title: { text: 'Dinsight X' }, autoscale: true },
+        yaxis: { title: { text: 'Dinsight Y' }, autoscale: true },
         height: 700,
         template: 'plotly_white' as any,
         legend: {
