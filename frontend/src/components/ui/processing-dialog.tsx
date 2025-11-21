@@ -22,6 +22,8 @@ export interface ProcessingDialogProps {
   pollCount?: number;
   maxPolls?: number;
   errorMessage?: string;
+  statusMessage?: string;
+  progress?: number;
   onClose?: () => void;
   onRetry?: () => void;
   showActions?: boolean;
@@ -37,6 +39,8 @@ export function ProcessingDialog({
   pollCount,
   maxPolls = 100,
   errorMessage,
+  statusMessage,
+  progress,
   onClose,
   onRetry,
   showActions = false,
@@ -71,8 +75,13 @@ export function ProcessingDialog({
 
   const getProgressValue = () => {
     if (type === 'uploading') return 25;
-    if (type === 'processing' && pollCount) {
-      return Math.min(25 + (pollCount / maxPolls) * 60, 85);
+    if (type === 'processing') {
+      if (progress !== undefined && progress > 0) {
+        return progress;
+      }
+      if (pollCount) {
+        return Math.min(25 + (pollCount / maxPolls) * 60, 85);
+      }
     }
     if (type === 'completed') return 100;
     return undefined;
@@ -120,17 +129,23 @@ export function ProcessingDialog({
             <div className="space-y-3">
               <Progress value={getProgressValue()} className="h-2" />
 
-              {type === 'processing' && pollCount && (
+              {type === 'processing' && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                    <span>Processing data...</span>
-                    <span className="font-mono">
-                      {pollCount}/{maxPolls} checks
-                    </span>
+                    <span>{statusMessage || 'Processing data...'}</span>
+                    {progress !== undefined && progress > 0 ? (
+                      <span className="font-mono">{progress}%</span>
+                    ) : pollCount ? (
+                      <span className="font-mono">
+                        {pollCount}/{maxPolls} checks
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    Verifying coordinate generation is complete...
-                  </div>
+                  {!progress && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      Verifying coordinate generation is complete...
+                    </div>
+                  )}
                 </div>
               )}
 

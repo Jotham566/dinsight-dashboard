@@ -142,7 +142,7 @@ export default function DataSummaryPage() {
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     let pollCount = 0;
-    const maxPolls = 100; // Maximum 5 minutes of polling (3s * 100 = 300s)
+    const maxPolls = 600; // Maximum 30 minutes of polling (3s * 600 = 1800s)
 
     if (processingState.status === 'processing' && processingState.fileUploadId) {
       // Poll every 3 seconds to check if processing is complete
@@ -226,7 +226,7 @@ export default function DataSummaryPage() {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes timeout for baseline uploads
+        timeout: 0, // Infinite timeout for baseline uploads
       });
 
       console.log('Baseline upload successful:', response.data);
@@ -284,7 +284,7 @@ export default function DataSummaryPage() {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes timeout for monitoring uploads
+        timeout: 0, // Infinite timeout for monitoring uploads
       });
 
       console.log('Monitoring upload successful:', response.data);
@@ -974,7 +974,7 @@ export default function DataSummaryPage() {
                   onFilesChange={setBaselineFiles}
                   onUpload={handleBaselineUpload}
                   maxFiles={10}
-                  maxSize={1024 * 1024 * 1024} // 1GB
+                  maxSize={2.5 * 1024 * 1024 * 1024} // 2.5GB
                   disabled={!isBaselineStep || isUploading}
                   uploadText={isUploading ? 'Uploading...' : 'Upload Baseline Data'}
                 />
@@ -1047,7 +1047,7 @@ export default function DataSummaryPage() {
                   onFilesChange={setMonitoringFiles}
                   onUpload={handleMonitoringUpload}
                   maxFiles={1} // Monitoring endpoint accepts single file
-                  maxSize={1024 * 1024 * 1024} // 1GB
+                  maxSize={2.5 * 1024 * 1024 * 1024} // 2.5GB
                   disabled={!isMonitoringStep || isUploading || !processingState.dinsightId}
                   uploadText={isUploading ? 'Processing...' : 'Upload Monitoring Data'}
                 />
@@ -1246,13 +1246,13 @@ export default function DataSummaryPage() {
                     <Progress
                       value={Math.min(
                         ((dinsightStats.totalRecords * 4 * dinsightStats.features) /
-                          (1024 * 1024 * 1024)) *
+                          (2.5 * 1024 * 1024 * 1024)) *
                           100,
                         15
                       )}
                       className="h-2"
                     />
-                    <p className="text-xs text-gray-600">of 1 GB limit</p>
+                    <p className="text-xs text-gray-600">of 2.5 GB limit</p>
                   </div>
                 </div>
               ) : (
