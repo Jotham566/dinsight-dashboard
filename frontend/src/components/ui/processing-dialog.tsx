@@ -19,8 +19,6 @@ export interface ProcessingDialogProps {
   stage: 'baseline' | 'monitoring' | 'complete';
   title: string;
   description: string | ReactNode;
-  pollCount?: number;
-  maxPolls?: number;
   errorMessage?: string;
   statusMessage?: string;
   progress?: number;
@@ -36,8 +34,6 @@ export function ProcessingDialog({
   stage,
   title,
   description,
-  pollCount,
-  maxPolls = 100,
   errorMessage,
   statusMessage,
   progress,
@@ -76,12 +72,12 @@ export function ProcessingDialog({
   const getProgressValue = () => {
     if (type === 'uploading') return 25;
     if (type === 'processing') {
-      if (progress !== undefined && progress > 0) {
+      // Use real progress from backend (0-100)
+      if (progress !== undefined && progress >= 0) {
         return progress;
       }
-      if (pollCount) {
-        return Math.min(25 + (pollCount / maxPolls) * 60, 85);
-      }
+      // Fallback to indeterminate state
+      return 0;
     }
     if (type === 'completed') return 100;
     return undefined;
@@ -131,19 +127,17 @@ export function ProcessingDialog({
 
               {type === 'processing' && (
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                    <span>{statusMessage || 'Processing data...'}</span>
-                    {progress !== undefined && progress > 0 ? (
-                      <span className="font-mono">{progress}%</span>
-                    ) : pollCount ? (
-                      <span className="font-mono">
-                        {pollCount}/{maxPolls} checks
+                  <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
+                    <span className="flex-1">{statusMessage || 'Processing data...'}</span>
+                    {progress !== undefined && progress >= 0 && (
+                      <span className="font-mono text-primary-600 dark:text-primary-400 ml-2">
+                        {progress}%
                       </span>
-                    ) : null}
+                    )}
                   </div>
-                  {!progress && (
+                  {progress === 0 && (
                     <div className="text-xs text-gray-400 dark:text-gray-500">
-                      Verifying coordinate generation is complete...
+                      Initializing processing pipeline...
                     </div>
                   )}
                 </div>

@@ -47,7 +47,6 @@ interface ProcessingState {
   dinsightId?: number;
   errorMessage?: string;
   progress?: number;
-  pollCount?: number;
   statusMessage?: string;
 }
 
@@ -207,175 +206,157 @@ export default function DinsightAnalysisPage() {
   // Polling effect to check processing status
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    let pollCount = 0;
-    const maxPolls = 600; // Maximum 30 minutes of polling (3s * 600 = 1800s)
+    let pollAttempts = 0;
+    const maxPollAttempts = 600; // Maximum 30 minutes of polling (3s * 600 = 1800s)
 
     if (processingState.status === 'processing' && processingState.fileUploadId) {
       // Poll every 3 seconds to check if processing is complete
       intervalId = setInterval(async () => {
-        pollCount++;
+        pollAttempts++;
 
         try {
-          // First check the explicit status endpoint
-          let serverStatus = 'unknown';
-          try {
-            const statusResponse = await apiClient.get(`/analyze/${processingState.fileUploadId}/status`);
-            if (statusResponse.data.success) {
-              const fileUpload = statusResponse.data.data;
-              serverStatus = fileUpload.status;
-              
-              if (serverStatus === 'failed') {
-                throw new Error(fileUpload.error_message || 'Processing failed on server');
-              }
-              
-              if (serverStatus === 'processing' || serverStatus === 'uploading') {
-                 setProcessingState((prev) => ({
-                  ...prev,
-                  pollCount: pollCount,
-                  statusMessage: fileUpload.status_message || `Server status: ${serverStatus}...`,
-                  progress: fileUpload.progress || 0
-                }));
-                // If still processing, we don't need to check for data yet
-                return;
-              }
-              
-              if (serverStatus === 'completed') {
-                 setProcessingState((prev) => ({
-                  ...prev,
-                  statusMessage: 'Server completed, fetching results...',
-                  progress: 100
-                }));
-
-                // If we are in monitoring step, we are done!
-                if (processingState.step === 'monitoring') {
-                   setProcessingState((prev) => ({
-                    ...prev,
-                    status: 'completed',
-                    step: 'complete',
-                    pollCount: undefined,
-                    statusMessage: undefined,
-                  }));
-                  
-                  setMonitoringBaselineId(String(processingState.dinsightId));
-                  setBaselineIdDirty(false);
-
-                  // Show completion dialog
-                  setProcessingDialogType('completed');
-                  setProcessingDialogStage('complete');
-                  setShowProcessingDialog(true);
-                  setMonitoringFiles([]); // Clear files now
-
-                  clearInterval(intervalId);
-                  return;
-                }
-              }
-            }
-          } catch (statusError) {
-            console.warn('Failed to check status endpoint, falling back to data check', statusError);
+          // Check the status endpoint for progress updates
+          const statusResponse = await apiClient.get(`/analyze/${processingState.fileUploadId}/status`);
+          
+          if (!statusResponse.data || statusResponse.data.code !== 200) {
+            throw new Error('Status check failed');
           }
 
-          // Check if dinsight data is available and properly processed
-          // Only check this if we are in baseline step or if status check failed
-          if (processingState.step === 'baseline') {
-            const response = await apiClient.get(`/dinsight/${processingState.fileUploadId}`);
-            if (response.data.success && response.data.data) {
-              const dinsightData = response.data.data;
+          const fileUpload = statusResponse.data.data;
+          const serverStatus = fileUpload.status;
+          const serverProgress = fileUpload.progress || 0;
+          const serverMessage = fileUpload.status_message || 'Processing...';
 
-              // Verify that the processing is actually complete by checking for valid coordinates
-              const hasValidCoordinates =
-                dinsightData.dinsight_x &&
-                dinsightData.dinsight_y &&
-                Array.isArray(dinsightData.dinsight_x) &&
-                Array.isArray(dinsightData.dinsight_y) &&
-                dinsightData.dinsight_x.length > 0 &&
-                dinsightData.dinsight_y.length > 0;
-
-              if (hasValidCoordinates) {
-                // Processing is truly complete, we have valid dinsight coordinates
-                console.log(
-                  'Processing completed! Valid dinsight coordinates available:',
-                  dinsightData
-                );
-
-                // Extract the actual dinsight_id from the response
-                const actualDinsightId = dinsightData.dinsight_id;
-
-                setProcessingState((prev) => ({
-                  ...prev,
-                  status: 'completed',
-                  dinsightId: actualDinsightId,
-                  step: 'monitoring',
-                  pollCount: undefined,
-                  statusMessage: undefined,
-                }));
-
-                setBaselineIdDirty(false);
-
-                // Show baseline completion dialog
-                setProcessingDialogType('completed');
-                setProcessingDialogStage('baseline');
-                setShowProcessingDialog(true);
-
-                clearInterval(intervalId);
-              } else {
-                // Data exists but coordinates aren't ready yet, continue polling
-                console.log(
-                  `Processing still in progress... coordinates not ready yet (attempt ${pollCount}/${maxPolls})`
-                );
-                setProcessingState((prev) => ({
-                  ...prev,
-                  pollCount: pollCount,
-                  statusMessage: serverStatus === 'completed' ? 'Finalizing data...' : prev.statusMessage
-                }));
-              }
-            }
-          }
-        } catch (error: any) {
-          // Update poll count in state for user feedback
+          // Update state with server progress
           setProcessingState((prev) => ({
             ...prev,
-            pollCount: pollCount,
+            progress: serverProgress,
+            statusMessage: serverMessage,
           }));
 
-          // Check if it's a 404 (still processing) or another error
-          if (error.response?.status === 404) {
-            console.log(`Still processing... (attempt ${pollCount}/${maxPolls})`);
-
-            // Check if we've reached the maximum polling attempts
-            if (pollCount >= maxPolls) {
-              console.error('Processing timeout - maximum polling attempts reached');
-              setProcessingState((prev) => ({
-                ...prev,
-                status: 'error',
-                errorMessage:
-                  'Processing timeout. Please try again or check if the file format is correct.',
-                pollCount: undefined,
-                statusMessage: undefined,
-              }));
-
-              // Show timeout error dialog
-              setProcessingDialogType('error');
-              setShowProcessingDialog(true);
-
-              clearInterval(intervalId);
-            }
-          } else {
-            // Different error, stop polling
-            console.error('Error while checking processing status:', error);
+          // Handle different statuses
+          if (serverStatus === 'failed') {
+            const errorMsg = fileUpload.error_message || 'Processing failed on server';
+            console.error('Processing failed:', errorMsg);
             setProcessingState((prev) => ({
               ...prev,
               status: 'error',
-              errorMessage: error.response?.data?.message || error.message || 'Error checking processing status',
-              pollCount: undefined,
-              statusMessage: undefined,
+              errorMessage: errorMsg,
             }));
 
-            // Show processing error dialog
             setProcessingDialogType('error');
             setShowProcessingDialog(true);
+            clearInterval(intervalId);
+            return;
+          }
 
+          if (serverStatus === 'completed') {
+            console.log('Processing completed! Server status: completed, progress:', serverProgress);
+
+            // For monitoring step, we're done
+            if (processingState.step === 'monitoring') {
+              setProcessingState((prev) => ({
+                ...prev,
+                status: 'completed',
+                step: 'complete',
+                progress: 100,
+                statusMessage: 'Monitoring data processed successfully!',
+              }));
+
+              setMonitoringBaselineId(String(processingState.dinsightId));
+              setBaselineIdDirty(false);
+
+              // Show completion dialog
+              setProcessingDialogType('completed');
+              setProcessingDialogStage('complete');
+              setShowProcessingDialog(true);
+              setMonitoringFiles([]);
+
+              clearInterval(intervalId);
+              return;
+            }
+
+            // For baseline step, verify dinsight data is ready
+            if (processingState.step === 'baseline') {
+              try {
+                const dinsightResponse = await apiClient.get(`/dinsight/${processingState.fileUploadId}`);
+                if (dinsightResponse.data.success && dinsightResponse.data.data) {
+                  const dinsightData = dinsightResponse.data.data;
+
+                  // Verify coordinates are available
+                  const hasValidCoordinates =
+                    dinsightData.dinsight_x &&
+                    dinsightData.dinsight_y &&
+                    Array.isArray(dinsightData.dinsight_x) &&
+                    Array.isArray(dinsightData.dinsight_y) &&
+                    dinsightData.dinsight_x.length > 0 &&
+                    dinsightData.dinsight_y.length > 0;
+
+                  if (hasValidCoordinates) {
+                    const actualDinsightId = dinsightData.dinsight_id;
+
+                    setProcessingState((prev) => ({
+                      ...prev,
+                      status: 'completed',
+                      dinsightId: actualDinsightId,
+                      step: 'monitoring',
+                      progress: 100,
+                      statusMessage: 'Baseline processing complete!',
+                    }));
+
+                    setBaselineIdDirty(false);
+
+                    // Show baseline completion dialog
+                    setProcessingDialogType('completed');
+                    setProcessingDialogStage('baseline');
+                    setShowProcessingDialog(true);
+
+                    clearInterval(intervalId);
+                    return;
+                  } else {
+                    // Status says completed but coordinates not ready - keep polling
+                    console.log('Status completed but coordinates not ready yet, continuing to poll...');
+                  }
+                }
+              } catch (dinsightError) {
+                console.warn('Error checking dinsight data:', dinsightError);
+                // Continue polling
+              }
+            }
+          }
+
+          // Check for timeout
+          if (pollAttempts >= maxPollAttempts) {
+            console.error('Processing timeout - maximum polling attempts reached');
+            setProcessingState((prev) => ({
+              ...prev,
+              status: 'error',
+              errorMessage: 'Processing timeout. The operation is taking longer than expected.',
+            }));
+
+            setProcessingDialogType('error');
+            setShowProcessingDialog(true);
             clearInterval(intervalId);
           }
+        } catch (error: any) {
+          console.error('Error checking status:', error);
+
+          // If it's not a 404, it might be a real error
+          if (error.response?.status !== 404) {
+            // Check for timeout
+            if (pollAttempts >= maxPollAttempts) {
+              setProcessingState((prev) => ({
+                ...prev,
+                status: 'error',
+                errorMessage: 'Unable to check processing status. Please try again.',
+              }));
+
+              setProcessingDialogType('error');
+              setShowProcessingDialog(true);
+              clearInterval(intervalId);
+            }
+          }
+          // For 404, just continue polling (data not ready yet)
         }
       }, 3000);
     }
@@ -383,7 +364,7 @@ export default function DinsightAnalysisPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [processingState.status, processingState.fileUploadId]);
+  }, [processingState.status, processingState.fileUploadId, processingState.step, processingState.dinsightId]);
 
   const handleBaselineUpload = async (uploadFiles: File[]) => {
     setProcessingState((prev) => ({ ...prev, status: 'uploading', errorMessage: undefined }));
@@ -1252,8 +1233,6 @@ export default function DinsightAnalysisPage() {
         stage={processingDialogStage}
         title={getDialogTitle()}
         description={getDialogDescription()}
-        pollCount={processingState.pollCount}
-        maxPolls={600}
         errorMessage={processingState.errorMessage}
         statusMessage={processingState.statusMessage}
         onClose={handleDialogClose}
