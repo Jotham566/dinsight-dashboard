@@ -207,7 +207,9 @@ export default function DinsightAnalysisPage() {
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     let pollAttempts = 0;
-    const maxPollAttempts = 600; // Maximum 30 minutes of polling (3s * 600 = 1800s)
+    // Maximum 2 hours of polling for very large files (3s * 2400 = 7200s)
+    // Large datasets (1.5GB+) can take 30-60+ minutes to process
+    const maxPollAttempts = 2400;
 
     if (processingState.status === 'processing' && processingState.fileUploadId) {
       // Poll every 3 seconds to check if processing is complete
@@ -216,7 +218,10 @@ export default function DinsightAnalysisPage() {
 
         try {
           // Check the status endpoint for progress updates
-          const statusResponse = await apiClient.get(`/analyze/${processingState.fileUploadId}/status`);
+          // Use longer timeout for status checks during large file processing
+          const statusResponse = await apiClient.get(`/analyze/${processingState.fileUploadId}/status`, {
+            timeout: 60000, // 60 seconds for status checks during heavy processing
+          });
           
           if (!statusResponse.data || statusResponse.data.code !== 200) {
             throw new Error('Status check failed');
