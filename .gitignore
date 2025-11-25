@@ -38,6 +38,7 @@ out/
 .claude/
 .github/
 .github/instructions/
+dinsight-dashboard.code-workspace
 
 # OS
 .DS_Store
