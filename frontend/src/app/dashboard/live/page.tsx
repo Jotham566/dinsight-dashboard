@@ -342,6 +342,7 @@ export default function LiveMonitorPage() {
   const localPrefsUpdatedAtRef = useRef(0);
   const hasLocalEditsRef = useRef(false);
   const insightsWearTrendRef = useRef<unknown>(undefined);
+  const serverPrefsSnapshotRef = useRef<Record<string, unknown>>({});
 
   const refreshIntervalMs = useMemo(() => {
     if (streamSpeed === '2x') return 1000;
@@ -570,6 +571,7 @@ export default function LiveMonitorPage() {
     if (!incoming || Object.keys(incoming).length === 0) {
       return;
     }
+    serverPrefsSnapshotRef.current = incoming as unknown as Record<string, unknown>;
     insightsWearTrendRef.current = incoming.insightsWearTrend;
 
     const serverUpdatedAtRaw = serverPreferences?.updatedAt ?? incoming.__meta?.updatedAt;
@@ -609,6 +611,7 @@ export default function LiveMonitorPage() {
     hasLocalEditsRef.current = true;
 
     const payload = {
+      ...serverPrefsSnapshotRef.current,
       selectedId,
       manualDatasetId,
       autoRefresh,

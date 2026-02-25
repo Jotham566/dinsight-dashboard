@@ -276,6 +276,7 @@ export function useDashboardOverview() {
   const [lastKnownAnomalyPercentage, setLastKnownAnomalyPercentage] = useState<number | null>(null);
   const [localLivePrefs, setLocalLivePrefs] = useState<DashboardLivePrefs | null>(null);
   const [localHistoryStore, setLocalHistoryStore] = useState<DashboardHistoryStore | null>(null);
+  const [isLocalHistoryLoaded, setIsLocalHistoryLoaded] = useState(false);
   const hasHydratedTimelineHistoryRef = useRef(false);
   const historyPersistTimerRef = useRef<number | null>(null);
 
@@ -330,6 +331,8 @@ export function useDashboardOverview() {
       setLocalHistoryStore(parseDashboardHistoryStore(raw ? JSON.parse(raw) : null));
     } catch {
       setLocalHistoryStore(null);
+    } finally {
+      setIsLocalHistoryLoaded(true);
     }
   }, []);
 
@@ -774,7 +777,11 @@ export function useDashboardOverview() {
     : (realtimeAnomaly ?? { anomalyPercentage: null, anomalyCount: 0, totalPoints: 0 });
 
   useEffect(() => {
-    if (hasHydratedTimelineHistoryRef.current || !hasFetchedServerHistoryStore) {
+    if (
+      hasHydratedTimelineHistoryRef.current ||
+      !hasFetchedServerHistoryStore ||
+      !isLocalHistoryLoaded
+    ) {
       return;
     }
     const resolvedHistoryStore = pickNewestHistoryStore(
@@ -785,7 +792,7 @@ export function useDashboardOverview() {
       setHistory(resolvedHistoryStore.points);
     }
     hasHydratedTimelineHistoryRef.current = true;
-  }, [hasFetchedServerHistoryStore, localHistoryStore, serverHistoryStore]);
+  }, [hasFetchedServerHistoryStore, isLocalHistoryLoaded, localHistoryStore, serverHistoryStore]);
 
   const persistTimelineHistoryToServer = useCallback(
     async (points: DashboardHistoryPoint[], selectedDatasetId: number | null) => {
