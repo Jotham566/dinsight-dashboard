@@ -17,6 +17,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
+import {
+  DASHBOARD_IDLE_TIMELINE_WINDOW,
+  DASHBOARD_STREAMING_TIMELINE_WINDOW,
+  STREAMING_FOCUS_WINDOW_POINTS,
+} from '@/lib/chart-focus-config';
 import { buildSparklinePath } from '@/lib/dashboard-overview';
 import { cn } from '@/utils/cn';
 
@@ -39,6 +44,33 @@ const formatRelativeTime = (iso: string) => {
   return `${Math.floor(diff / hour)}h ago`;
 };
 
+const percentile = (values: number[], q: number): number | null => {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  if (sorted[base + 1] != null) {
+    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+  }
+  return sorted[base];
+};
+
+const computeRobustRange = (values: number[]): { min: number; max: number } | null => {
+  if (values.length === 0) return null;
+  const p02 = percentile(values, 0.02);
+  const p98 = percentile(values, 0.98);
+  if (p02 == null || p98 == null) return null;
+  const lo = Math.min(Math.min(...values), p02);
+  const hi = Math.max(Math.max(...values), p98);
+  const span = Math.max(0.1, hi - lo);
+  const pad = span * 0.12;
+  return { min: lo - pad, max: hi + pad };
+};
+
+const takeTrailing = <T,>(values: T[], count: number): T[] =>
+  values.length <= count ? values : values.slice(values.length - count);
+
 function Sparkline({ values, stroke }: { values: Array<number | null>; stroke: string }) {
   const path = useMemo(() => buildSparklinePath(values, 320, 64), [values]);
 
@@ -58,8 +90,10 @@ function Sparkline({ values, stroke }: { values: Array<number | null>; stroke: s
 
 function WearPreview({
   points,
+  isStreaming,
 }: {
   points: Array<{ label: string; sortIndex: number; distance: number; datasetType: string }>;
+  isStreaming: boolean;
 }) {
   const chart = useMemo(() => {
     const width = 640;
@@ -67,27 +101,41 @@ function WearPreview({
     const padding = { top: 24, right: 16, bottom: 28, left: 44 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
-    const values = points.map((point) => point.distance).filter((value) => Number.isFinite(value));
-    if (values.length === 0) {
+    const sortedPoints = [...points].sort((a, b) => a.sortIndex - b.sortIndex);
+    const monitoringIndices = sortedPoints
+      .map((point, index) => (point.datasetType === 'monitoring' ? index : -1))
+      .filter((index) => index >= 0);
+    const focusStart = isStreaming
+      ? Math.max(
+          0,
+          (monitoringIndices[monitoringIndices.length - 1] ?? 0) - STREAMING_FOCUS_WINDOW_POINTS
+        )
+      : 0;
+    const visiblePoints = sortedPoints.slice(focusStart);
+    const values = visiblePoints
+      .map((point) => point.distance)
+      .filter((value) => Number.isFinite(value));
+    if (values.length === 0 || visiblePoints.length === 0) {
       return null;
     }
 
-    const minData = Math.min(...values, 0);
-    const maxData = Math.max(...values, 0.1);
-    const range = maxData - minData || 1;
+    const rangeCandidate = computeRobustRange(values);
+    const minData = Math.min(rangeCandidate?.min ?? Math.min(...values, 0), 0);
+    const maxData = Math.max(rangeCandidate?.max ?? Math.max(...values, 0.1), 0.1);
+    const range = Math.max(0.1, maxData - minData);
 
     const toX = (index: number) =>
-      padding.left + (index / Math.max(points.length - 1, 1)) * plotWidth;
+      padding.left + (index / Math.max(visiblePoints.length - 1, 1)) * plotWidth;
     const toY = (value: number) => padding.top + ((maxData - value) / range) * plotHeight;
 
-    const polyline = points
+    const polyline = visiblePoints
       .map((point, index) => `${toX(index).toFixed(2)},${toY(point.distance).toFixed(2)}`)
       .join(' ');
     const baselineY = toY(0);
-    const selectedBaseline = points
+    const selectedBaseline = sortedPoints
       .filter((point) => point.datasetType === 'baseline')
       .map((point) => point.distance);
-    const monitoring = points
+    const monitoring = sortedPoints
       .filter((point) => point.datasetType === 'monitoring')
       .map((point) => point.distance);
     const mean = (arr: number[]) =>
@@ -105,11 +153,12 @@ function WearPreview({
       monitoringMeanY: monitoringMean != null ? toY(monitoringMean) : null,
       baselineMean,
       monitoringMean,
-      firstLabel: points[0]?.label || 'N/A',
-      lastLabel: points[points.length - 1]?.label || 'N/A',
-      count: points.length,
+      firstLabel: visiblePoints[0]?.label || 'N/A',
+      lastLabel: visiblePoints[visiblePoints.length - 1]?.label || 'N/A',
+      count: visiblePoints.length,
+      isFocused: isStreaming,
     };
-  }, [points]);
+  }, [isStreaming, points]);
 
   return (
     <svg viewBox="0 0 640 260" className="h-72 w-full" role="img" aria-label="Wear trend preview">
@@ -156,7 +205,7 @@ function WearPreview({
             />
           )}
           <text x="8" y="16" fill="currentColor" className="text-xs text-muted-foreground">
-            Intervals: {chart.count} · First: {chart.firstLabel} · Last: {chart.lastLabel}
+            Intervals shown: {chart.count} · First: {chart.firstLabel} · Last: {chart.lastLabel}
           </text>
           <text x="8" y="34" fill="#64748b" className="text-xs">
             Baseline (G0) reference = 0.000
@@ -169,6 +218,11 @@ function WearPreview({
             Monitoring mean:{' '}
             {chart.monitoringMean != null ? chart.monitoringMean.toFixed(3) : 'N/A'}
           </text>
+          {chart.isFocused && (
+            <text x="8" y="82" fill="currentColor" className="text-xs text-muted-foreground">
+              Streaming focus: latest monitoring window
+            </text>
+          )}
           <text x="520" y={chart.baselineY - 4} fill="#64748b" className="text-xs">
             G0=0
           </text>
@@ -224,8 +278,25 @@ export default function DashboardPage() {
     }
   };
 
-  const anomalySeries = history.map((point) => point.anomalyPercentage);
-  const wearSeries = history.map((point) => point.wearScore);
+  const timelineWindow = streamingStatus?.is_active
+    ? DASHBOARD_STREAMING_TIMELINE_WINDOW
+    : DASHBOARD_IDLE_TIMELINE_WINDOW;
+  const anomalySeries = useMemo(
+    () =>
+      takeTrailing(
+        history.map((point) => point.anomalyPercentage),
+        timelineWindow
+      ),
+    [history, timelineWindow]
+  );
+  const wearSeries = useMemo(
+    () =>
+      takeTrailing(
+        history.map((point) => point.wearScore),
+        timelineWindow
+      ),
+    [history, timelineWindow]
+  );
 
   const streamStatusLabel =
     streamingStatus?.status === 'streaming'
@@ -361,7 +432,10 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <WearPreview points={wearSnapshot?.previewSeries ?? []} />
+            <WearPreview
+              points={wearSnapshot?.previewSeries ?? []}
+              isStreaming={Boolean(streamingStatus?.is_active)}
+            />
           </CardContent>
         </Card>
       </div>
