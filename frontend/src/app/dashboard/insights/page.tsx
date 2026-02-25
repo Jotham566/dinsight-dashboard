@@ -22,14 +22,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
+import { useActiveStreamingDataset } from '@/hooks/useActiveStreamingDataset';
 import { api } from '@/lib/api-client';
 import {
   AppliedWearTrendConfig,
+  DraftWearTrendConfig,
   INSIGHTS_APPLIED_WEAR_CONFIG_EVENT,
   INSIGHTS_APPLIED_WEAR_CONFIG_KEY,
+  INSIGHTS_DRAFT_WEAR_CONFIG_KEY,
+  INSIGHTS_DRAFT_WEAR_PREFS_FIELD,
   INSIGHTS_WEAR_PREFS_FIELD,
   parseAppliedWearTrendConfig,
   parseAppliedWearTrendConfigFromUnknown,
+  parseDraftWearTrendConfig,
+  parseDraftWearTrendConfigFromUnknown,
+  pickNewestDraftWearConfig,
   pickNewestWearConfig,
 } from '@/lib/insights-wear-config';
 
@@ -120,13 +127,31 @@ export default function HealthInsightsPage() {
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
+  const datasetIds = useMemo(() => datasets.map((dataset) => dataset.dinsight_id), [datasets]);
+  const { activeStreamingDatasetId, statusesByDatasetId } = useActiveStreamingDataset(datasetIds);
+  const preferredDatasetId = activeStreamingDatasetId ?? latestDatasetId ?? null;
 
   useEffect(() => {
-    if (datasetId == null && latestDatasetId) {
-      setDatasetId(latestDatasetId);
-      setManualDatasetId(String(latestDatasetId));
+    if (datasetId == null && preferredDatasetId) {
+      setDatasetId(preferredDatasetId);
+      setManualDatasetId(String(preferredDatasetId));
     }
-  }, [datasetId, latestDatasetId]);
+  }, [datasetId, preferredDatasetId]);
+
+  useEffect(() => {
+    if (!activeStreamingDatasetId || datasetId === activeStreamingDatasetId) {
+      return;
+    }
+    const currentDatasetStatus = datasetId != null ? statusesByDatasetId[datasetId]?.status : null;
+    if (
+      datasetId == null ||
+      currentDatasetStatus === 'completed' ||
+      currentDatasetStatus === 'not_started'
+    ) {
+      setDatasetId(activeStreamingDatasetId);
+      setManualDatasetId(String(activeStreamingDatasetId));
+    }
+  }, [activeStreamingDatasetId, datasetId, statusesByDatasetId]);
 
   useEffect(() => {
     if (datasetId != null) {
@@ -267,9 +292,17 @@ export default function HealthInsightsPage() {
     const serverConfig = parseAppliedWearTrendConfigFromUnknown(
       userPreferences?.[INSIGHTS_WEAR_PREFS_FIELD]
     );
-    const resolved = pickNewestWearConfig(localConfig, serverConfig);
+    const localDraftConfig = parseDraftWearTrendConfig(
+      window.localStorage.getItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY)
+    );
+    const serverDraftConfig = parseDraftWearTrendConfigFromUnknown(
+      userPreferences?.[INSIGHTS_DRAFT_WEAR_PREFS_FIELD]
+    );
+    const resolvedDraft = pickNewestDraftWearConfig(localDraftConfig, serverDraftConfig);
+    const resolvedApplied = pickNewestWearConfig(localConfig, serverConfig);
     hasHydratedPersistedConfigRef.current = true;
 
+    const resolved = resolvedDraft ?? resolvedApplied;
     if (!resolved) {
       return;
     }
@@ -296,11 +329,19 @@ export default function HealthInsightsPage() {
     setAppliedClusterSignature(resolvedClusterSignature);
     setAppliedRangeSignature(resolvedRangeSignature);
     setAppliedIncludeMonitoring(resolved.includeMonitoring);
-    setHasAppliedWearTrendRun(true);
-    setLastWearTrendRunAt(resolved.appliedAt);
+    if (resolvedApplied) {
+      setHasAppliedWearTrendRun(true);
+      setLastWearTrendRunAt(resolvedApplied.appliedAt);
+      window.localStorage.setItem(
+        INSIGHTS_APPLIED_WEAR_CONFIG_KEY,
+        JSON.stringify(resolvedApplied)
+      );
+      window.dispatchEvent(new CustomEvent(INSIGHTS_APPLIED_WEAR_CONFIG_EVENT));
+    }
 
-    window.localStorage.setItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, JSON.stringify(resolved));
-    window.dispatchEvent(new CustomEvent(INSIGHTS_APPLIED_WEAR_CONFIG_EVENT));
+    if (resolvedDraft) {
+      window.localStorage.setItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, JSON.stringify(resolvedDraft));
+    }
   }, [hasFetchedUserPreferences, userPreferences]);
 
   const persistWearConfigToServer = useCallback(async (nextConfig: AppliedWearTrendConfig) => {
@@ -315,6 +356,54 @@ export default function HealthInsightsPage() {
       // Silent fallback: local persistence still applies.
     }
   }, []);
+
+  const persistWearDraftToServer = useCallback(async (nextConfig: DraftWearTrendConfig) => {
+    try {
+      const latest = await api.users.getLiveMonitorPreferences();
+      const existing = (latest?.data?.data?.preferences ?? {}) as Record<string, unknown>;
+      await api.users.updateLiveMonitorPreferences({
+        ...existing,
+        [INSIGHTS_DRAFT_WEAR_PREFS_FIELD]: nextConfig,
+      });
+    } catch {
+      // Silent fallback: local persistence still applies.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedPersistedConfigRef.current) {
+      return;
+    }
+    if (!datasetId || !metadataColumn) {
+      return;
+    }
+
+    const nextDraftConfig: DraftWearTrendConfig = {
+      datasetId,
+      metadataColumn,
+      includeMonitoring,
+      baselineClusterValues: Array.from(new Set(selectedClusterValues)).sort(),
+      baselineRange: rangeStart && rangeEnd ? { start: rangeStart, end: rangeEnd } : null,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, JSON.stringify(nextDraftConfig));
+    }
+
+    const timer = window.setTimeout(() => {
+      void persistWearDraftToServer(nextDraftConfig);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [
+    datasetId,
+    metadataColumn,
+    includeMonitoring,
+    selectedClusterValues,
+    rangeStart,
+    rangeEnd,
+    persistWearDraftToServer,
+  ]);
 
   const clusterSignature = useMemo(
     () => JSON.stringify(Array.from(new Set(selectedClusterValues)).sort()),

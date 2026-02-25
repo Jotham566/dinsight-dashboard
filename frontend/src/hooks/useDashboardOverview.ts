@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
+import { useActiveStreamingDataset } from '@/hooks/useActiveStreamingDataset';
 import { normalizeCoordinateSeriesFromMonitoringRows } from '@/lib/dataset-normalizers';
 import {
   appendHistoryPoint,
@@ -295,12 +296,16 @@ export function useDashboardOverview() {
     [localLivePrefs, serverLivePrefs]
   );
   const liveRefreshMs = resolveRefreshMs(livePrefs?.streamSpeed);
-  const activeDatasetId = livePrefs?.selectedId ?? latestDatasetId ?? null;
+  const datasetIds = useMemo(() => datasets.map((dataset) => dataset.dinsight_id), [datasets]);
+  const { activeStreamingDatasetId } = useActiveStreamingDataset(datasetIds, liveRefreshMs);
+  const activeDatasetId =
+    activeStreamingDatasetId ?? livePrefs?.selectedId ?? latestDatasetId ?? null;
   const resolvedWearConfig = useMemo(
     () => pickNewestWearConfig(appliedWearConfig, livePrefs?.insightsWearConfig ?? null),
     [appliedWearConfig, livePrefs?.insightsWearConfig]
   );
-  const wearDatasetId = resolvedWearConfig?.datasetId ?? latestDatasetId ?? null;
+  const wearDatasetId =
+    activeStreamingDatasetId ?? resolvedWearConfig?.datasetId ?? latestDatasetId ?? null;
   const wearColumn = resolvedWearConfig?.metadataColumn ?? '';
   const wearClusterValues = resolvedWearConfig?.baselineClusterValues ?? [];
   const wearRange = resolvedWearConfig?.baselineRange;
