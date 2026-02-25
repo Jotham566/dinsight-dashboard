@@ -182,10 +182,10 @@ export function ProcessingDialog({
                 asChild
                 className="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
               >
-                <a href="/dashboard/visualization">View Visualization</a>
+                <a href="/dashboard/live">Open Live Monitor</a>
               </Button>
               <Button asChild variant="outline" className="flex-1">
-                <a href="/dashboard/analysis">Run Anomaly Detection</a>
+                <a href="/dashboard/insights">Open Health Insights</a>
               </Button>
             </div>
           )}

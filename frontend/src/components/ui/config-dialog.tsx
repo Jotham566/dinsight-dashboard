@@ -10,6 +10,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/utils/cn';
 
 export interface ConfigDialogProps {
   open: boolean;
@@ -17,6 +18,7 @@ export interface ConfigDialogProps {
   title: string;
   description?: string | ReactNode;
   children: ReactNode;
+  contentClassName?: string;
 }
 
 export function ConfigDialog({
@@ -25,10 +27,16 @@ export function ConfigDialog({
   title,
   description,
   children,
+  contentClassName,
 }: ConfigDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-600 shadow-2xl">
+      <AlertDialogContent
+        className={cn(
+          'sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-600 shadow-2xl',
+          contentClassName
+        )}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle className="text-2xl font-bold gradient-text flex items-center gap-3">
             {title}

@@ -136,9 +136,7 @@ apiClient.interceptors.response.use(
 
       // Only log non-404 errors or 404s that aren't expected dataset checks
       const isExpected404 =
-        error.response.status === 404 &&
-        (error.config?.url?.includes('/dinsight/') ||
-          error.config?.url?.includes('/organizations'));
+        error.response.status === 404 && error.config?.url?.includes('/dinsight/');
 
       if (!isExpected404) {
         console.warn('API Error:', errorInfo);
@@ -182,27 +180,9 @@ export const api = {
     getSessions: () => apiClient.get('/users/sessions'),
     revokeSession: (sessionId: string) => apiClient.delete(`/users/sessions/${sessionId}`),
     revokeAllSessions: () => apiClient.delete('/users/sessions'),
-  },
-
-  // Organization endpoints
-  organizations: {
-    list: () => apiClient.get('/organizations'),
-    get: (id: number) => apiClient.get(`/organizations/${id}`),
-    create: (data: any) => apiClient.post('/organizations', data),
-    update: (id: number, data: any) => apiClient.put(`/organizations/${id}`, data),
-    delete: (id: number) => apiClient.delete(`/organizations/${id}`),
-  },
-
-  // Machine endpoints
-  machines: {
-    list: (
-      orgId: number,
-      params?: { status?: string; location?: string; limit?: number; offset?: number }
-    ) => apiClient.get(`/orgs/${orgId}/machines`, { params }),
-    get: (id: number) => apiClient.get(`/machines/${id}`),
-    create: (orgId: number, data: any) => apiClient.post(`/orgs/${orgId}/machines`, data),
-    update: (id: number, data: any) => apiClient.put(`/machines/${id}`, data),
-    delete: (id: number) => apiClient.delete(`/machines/${id}`),
+    getLiveMonitorPreferences: () => apiClient.get('/users/live-monitor-preferences'),
+    updateLiveMonitorPreferences: (preferences: Record<string, unknown>) =>
+      apiClient.put('/users/live-monitor-preferences', { preferences }),
   },
 
   // Analysis endpoints
@@ -219,9 +199,6 @@ export const api = {
     getConfig: () => apiClient.get('/config'),
     updateConfig: (config: any) => apiClient.post('/config', config),
     getDinsight: (id: number) => apiClient.get(`/dinsight/${id}`),
-    getFeatures: (fileUploadId: number) => apiClient.get(`/feature/${fileUploadId}`),
-    getFeatureRange: (fileUploadId: number, start: number, end: number) =>
-      apiClient.get(`/feature/${fileUploadId}/range`, { params: { start, end } }),
   },
 
   // Monitoring endpoints
@@ -237,8 +214,6 @@ export const api = {
     },
     get: (dinsightId: number) => apiClient.get(`/monitor/${dinsightId}`),
     getCoordinates: (dinsightId: number) => apiClient.get(`/monitor/${dinsightId}/coordinates`),
-    getAvailable: () => apiClient.get('/monitor/available'),
-    getForBaseline: (baselineId: number) => apiClient.get(`/monitor/baseline/${baselineId}`),
   },
 
   // Deterioration endpoints
@@ -259,48 +234,12 @@ export const api = {
 
   // Anomaly detection endpoints
   anomaly: {
-    detect: (data: any) => {
-      console.log('🔍 Calling anomaly detection API with data:', data);
-      return apiClient.post('/anomaly/detect', data);
-    },
-    detectWithStorage: (data: any) => apiClient.post('/anomaly/detect-with-storage', data),
-    getThreshold: (datasetId: number) => apiClient.get(`/anomaly/threshold/${datasetId}`),
-  },
-
-  // Alert endpoints
-  alerts: {
-    createRule: (data: any) => apiClient.post('/alerts/rules', data),
-    getRules: (orgId: number) => apiClient.get(`/alerts/rules/organization/${orgId}`),
-    getAlerts: (
-      orgId: number,
-      params?: { status?: string; severity?: string; machine_id?: number; limit?: number }
-    ) => apiClient.get(`/alerts/organization/${orgId}`, { params }),
-    acknowledge: (id: number) => apiClient.post(`/alerts/${id}/acknowledge`),
-    resolve: (id: number) => apiClient.post(`/alerts/${id}/resolve`),
-  },
-
-  // Dataset endpoints
-  datasets: {
-    createMetadata: (data: any) => apiClient.post('/datasets/metadata', data),
-    getMetadata: (datasetId: number) => apiClient.get(`/datasets/${datasetId}/metadata`),
-    getLineage: (datasetId: number) => apiClient.get(`/datasets/${datasetId}/lineage`),
-    getExampleTypes: () => apiClient.get('/example-datasets/types'),
-    loadExample: (data: { dataset_type: string; organization_id: number; machine_id: number }) =>
-      apiClient.post('/example-datasets/load', data),
-  },
-
-  // Validation endpoints
-  validation: {
-    createRule: (data: any) => apiClient.post('/data-validation/rules', data),
-    validate: (data: { dataset_id: number; validation_rule_ids: number[] }) =>
-      apiClient.post('/data-validation/validate', data),
+    detect: (data: any) => apiClient.post('/anomaly/detect', data),
   },
 
   // Streaming endpoints
   streaming: {
     getStatus: (baselineId: number) => apiClient.get(`/streaming/${baselineId}/status`),
-    getLatestPoints: (baselineId: number, params?: { limit?: number; offset?: number }) =>
-      apiClient.get(`/streaming/${baselineId}/latest`, { params }),
     reset: (baselineId: number) => apiClient.delete(`/streaming/${baselineId}/reset`),
   },
 };

@@ -138,8 +138,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   asChild
                   className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <Link href="/dashboard/dinsight-analysis" onClick={onClose}>
-                    <span className="mr-1">📊</span> Upload
+                  <Link href="/dashboard/data" onClick={onClose}>
+                    Upload
                   </Link>
                 </Button>
                 <Button
@@ -148,8 +148,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   asChild
                   className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
-                  <Link href="/dashboard/analysis" onClick={onClose}>
-                    <span className="mr-1">🔬</span> Analyze
+                  <Link href="/dashboard/insights" onClick={onClose}>
+                    Insights
                   </Link>
                 </Button>
               </div>

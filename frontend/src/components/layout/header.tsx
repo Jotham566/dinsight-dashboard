@@ -199,10 +199,10 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               </div>
               <div className="border-t dark:border-gray-800 p-2">
                 <Link
-                  href="/dashboard/notifications"
+                  href="/dashboard/insights"
                   className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
                 >
-                  View all notifications
+                  Open health insights
                 </Link>
               </div>
             </DropdownMenuContent>
@@ -249,16 +249,16 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
               </div>
               <div className="py-2">
-                <Link href="/dashboard/profile">
+                <Link href="/dashboard/account">
                   <DropdownMenuItem className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                    <span>Account</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link href="/dashboard/settings">
+                <Link href="/dashboard/account">
                   <DropdownMenuItem className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                    <span>Security</span>
                   </DropdownMenuItem>
                 </Link>
               </div>

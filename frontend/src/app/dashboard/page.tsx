@@ -1,357 +1,514 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import {
-  Upload,
-  LineChart,
-  Microscope,
-  Database,
-  Plus,
-  RefreshCw,
   Activity,
-  CheckCircle,
-  ArrowUpRight,
-  BarChart3,
-  Home,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  RefreshCw,
+  ShieldAlert,
+  TrendingDown,
+  Upload,
+  Waves,
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth-context';
-import { api } from '@/lib/api-client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useDashboardOverview } from '@/hooks/useDashboardOverview';
+import { buildSparklinePath } from '@/lib/dashboard-overview';
+import { cn } from '@/utils/cn';
 
-interface DashboardData {
-  config: any | null;
-  hasActivity: boolean;
+const stateTone: Record<'OK' | 'Deteriorating' | 'Failing', string> = {
+  OK: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200',
+  Deteriorating:
+    'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
+  Failing:
+    'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200',
+};
+
+const formatRelativeTime = (iso: string) => {
+  const value = new Date(iso).getTime();
+  if (!Number.isFinite(value)) return 'Unknown time';
+  const diff = Date.now() - value;
+  const minute = 60_000;
+  const hour = minute * 60;
+  if (diff < minute) return 'Just now';
+  if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
+  return `${Math.floor(diff / hour)}h ago`;
+};
+
+function Sparkline({ values, stroke }: { values: Array<number | null>; stroke: string }) {
+  const path = useMemo(() => buildSparklinePath(values, 320, 64), [values]);
+
+  return (
+    <svg viewBox="0 0 320 64" className="h-20 w-full" role="img" aria-label="Trend sparkline">
+      <path d="M0 63 L320 63" stroke="currentColor" className="text-border/60" strokeWidth="1" />
+      {path ? (
+        <path d={path} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" />
+      ) : (
+        <text x="8" y="36" fill="currentColor" className="text-muted-foreground text-xs">
+          Not enough samples yet
+        </text>
+      )}
+    </svg>
+  );
 }
 
-// Core dashboard actions with updated colors to match design system
-const quickActions = [
-  {
-    title: 'Upload Dataset',
-    description: 'Upload baseline or monitoring data',
-    href: '/dashboard/dinsight-analysis',
-    icon: Upload,
-    gradient: 'from-primary-500 to-primary-600',
-    shadow: 'shadow-primary-500/25',
-  },
-  {
-    title: 'Compare Data',
-    description: 'Visualize dataset comparisons',
-    href: '/dashboard/visualization',
-    icon: LineChart,
-    gradient: 'from-accent-teal-500 to-accent-teal-600',
-    shadow: 'shadow-accent-teal-500/25',
-  },
-  {
-    title: 'Detect Anomalies',
-    description: 'Run anomaly detection analysis',
-    href: '/dashboard/analysis',
-    icon: Microscope,
-    gradient: 'from-accent-purple-500 to-accent-purple-600',
-    shadow: 'shadow-accent-purple-500/25',
-  },
-  {
-    title: 'Explore Features',
-    description: 'Examine feature data with heatmaps',
-    href: '/dashboard/features',
-    icon: Database,
-    gradient: 'from-orange-500 to-orange-600',
-    shadow: 'shadow-orange-500/25',
-  },
-];
+function WearPreview({
+  points,
+}: {
+  points: Array<{ label: string; sortIndex: number; distance: number; datasetType: string }>;
+}) {
+  const chart = useMemo(() => {
+    const width = 640;
+    const height = 260;
+    const padding = { top: 24, right: 16, bottom: 28, left: 44 };
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    const values = points.map((point) => point.distance).filter((value) => Number.isFinite(value));
+    if (values.length === 0) {
+      return null;
+    }
+
+    const minData = Math.min(...values, 0);
+    const maxData = Math.max(...values, 0.1);
+    const range = maxData - minData || 1;
+
+    const toX = (index: number) =>
+      padding.left + (index / Math.max(points.length - 1, 1)) * plotWidth;
+    const toY = (value: number) => padding.top + ((maxData - value) / range) * plotHeight;
+
+    const polyline = points
+      .map((point, index) => `${toX(index).toFixed(2)},${toY(point.distance).toFixed(2)}`)
+      .join(' ');
+    const baselineY = toY(0);
+    const selectedBaseline = points
+      .filter((point) => point.datasetType === 'baseline')
+      .map((point) => point.distance);
+    const monitoring = points
+      .filter((point) => point.datasetType === 'monitoring')
+      .map((point) => point.distance);
+    const mean = (arr: number[]) =>
+      arr.length ? arr.reduce((sum, value) => sum + value, 0) / arr.length : null;
+    const baselineMean = mean(selectedBaseline);
+    const monitoringMean = mean(monitoring);
+
+    return {
+      width,
+      height,
+      padding,
+      polyline,
+      baselineY,
+      baselineMeanY: baselineMean != null ? toY(baselineMean) : null,
+      monitoringMeanY: monitoringMean != null ? toY(monitoringMean) : null,
+      baselineMean,
+      monitoringMean,
+      firstLabel: points[0]?.label || 'N/A',
+      lastLabel: points[points.length - 1]?.label || 'N/A',
+      count: points.length,
+    };
+  }, [points]);
+
+  return (
+    <svg viewBox="0 0 640 260" className="h-72 w-full" role="img" aria-label="Wear trend preview">
+      <path d="M0 258 L640 258" stroke="currentColor" className="text-border/70" strokeWidth="1" />
+      <path d="M2 0 L2 260" stroke="currentColor" className="text-border/70" strokeWidth="1" />
+      {chart ? (
+        <>
+          <line
+            x1={chart.padding.left}
+            y1={chart.baselineY}
+            x2={640 - chart.padding.right}
+            y2={chart.baselineY}
+            stroke="#64748b"
+            strokeDasharray="4 4"
+            strokeWidth="1.5"
+          />
+          <polyline
+            points={chart.polyline}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          {chart.baselineMeanY != null && (
+            <line
+              x1={chart.padding.left}
+              y1={chart.baselineMeanY}
+              x2={640 - chart.padding.right}
+              y2={chart.baselineMeanY}
+              stroke="#1d4ed8"
+              strokeDasharray="2 4"
+              strokeWidth="1.5"
+            />
+          )}
+          {chart.monitoringMeanY != null && (
+            <line
+              x1={chart.padding.left}
+              y1={chart.monitoringMeanY}
+              x2={640 - chart.padding.right}
+              y2={chart.monitoringMeanY}
+              stroke="#dc2626"
+              strokeDasharray="6 4"
+              strokeWidth="1.5"
+            />
+          )}
+          <text x="8" y="16" fill="currentColor" className="text-xs text-muted-foreground">
+            Intervals: {chart.count} · First: {chart.firstLabel} · Last: {chart.lastLabel}
+          </text>
+          <text x="8" y="34" fill="#64748b" className="text-xs">
+            Baseline (G0) reference = 0.000
+          </text>
+          <text x="8" y="50" fill="#1d4ed8" className="text-xs">
+            Selected baseline mean:{' '}
+            {chart.baselineMean != null ? chart.baselineMean.toFixed(3) : 'N/A'}
+          </text>
+          <text x="8" y="66" fill="#dc2626" className="text-xs">
+            Monitoring mean:{' '}
+            {chart.monitoringMean != null ? chart.monitoringMean.toFixed(3) : 'N/A'}
+          </text>
+          <text x="520" y={chart.baselineY - 4} fill="#64748b" className="text-xs">
+            G0=0
+          </text>
+          {chart.baselineMeanY != null && (
+            <text x="520" y={chart.baselineMeanY - 4} fill="#1d4ed8" className="text-xs">
+              Baseline mean
+            </text>
+          )}
+          {chart.monitoringMeanY != null && (
+            <text x="520" y={chart.monitoringMeanY - 4} fill="#dc2626" className="text-xs">
+              Monitoring mean
+            </text>
+          )}
+        </>
+      ) : (
+        <text x="8" y="24" fill="currentColor" className="text-xs text-muted-foreground">
+          Wear trend preview will appear after deterioration intervals are available.
+        </text>
+      )}
+    </svg>
+  );
+}
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const {
+    selectedLiveDatasetId,
+    streamingStatus,
+    alerts,
+    alertSummary,
+    wearSnapshot,
+    wearDirection,
+    machineStatus,
+    history,
+    latestAnomalyPercentage,
+    realtimeAnomaly,
+    anomalySource,
+    wearColumn,
+    liveRefreshMs,
+    appliedWearConfig,
+    isLoading,
+    isRefreshingWear,
+    wearError,
+    refetchAll,
+  } = useDashboardOverview();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [data, setData] = useState<DashboardData>({
-    config: null,
-    hasActivity: false,
-  });
-  const [loading, setLoading] = useState(true);
 
-  const fetchDashboardData = async () => {
+  const handleRefresh = async () => {
     try {
-      const configRes = await api.analysis.getConfig().catch(() => null);
-      setData({
-        config: configRes?.data?.data || null,
-        hasActivity: !!configRes?.data?.data,
-      });
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      setIsRefreshing(true);
+      await refetchAll();
     } finally {
-      setLoading(false);
       setIsRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const anomalySeries = history.map((point) => point.anomalyPercentage);
+  const wearSeries = history.map((point) => point.wearScore);
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchDashboardData();
-  };
+  const streamStatusLabel =
+    streamingStatus?.status === 'streaming'
+      ? 'Active'
+      : streamingStatus?.status === 'completed'
+        ? 'Completed'
+        : 'Not started';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      {/* Modern Header with Enhanced Gradient */}
-      <div className="sticky top-0 z-10 glass-card backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
-                <Home className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold gradient-text">
-                  Welcome back{user?.full_name ? `, ${user.full_name.split(' ')[0]}` : ''}!
-                </h1>
-                <p className="text-gray-600 dark:text-gray-300 mt-1">
-                  Predictive maintenance dashboard
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="glass-card hover:shadow-lg transition-all duration-200"
-              >
-                <RefreshCw className={cn('w-4 h-4 mr-2', isRefreshing && 'animate-spin')} />
-                Refresh
-              </Button>
-              <Button asChild className="glass-card hover:shadow-lg transition-all duration-200">
-                <Link href="/dashboard/dinsight-analysis">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Analysis
-                </Link>
-              </Button>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Operations Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Live stream health, deterioration trend, and prioritized alerts.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => void handleRefresh()} disabled={isRefreshing}>
+            <RefreshCw className={cn('mr-2 h-4 w-4', isRefreshing && 'animate-spin')} />
+            Refresh
+          </Button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* System Status */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-emerald-50/30 to-accent-teal-50/20 dark:from-emerald-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
-              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                  <Activity className="h-5 w-5 text-white" />
-                </div>
-                <span className="gradient-text">System Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-emerald-500" />
-                <span className="text-base font-medium text-emerald-600 dark:text-emerald-400">
-                  Operational
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className={cn('border', stateTone[machineStatus.state])}>
+          <CardHeader className="pb-2">
+            <CardDescription>Machine state</CardDescription>
+            <CardTitle className="text-2xl">{machineStatus.state}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-sm">{machineStatus.recommendation}</p>
+            <p className="text-xs">
+              Real-time anomaly rate:{' '}
+              <span className="font-semibold">
+                {latestAnomalyPercentage != null ? `${latestAnomalyPercentage.toFixed(1)}%` : 'N/A'}
+              </span>
+              {realtimeAnomaly?.totalPoints ? ` (${realtimeAnomaly.totalPoints} pts)` : ''}
+            </p>
+            <p className="text-xs">
+              Source:{' '}
+              {anomalySource === 'manual-boundary' ? 'Manual boundaries' : 'Model detection'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Live streaming</CardDescription>
+            <CardTitle className="text-2xl">{streamStatusLabel}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm text-muted-foreground">
+            <p>Dataset: {selectedLiveDatasetId ?? 'Not selected'}</p>
+            <p>
+              Points: {streamingStatus?.streamed_points ?? 0}/{streamingStatus?.total_points ?? 0}
+            </p>
+            <p>Progress: {(streamingStatus?.progress_percentage ?? 0).toFixed(1)}%</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Alert load</CardDescription>
+            <CardTitle className="text-2xl">{alertSummary.activeTotal}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm text-muted-foreground">
+            <p>Critical: {alertSummary.bySeverity.critical}</p>
+            <p>High: {alertSummary.bySeverity.high}</p>
+            <p>Medium: {alertSummary.bySeverity.medium}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Wear trend (G0→Gi)</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              {wearSnapshot ? wearSnapshot.score.toFixed(3) : 'N/A'}
+              <Badge variant="outline">{wearDirection}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm text-muted-foreground">
+            <p>Column: {wearSnapshot?.metadataColumn || wearColumn || 'Not configured'}</p>
+            <p>
+              Last run:{' '}
+              {wearSnapshot?.capturedAt
+                ? formatRelativeTime(wearSnapshot.capturedAt)
+                : 'No run yet'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-5">
+        <Card className="xl:col-span-3">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Waves className="h-5 w-5" />
+              Live Condition Timeline
+            </CardTitle>
+            <CardDescription>Latest samples for anomaly rate and wear score.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div>
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground">Anomaly rate (%)</span>
+                <span className="text-muted-foreground">
+                  {latestAnomalyPercentage != null ? latestAnomalyPercentage.toFixed(1) : 'N/A'}
                 </span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-primary-50/30 to-accent-teal-50/20 dark:from-primary-950/30 dark:to-accent-teal-950/20 rounded-t-xl">
-              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
-                  <Database className="h-5 w-5 text-white" />
-                </div>
-                <span className="gradient-text">Configuration</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {loading ? (
-                <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-              ) : (
-                <span className="text-base font-medium text-gray-900 dark:text-gray-100">
-                  {data.config ? 'Configured' : 'Default Settings'}
+              <Sparkline values={anomalySeries} stroke="#dc2626" />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground">Wear trend score</span>
+                <span className="text-muted-foreground">
+                  {wearSnapshot ? wearSnapshot.score.toFixed(3) : 'N/A'}
                 </span>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-accent-purple-50/30 to-accent-pink-50/20 dark:from-accent-purple-950/30 dark:to-accent-pink-950/20 rounded-t-xl">
-              <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-accent-purple-500 to-accent-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-accent-purple-500/25">
-                  <BarChart3 className="h-5 w-5 text-white" />
-                </div>
-                <span className="gradient-text">Recent Activity</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <span className="text-base font-medium text-gray-900 dark:text-gray-100">
-                {data.hasActivity ? 'Active' : 'No recent activity'}
-              </span>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-          <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
-            <CardTitle className="text-2xl font-bold gradient-text">Quick Actions</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
-              Get started with your predictive maintenance analysis
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Link
-                    key={action.title}
-                    href={action.href}
-                    className="group block p-6 rounded-xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 glass-card card-hover"
-                  >
-                    <div
-                      className={cn(
-                        'w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-gradient-to-br shadow-lg transition-transform duration-300 group-hover:scale-110',
-                        action.gradient,
-                        action.shadow
-                      )}
-                    >
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center text-lg">
-                      {action.title}
-                      <ArrowUpRight className="w-5 h-5 ml-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {action.description}
-                    </p>
-                  </Link>
-                );
-              })}
+              </div>
+              <Sparkline values={wearSeries} stroke="#7c3aed" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Getting Started */}
-        {!data.hasActivity && (
-          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-            <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-teal-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-accent-teal-900/50 backdrop-blur-sm rounded-t-xl">
-              <CardTitle className="text-2xl font-bold gradient-text">Getting Started</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
-                Follow these steps to begin your predictive maintenance analysis
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="text-center group">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/25 transition-transform duration-300 group-hover:scale-110">
-                    <Upload className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3 text-lg">
-                    1. Upload Baseline
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-                    Upload your baseline dataset to establish normal patterns
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="glass-card hover:shadow-lg"
-                  >
-                    <Link href="/dashboard/dinsight-analysis">Get Started</Link>
-                  </Button>
-                </div>
-
-                <div className="text-center group">
-                  <div className="w-16 h-16 bg-gradient-to-br from-accent-teal-500 to-accent-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent-teal-500/25 transition-transform duration-300 group-hover:scale-110">
-                    <Database className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3 text-lg">
-                    2. Add Monitoring Data
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-                    Upload monitoring data from your equipment
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="glass-card hover:shadow-lg"
-                  >
-                    <Link href="/dashboard/visualization">Compare Data</Link>
-                  </Button>
-                </div>
-
-                <div className="text-center group">
-                  <div className="w-16 h-16 bg-gradient-to-br from-accent-purple-500 to-accent-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent-purple-500/25 transition-transform duration-300 group-hover:scale-110">
-                    <Microscope className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3 text-lg">
-                    3. Detect Issues
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-                    Run anomaly detection to identify potential issues
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="glass-card hover:shadow-lg"
-                  >
-                    <Link href="/dashboard/analysis">Analyze Now</Link>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Current Configuration */}
-        {data.config && (
-          <Card className="glass-card shadow-xl border-gray-200/50 dark:border-gray-700/50 card-hover">
-            <CardHeader className="border-b border-gray-100/50 dark:border-gray-700/50 bg-gradient-to-r from-primary-50/30 via-white/50 to-accent-purple-50/30 dark:from-gray-900/50 dark:via-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm rounded-t-xl">
-              <CardTitle className="text-2xl font-bold gradient-text">
-                Current Configuration
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
-                Analysis settings overview
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="glass-card p-4 bg-gradient-to-br from-primary-50/50 to-primary-100/30 dark:from-primary-950/50 dark:to-primary-900/30 border border-primary-200/50 dark:border-primary-700/50 rounded-xl">
-                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300 block mb-1">
-                    Optimizer
-                  </span>
-                  <span className="text-lg font-bold text-primary-900 dark:text-primary-100 capitalize">
-                    {data.config.optimizer || 'adam'}
-                  </span>
-                </div>
-                <div className="glass-card p-4 bg-gradient-to-br from-accent-teal-50/50 to-accent-teal-100/30 dark:from-accent-teal-950/50 dark:to-accent-teal-900/30 border border-accent-teal-200/50 dark:border-accent-teal-700/50 rounded-xl">
-                  <span className="text-sm font-medium text-accent-teal-700 dark:text-accent-teal-300 block mb-1">
-                    Alpha
-                  </span>
-                  <span className="text-lg font-bold text-accent-teal-900 dark:text-accent-teal-100">
-                    {data.config.alpha || '0.1'}
-                  </span>
-                </div>
-                <div className="glass-card p-4 bg-gradient-to-br from-accent-purple-50/50 to-accent-purple-100/30 dark:from-accent-purple-950/50 dark:to-accent-purple-900/30 border border-accent-purple-200/50 dark:border-accent-purple-700/50 rounded-xl">
-                  <span className="text-sm font-medium text-accent-purple-700 dark:text-accent-purple-300 block mb-1">
-                    Gamma0
-                  </span>
-                  <span className="text-lg font-bold text-accent-purple-900 dark:text-accent-purple-100 font-mono">
-                    {data.config.gamma0 || '1e-7'}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="xl:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingDown className="h-5 w-5" />
+              Wear Trend Preview (G0→Gi)
+            </CardTitle>
+            <CardDescription>
+              Distance-from-baseline preview from deterioration intervals in real time.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WearPreview points={wearSnapshot?.previewSeries ?? []} />
+          </CardContent>
+        </Card>
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="h-5 w-5" />
+              Streaming Health
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Stream state: <span className="font-medium text-foreground">{streamStatusLabel}</span>
+            </p>
+            <p>
+              Refresh cadence:{' '}
+              <span className="font-medium text-foreground">
+                {Math.round(liveRefreshMs / 1000)}s sync (matched to Live Monitor)
+              </span>
+            </p>
+            <p>
+              Latest glow points:{' '}
+              <span className="font-medium text-foreground">
+                {streamingStatus?.latest_glow_count ?? 0}
+              </span>
+            </p>
+            <p>
+              Stream completion:{' '}
+              <span className="font-medium text-foreground">
+                {(streamingStatus?.progress_percentage ?? 0).toFixed(1)}%
+              </span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingDown className="h-5 w-5" />
+              Wear Trend Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Column:{' '}
+              <span className="font-medium text-foreground">
+                {wearSnapshot?.metadataColumn || wearColumn || 'Not configured'}
+              </span>
+            </p>
+            <p>
+              Baseline mode:{' '}
+              <span className="font-medium text-foreground">
+                {appliedWearConfig?.baselineRange
+                  ? `${appliedWearConfig.baselineRange.start} → ${appliedWearConfig.baselineRange.end}`
+                  : appliedWearConfig?.baselineClusterValues?.length
+                    ? `${appliedWearConfig.baselineClusterValues.length} selected cluster(s)`
+                    : 'Not configured from Insights'}
+              </span>
+            </p>
+            <p>
+              Distance mean (G0→Gi):{' '}
+              <span className="font-medium text-foreground">
+                {wearSnapshot ? wearSnapshot.score.toFixed(3) : 'N/A'}
+              </span>
+            </p>
+            <p>
+              Transition mean (Gi→Gi+1):{' '}
+              <span className="font-medium text-foreground">
+                {wearSnapshot ? wearSnapshot.transitionMean.toFixed(3) : 'N/A'}
+              </span>
+            </p>
+            {wearError && (
+              <p className="text-red-600 dark:text-red-300">Wear trend error: {wearError}</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Fast Actions</CardTitle>
+          <CardDescription>Open the relevant workflow immediately.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link href="/dashboard/live">
+              <Activity className="mr-2 h-4 w-4" />
+              Open Live Monitor
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/insights">
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              Open Insights
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/data">
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Data
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/insights">
+              Run Wear Trend
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          {isRefreshingWear && (
+            <div className="ml-auto flex items-center text-sm text-muted-foreground">
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Refreshing wear trend...
+            </div>
+          )}
+          {isLoading && !isRefreshingWear && (
+            <div className="ml-auto flex items-center text-sm text-muted-foreground">
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Loading overview...
+            </div>
+          )}
+          {!isLoading && !isRefreshingWear && (
+            <div className="ml-auto flex items-center text-sm text-muted-foreground">
+              <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
+              Dashboard synced
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {alerts.some((alert) => alert.severity === 'critical' && alert.status === 'active') && (
+        <Card className="border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-red-600" />
+            <div>
+              <p className="font-semibold text-red-800 dark:text-red-200">
+                Critical alerts require immediate action.
+              </p>
+              <p className="text-sm text-red-700 dark:text-red-300">
+                Open Live Monitor and Health Insights now to validate abnormal behavior and wear
+                trend.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

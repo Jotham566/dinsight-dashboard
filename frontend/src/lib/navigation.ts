@@ -1,16 +1,4 @@
-import {
-  Home,
-  BarChart3,
-  LineChart,
-  Microscope,
-  Dna,
-  Settings,
-  Bell,
-  Upload,
-  Activity,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+import { Home, Database, Monitor, ShieldAlert, UserCog, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -24,74 +12,48 @@ export interface NavItem {
 
 export const mainNavItems: NavItem[] = [
   {
-    label: 'Dashboard',
+    label: 'Machine Status',
     href: '/dashboard',
     icon: Home,
     requiresAuth: true,
-    description: 'Overview of your predictive maintenance analytics',
+    description: 'Current machine condition and next actions',
   },
   {
-    label: 'Run Dinsight Analysis',
-    href: '/dashboard/dinsight-analysis',
-    icon: Upload,
+    label: 'Data Ingestion',
+    href: '/dashboard/data',
+    icon: Database,
     requiresAuth: true,
-    description: 'Upload data and run Dinsight analysis with custom settings',
+    description: 'Upload baseline and monitoring datasets',
   },
   {
-    label: 'Data Comparison',
-    href: '/dashboard/visualization',
-    icon: LineChart,
+    label: 'Live Monitor',
+    href: '/dashboard/live',
+    icon: Monitor,
     requiresAuth: true,
-    description: 'Interactive comparison between datasets',
+    description: 'Observe live and near-real-time machine behavior',
   },
   {
-    label: 'Deterioration Analysis',
-    href: '/dashboard/deterioration-analysis',
-    icon: Activity,
+    label: 'Health Insights',
+    href: '/dashboard/insights',
+    icon: ShieldAlert,
     requiresAuth: true,
-    description: 'Track baseline drift and deterioration trends over time',
+    description: 'Anomaly and wear trend interpretation',
   },
   {
-    label: 'Real-Time Streaming',
-    href: '/dashboard/streaming',
-    icon: Zap,
+    label: 'Account & Security',
+    href: '/dashboard/account',
+    icon: UserCog,
     requiresAuth: true,
-    description: 'Live streaming sensor data monitoring',
-  },
-  {
-    label: 'Anomaly Detection',
-    href: '/dashboard/analysis',
-    icon: Microscope,
-    requiresAuth: true,
-    description: 'Detect anomalies between baseline and monitoring data',
-  },
-  {
-    label: 'Feature Explorer',
-    href: '/dashboard/features',
-    icon: Dna,
-    requiresAuth: true,
-    description: 'Explore raw feature data with heatmap visualization',
+    description: 'Profile, password, sessions, and preferences',
   },
 ];
 
-export const bottomNavItems: NavItem[] = [
-  {
-    label: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
-    requiresAuth: true,
-    description: 'User preferences and account settings',
-  },
-];
+export const bottomNavItems: NavItem[] = [];
 
-export const userMenuItems = [
-  { label: 'Profile', href: '/dashboard/profile' },
-  { label: 'Settings', href: '/dashboard/settings' },
-  { label: 'Change Password', href: '/dashboard/change-password' },
-];
+export const userMenuItems = [{ label: 'Account & Security', href: '/dashboard/account' }];
 
 export const quickActions = [
-  { label: 'Upload Data', href: '/dashboard/dinsight-analysis', icon: Upload },
-  { label: 'Detect Anomalies', href: '/dashboard/analysis', icon: Microscope },
-  { label: 'View Alerts', href: '/dashboard/alerts', icon: Bell },
+  { label: 'Upload Data', href: '/dashboard/data', icon: Database },
+  { label: 'Open Live Monitor', href: '/dashboard/live', icon: Monitor },
+  { label: 'View Insights', href: '/dashboard/insights', icon: ShieldAlert },
 ];
