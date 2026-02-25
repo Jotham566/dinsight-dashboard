@@ -961,7 +961,22 @@ export default function HealthInsightsPage() {
         shapes: [...baselineClusterShapes, ...meanLines],
         annotations: meanAnnotations,
       } as any,
-      config: { responsive: true, displayModeBar: false },
+      config: {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        scrollZoom: true,
+        modeBarButtonsToRemove: [
+          'lasso2d',
+          'select2d',
+          'zoomIn2d',
+          'zoomOut2d',
+          'toImage',
+          'toggleSpikelines',
+          'hoverCompareCartesian',
+          'hoverClosestCartesian',
+        ],
+      },
     };
   }, [shouldRenderWearPlots, wearResult]);
 
@@ -1129,7 +1144,22 @@ export default function HealthInsightsPage() {
         shapes: transitionMeanLines,
         annotations: transitionMeanAnnotations,
       } as any,
-      config: { responsive: true, displayModeBar: false },
+      config: {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        scrollZoom: true,
+        modeBarButtonsToRemove: [
+          'lasso2d',
+          'select2d',
+          'zoomIn2d',
+          'zoomOut2d',
+          'toImage',
+          'toggleSpikelines',
+          'hoverCompareCartesian',
+          'hoverClosestCartesian',
+        ],
+      },
     };
   }, [shouldRenderWearPlots, transitionRows, wearResult?.metadata_column]);
 
@@ -1563,6 +1593,10 @@ export default function HealthInsightsPage() {
                       <TabsTrigger value="distance">Distance from Baseline (G0→Gi)</TabsTrigger>
                       <TabsTrigger value="transitions">Interval Transitions (Gi→Gi+1)</TabsTrigger>
                     </TabsList>
+                    <p className="text-xs text-muted-foreground">
+                      Use mouse wheel or trackpad to zoom, drag to pan, and click autoscale/home in
+                      the chart toolbar to reset view.
+                    </p>
 
                     <TabsContent value="distance" className="mt-0 space-y-3">
                       <div className="rounded-lg border border-input bg-muted/30 p-3 text-sm text-muted-foreground">

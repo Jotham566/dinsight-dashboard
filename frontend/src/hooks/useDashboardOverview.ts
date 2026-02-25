@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
@@ -77,6 +77,12 @@ interface DashboardLivePrefs {
   updatedAt: string;
 }
 
+interface DashboardHistoryStore {
+  points: DashboardHistoryPoint[];
+  selectedDatasetId: number | null;
+  updatedAt: string;
+}
+
 const resolveRefreshMs = (streamSpeed: StreamSpeed | undefined): number => {
   if (streamSpeed === '2x') return 1000;
   if (streamSpeed === '0.5x') return 4000;
@@ -84,6 +90,8 @@ const resolveRefreshMs = (streamSpeed: StreamSpeed | undefined): number => {
 };
 
 const LIVE_MONITOR_PREFS_KEY = 'dinsight:live-monitor:prefs:v1';
+const DASHBOARD_TIMELINE_HISTORY_KEY = 'dinsight:dashboard:timeline-history:v1';
+const DASHBOARD_TIMELINE_HISTORY_PREFS_FIELD = 'dashboardTimelineHistory';
 
 const sanitizeBoundaries = (values: unknown): Boundary[] => {
   if (!Array.isArray(values)) {
@@ -204,12 +212,72 @@ const readAppliedConfigFromStorage = (): AppliedWearTrendConfig | null => {
   return parseAppliedWearTrendConfig(window.localStorage.getItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY));
 };
 
+const sanitizeDashboardHistoryPoints = (payload: unknown): DashboardHistoryPoint[] => {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
+      const raw = entry as Record<string, unknown>;
+      const timestamp =
+        typeof raw.timestamp === 'number' && Number.isFinite(raw.timestamp)
+          ? raw.timestamp
+          : Date.now();
+      const anomalyPercentage =
+        typeof raw.anomalyPercentage === 'number' && Number.isFinite(raw.anomalyPercentage)
+          ? raw.anomalyPercentage
+          : null;
+      const wearScore =
+        typeof raw.wearScore === 'number' && Number.isFinite(raw.wearScore) ? raw.wearScore : null;
+      const throughputPerMinute =
+        typeof raw.throughputPerMinute === 'number' && Number.isFinite(raw.throughputPerMinute)
+          ? raw.throughputPerMinute
+          : null;
+      return { timestamp, anomalyPercentage, wearScore, throughputPerMinute };
+    })
+    .filter((point): point is DashboardHistoryPoint => point != null)
+    .slice(-10_000);
+};
+
+const parseDashboardHistoryStore = (payload: unknown): DashboardHistoryStore | null => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null;
+  }
+  const raw = payload as Record<string, unknown>;
+  const points = sanitizeDashboardHistoryPoints(raw.points);
+  const selectedDatasetId =
+    typeof raw.selectedDatasetId === 'number' && Number.isFinite(raw.selectedDatasetId)
+      ? raw.selectedDatasetId
+      : null;
+  const updatedAt = typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date(0).toISOString();
+  return { points, selectedDatasetId, updatedAt };
+};
+
+const pickNewestHistoryStore = (
+  localHistory: DashboardHistoryStore | null,
+  serverHistory: DashboardHistoryStore | null
+): DashboardHistoryStore | null => {
+  if (!localHistory) return serverHistory;
+  if (!serverHistory) return localHistory;
+  const localTs = Date.parse(localHistory.updatedAt);
+  const serverTs = Date.parse(serverHistory.updatedAt);
+  if (!Number.isFinite(localTs)) return serverHistory;
+  if (!Number.isFinite(serverTs)) return localHistory;
+  return localTs >= serverTs ? localHistory : serverHistory;
+};
+
 export function useDashboardOverview() {
   const [history, setHistory] = useState<DashboardHistoryPoint[]>([]);
   const [appliedWearConfig, setAppliedWearConfig] = useState<AppliedWearTrendConfig | null>(null);
   const [finalizedAnomalyPercentage, setFinalizedAnomalyPercentage] = useState<number | null>(null);
   const [lastKnownAnomalyPercentage, setLastKnownAnomalyPercentage] = useState<number | null>(null);
   const [localLivePrefs, setLocalLivePrefs] = useState<DashboardLivePrefs | null>(null);
+  const [localHistoryStore, setLocalHistoryStore] = useState<DashboardHistoryStore | null>(null);
+  const hasHydratedTimelineHistoryRef = useRef(false);
+  const historyPersistTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const sync = () => setAppliedWearConfig(readAppliedConfigFromStorage());
@@ -253,6 +321,18 @@ export function useDashboardOverview() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(DASHBOARD_TIMELINE_HISTORY_KEY);
+      setLocalHistoryStore(parseDashboardHistoryStore(raw ? JSON.parse(raw) : null));
+    } catch {
+      setLocalHistoryStore(null);
+    }
+  }, []);
+
   const {
     datasets,
     latestDatasetId,
@@ -290,6 +370,24 @@ export function useDashboardOverview() {
     placeholderData: (previous) => previous,
     retry: false,
   });
+
+  const { data: serverHistoryStore, isFetched: hasFetchedServerHistoryStore } =
+    useQuery<DashboardHistoryStore | null>({
+      queryKey: ['dashboard-timeline-history-preferences'],
+      queryFn: async () => {
+        try {
+          const response = await api.users.getLiveMonitorPreferences();
+          const preferences = (response?.data?.data?.preferences ?? {}) as Record<string, unknown>;
+          return parseDashboardHistoryStore(preferences[DASHBOARD_TIMELINE_HISTORY_PREFS_FIELD]);
+        } catch {
+          return null;
+        }
+      },
+      staleTime: 30_000,
+      refetchOnWindowFocus: true,
+      refetchInterval: 30_000,
+      retry: false,
+    });
 
   const livePrefs = useMemo(
     () => pickNewestLivePrefs(localLivePrefs, serverLivePrefs ?? null),
@@ -674,6 +772,69 @@ export function useDashboardOverview() {
   const activeRealtimeAnomaly = manualModeEnabled
     ? (manualAnomaly ?? { anomalyPercentage: null, anomalyCount: 0, totalPoints: 0 })
     : (realtimeAnomaly ?? { anomalyPercentage: null, anomalyCount: 0, totalPoints: 0 });
+
+  useEffect(() => {
+    if (hasHydratedTimelineHistoryRef.current || !hasFetchedServerHistoryStore) {
+      return;
+    }
+    const resolvedHistoryStore = pickNewestHistoryStore(
+      localHistoryStore,
+      serverHistoryStore ?? null
+    );
+    if (resolvedHistoryStore?.points?.length) {
+      setHistory(resolvedHistoryStore.points);
+    }
+    hasHydratedTimelineHistoryRef.current = true;
+  }, [hasFetchedServerHistoryStore, localHistoryStore, serverHistoryStore]);
+
+  const persistTimelineHistoryToServer = useCallback(
+    async (points: DashboardHistoryPoint[], selectedDatasetId: number | null) => {
+      try {
+        const latest = await api.users.getLiveMonitorPreferences();
+        const existing = (latest?.data?.data?.preferences ?? {}) as Record<string, unknown>;
+        const payload: DashboardHistoryStore = {
+          points: points.slice(-10_000),
+          selectedDatasetId,
+          updatedAt: new Date().toISOString(),
+        };
+        await api.users.updateLiveMonitorPreferences({
+          ...existing,
+          [DASHBOARD_TIMELINE_HISTORY_PREFS_FIELD]: payload,
+        });
+      } catch {
+        // Local persistence still keeps timeline history across refresh.
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!hasHydratedTimelineHistoryRef.current) {
+      return;
+    }
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const payload: DashboardHistoryStore = {
+      points: history.slice(-10_000),
+      selectedDatasetId: activeDatasetId ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(DASHBOARD_TIMELINE_HISTORY_KEY, JSON.stringify(payload));
+
+    if (historyPersistTimerRef.current) {
+      window.clearTimeout(historyPersistTimerRef.current);
+    }
+    historyPersistTimerRef.current = window.setTimeout(() => {
+      void persistTimelineHistoryToServer(payload.points, payload.selectedDatasetId);
+    }, 2_500);
+
+    return () => {
+      if (historyPersistTimerRef.current) {
+        window.clearTimeout(historyPersistTimerRef.current);
+      }
+    };
+  }, [activeDatasetId, history, persistTimelineHistoryToServer]);
 
   return {
     datasets,
