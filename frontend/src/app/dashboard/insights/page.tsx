@@ -24,10 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
 import { useActiveStreamingDataset } from '@/hooks/useActiveStreamingDataset';
 import { api } from '@/lib/api-client';
-import {
-  STREAMING_FOCUS_WINDOW_POINTS,
-  STREAMING_MONITORING_EMPHASIS_POINTS,
-} from '@/lib/chart-focus-config';
+import { STREAMING_MONITORING_EMPHASIS_POINTS } from '@/lib/chart-focus-config';
 import {
   AppliedWearTrendConfig,
   DraftWearTrendConfig,
@@ -96,30 +93,6 @@ interface StreamingStatus {
   progress_percentage: number;
 }
 
-const percentile = (values: number[], q: number): number | null => {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (sorted[base + 1] != null) {
-    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-  }
-  return sorted[base];
-};
-
-const computeRobustRange = (values: number[]): [number, number] | undefined => {
-  if (values.length < 2) return undefined;
-  const p02 = percentile(values, 0.02);
-  const p98 = percentile(values, 0.98);
-  if (p02 == null || p98 == null) return undefined;
-  const lo = Math.min(Math.min(...values), p02);
-  const hi = Math.max(Math.max(...values), p98);
-  const span = Math.max(0.1, hi - lo);
-  const pad = span * 0.12;
-  return [lo - pad, hi + pad];
-};
-
 export default function HealthInsightsPage() {
   const [datasetId, setDatasetId] = useState<number | null>(null);
   const [manualDatasetId, setManualDatasetId] = useState('');
@@ -137,7 +110,6 @@ export default function HealthInsightsPage() {
   const [showTransitionGuide, setShowTransitionGuide] = useState(false);
   const [activePlotTab, setActivePlotTab] = useState<'distance' | 'transitions'>('distance');
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
-  const [autoFocusStreaming, setAutoFocusStreaming] = useState(true);
   const [intervalPage, setIntervalPage] = useState(1);
   const [transitionPage, setTransitionPage] = useState(1);
   const [intervalPageSize, setIntervalPageSize] = useState(10);
@@ -207,7 +179,6 @@ export default function HealthInsightsPage() {
         showWearSummaryMetrics: boolean;
         activePlotTab: 'distance' | 'transitions';
         isControlsCollapsed: boolean;
-        autoFocusStreaming: boolean;
       }>;
 
       if (typeof parsed.includeMonitoring === 'boolean') {
@@ -221,9 +192,6 @@ export default function HealthInsightsPage() {
       }
       if (typeof parsed.isControlsCollapsed === 'boolean') {
         setIsControlsCollapsed(parsed.isControlsCollapsed);
-      }
-      if (typeof parsed.autoFocusStreaming === 'boolean') {
-        setAutoFocusStreaming(parsed.autoFocusStreaming);
       }
     } catch {
       if (window.matchMedia('(max-width: 1279px)').matches) {
@@ -244,16 +212,9 @@ export default function HealthInsightsPage() {
         showWearSummaryMetrics,
         activePlotTab,
         isControlsCollapsed,
-        autoFocusStreaming,
       })
     );
-  }, [
-    activePlotTab,
-    autoFocusStreaming,
-    includeMonitoring,
-    isControlsCollapsed,
-    showWearSummaryMetrics,
-  ]);
+  }, [activePlotTab, includeMonitoring, isControlsCollapsed, showWearSummaryMetrics]);
 
   const metadataColumnsQuery = useQuery<string[]>({
     queryKey: ['deterioration-metadata-columns', datasetId],
@@ -805,22 +766,6 @@ export default function HealthInsightsPage() {
         ? interval.distance_from_g0
         : null
     );
-    const allDistanceValues = sorted
-      .map((interval) => interval.distance_from_g0)
-      .filter((value) => Number.isFinite(value));
-    const streamingFocusActive = Boolean(
-      streamingStatus?.is_active && autoFocusStreaming && hasMonitoringSeries
-    );
-    const yRange = streamingFocusActive ? computeRobustRange(allDistanceValues) : undefined;
-    const monitoringLastIndex = monitoringIndices[monitoringIndices.length - 1];
-    const xRange =
-      streamingFocusActive && monitoringLastIndex != null
-        ? [
-            x[Math.max(0, monitoringLastIndex - STREAMING_FOCUS_WINDOW_POINTS)] - 0.5,
-            x[Math.min(sorted.length - 1, monitoringLastIndex + 3)] + 0.5,
-          ]
-        : undefined;
-
     const baselineClusterShapes = sorted
       .filter((interval) => interval.is_baseline_cluster)
       .map((interval) => ({
@@ -984,12 +929,8 @@ export default function HealthInsightsPage() {
           tickangle: 0,
           automargin: true,
           tickfont: { size: 11 },
-          ...(xRange ? { range: xRange } : {}),
         },
-        yaxis: {
-          title: 'Distance from baseline reference G0',
-          ...(yRange ? { range: yRange } : {}),
-        },
+        yaxis: { title: 'Distance from baseline reference G0' },
         margin: { t: 72, r: 20, b: 55, l: 56 },
         uirevision: 'insights-distance',
         transition: { duration: 120 },
@@ -1005,7 +946,7 @@ export default function HealthInsightsPage() {
       } as any,
       config: { responsive: true, displayModeBar: false },
     };
-  }, [autoFocusStreaming, shouldRenderWearPlots, streamingStatus?.is_active, wearResult]);
+  }, [shouldRenderWearPlots, wearResult]);
 
   const transitionPlot = useMemo(() => {
     if (!shouldRenderWearPlots) {
@@ -1110,29 +1051,6 @@ export default function HealthInsightsPage() {
           ]
         : []),
     ];
-    const monitoringTransitionIndices = transitions
-      .map((transition, index) =>
-        transition.from_dataset_type === 'monitoring' && transition.to_dataset_type === 'monitoring'
-          ? index
-          : -1
-      )
-      .filter((index) => index >= 0);
-    const streamingFocusActive = Boolean(
-      streamingStatus?.is_active && autoFocusStreaming && monitoringTransitionIndices.length > 0
-    );
-    const transitionYRange = streamingFocusActive
-      ? computeRobustRange(transitions.map((transition) => transition.distance))
-      : undefined;
-    const lastMonitoringTransitionIndex =
-      monitoringTransitionIndices[monitoringTransitionIndices.length - 1];
-    const transitionXRange =
-      streamingFocusActive && lastMonitoringTransitionIndex != null
-        ? [
-            Math.max(1, lastMonitoringTransitionIndex + 1 - STREAMING_FOCUS_WINDOW_POINTS),
-            Math.min(transitions.length, lastMonitoringTransitionIndex + 3),
-          ]
-        : undefined;
-
     return {
       data: [
         {
@@ -1169,12 +1087,8 @@ export default function HealthInsightsPage() {
           tickangle: 0,
           automargin: true,
           tickfont: { size: 11 },
-          ...(transitionXRange ? { range: transitionXRange } : {}),
         },
-        yaxis: {
-          title: 'Centroid movement distance (Gi→Gi+1)',
-          ...(transitionYRange ? { range: transitionYRange } : {}),
-        },
+        yaxis: { title: 'Centroid movement distance (Gi→Gi+1)' },
         margin: { t: 56, r: 20, b: 55, l: 56 },
         uirevision: 'insights-transitions',
         transition: { duration: 120 },
@@ -1184,13 +1098,7 @@ export default function HealthInsightsPage() {
       } as any,
       config: { responsive: true, displayModeBar: false },
     };
-  }, [
-    autoFocusStreaming,
-    shouldRenderWearPlots,
-    streamingStatus?.is_active,
-    transitionRows,
-    wearResult?.metadata_column,
-  ]);
+  }, [shouldRenderWearPlots, transitionRows, wearResult?.metadata_column]);
 
   const g0ToGiMeans = useMemo(() => {
     if (!wearResult) {
@@ -1377,14 +1285,6 @@ export default function HealthInsightsPage() {
                     onChange={(event) => setIncludeMonitoring(event.target.checked)}
                   />
                   Include monitoring intervals
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={autoFocusStreaming}
-                    onChange={(event) => setAutoFocusStreaming(event.target.checked)}
-                  />
-                  Auto-focus charts while streaming
                 </label>
               </div>
 

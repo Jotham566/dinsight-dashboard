@@ -17,11 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useDashboardOverview } from '@/hooks/useDashboardOverview';
-import {
-  DASHBOARD_IDLE_TIMELINE_WINDOW,
-  DASHBOARD_STREAMING_TIMELINE_WINDOW,
-  STREAMING_FOCUS_WINDOW_POINTS,
-} from '@/lib/chart-focus-config';
 import { buildSparklinePath } from '@/lib/dashboard-overview';
 import { cn } from '@/utils/cn';
 
@@ -68,9 +63,6 @@ const computeRobustRange = (values: number[]): { min: number; max: number } | nu
   return { min: lo - pad, max: hi + pad };
 };
 
-const takeTrailing = <T,>(values: T[], count: number): T[] =>
-  values.length <= count ? values : values.slice(values.length - count);
-
 function Sparkline({ values, stroke }: { values: Array<number | null>; stroke: string }) {
   const path = useMemo(() => buildSparklinePath(values, 320, 64), [values]);
 
@@ -102,15 +94,7 @@ function WearPreview({
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
     const sortedPoints = [...points].sort((a, b) => a.sortIndex - b.sortIndex);
-    const monitoringIndices = sortedPoints
-      .map((point, index) => (point.datasetType === 'monitoring' ? index : -1))
-      .filter((index) => index >= 0);
-    const focusStart = isStreaming
-      ? Math.max(
-          0,
-          (monitoringIndices[monitoringIndices.length - 1] ?? 0) - STREAMING_FOCUS_WINDOW_POINTS
-        )
-      : 0;
+    const focusStart = 0;
     const visiblePoints = sortedPoints.slice(focusStart);
     const values = visiblePoints
       .map((point) => point.distance)
@@ -278,25 +262,8 @@ export default function DashboardPage() {
     }
   };
 
-  const timelineWindow = streamingStatus?.is_active
-    ? DASHBOARD_STREAMING_TIMELINE_WINDOW
-    : DASHBOARD_IDLE_TIMELINE_WINDOW;
-  const anomalySeries = useMemo(
-    () =>
-      takeTrailing(
-        history.map((point) => point.anomalyPercentage),
-        timelineWindow
-      ),
-    [history, timelineWindow]
-  );
-  const wearSeries = useMemo(
-    () =>
-      takeTrailing(
-        history.map((point) => point.wearScore),
-        timelineWindow
-      ),
-    [history, timelineWindow]
-  );
+  const anomalySeries = history.map((point) => point.anomalyPercentage);
+  const wearSeries = history.map((point) => point.wearScore);
 
   const streamStatusLabel =
     streamingStatus?.status === 'streaming'
