@@ -54,13 +54,12 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
         <div className="flex items-center space-x-3">
           <Link href="/dashboard" className="flex items-center space-x-2 group">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-purple-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity" />
-              <div className="relative h-9 w-9 bg-gradient-to-br from-primary-500 to-accent-purple-500 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+              <div className="relative h-9 w-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="font-display font-bold text-lg bg-gradient-to-r from-primary-600 to-accent-purple-600 dark:from-primary-400 dark:to-accent-purple-400 bg-clip-text text-transparent">
+              <span className="font-display font-bold text-lg text-primary-700 dark:text-primary-300">
                 D'Insight
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400">Predictive Analytics</span>
@@ -133,7 +132,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 {/* Notification badge with pulse animation */}
                 <span className="absolute -top-1 -right-1 flex h-5 w-5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-5 w-5 bg-gradient-to-r from-red-500 to-red-600 text-xs text-white items-center justify-center font-medium">
+                  <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 text-xs text-white items-center justify-center font-medium shadow-sm">
                     3
                   </span>
                 </span>
@@ -217,8 +216,8 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               >
                 <div className="flex items-center space-x-2">
                   <div className="relative">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-purple-500 flex items-center justify-center shadow-md">
-                      <span className="text-sm font-semibold text-white">
+                    <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-sm">
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                         {user?.full_name
                           ?.split(' ')
                           .map((n) => n[0])

@@ -67,8 +67,8 @@ function LoginForm() {
           {/* Logo and Title */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 bg-primary-500 rounded-lg flex items-center justify-center">
-                <span className="text-white text-2xl font-bold">D</span>
+              <div className="w-16 h-16 bg-gray-900 dark:bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-white dark:text-gray-900 text-2xl font-bold">D</span>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Welcome back</h2>
@@ -233,44 +233,44 @@ function LoginForm() {
       </div>
 
       {/* Right side - Feature Highlights */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-500 to-primary-700">
+      <div className="hidden lg:flex lg:flex-1 bg-gray-50 dark:bg-gray-900/50 border-l border-gray-200 dark:border-gray-800">
         <div className="flex-1 flex items-center justify-center p-12">
-          <div className="max-w-md text-white">
+          <div className="max-w-md text-gray-900 dark:text-gray-100">
             <h1 className="text-4xl font-bold mb-6">D'Insight Dashboard</h1>
-            <p className="text-lg mb-8 text-primary-100">
+            <p className="text-lg mb-8 text-gray-600 dark:text-gray-400">
               Advanced predictive maintenance analytics platform with real-time monitoring and
               anomaly detection.
             </p>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-sm font-semibold">1</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Real-time Monitoring</h3>
-                  <p className="text-sm text-primary-100">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Monitor your equipment health in real-time with advanced analytics
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-sm font-semibold">2</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Anomaly Detection</h3>
-                  <p className="text-sm text-primary-100">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Detect anomalies before they become critical failures
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-sm font-semibold">3</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Predictive Insights</h3>
-                  <p className="text-sm text-primary-100">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Get actionable insights to optimize maintenance schedules
                   </p>
                 </div>

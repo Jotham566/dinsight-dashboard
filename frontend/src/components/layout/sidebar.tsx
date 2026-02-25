@@ -54,13 +54,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-800 px-4">
             <Link href="/dashboard" className="flex items-center space-x-3 group" onClick={onClose}>
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-purple-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity" />
-                <div className="relative h-10 w-10 bg-gradient-to-br from-primary-500 to-accent-purple-500 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                <div className="relative h-10 w-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="font-display font-bold text-xl bg-gradient-to-r from-primary-600 to-accent-purple-600 dark:from-primary-400 dark:to-accent-purple-400 bg-clip-text text-transparent">
+                <span className="font-display font-bold text-xl text-primary-700 dark:text-primary-300">
                   D'Insight
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Analytics Platform</span>
@@ -96,8 +95,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     className={cn(
                       'group flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-gradient-to-r from-primary-500/10 to-accent-purple-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-100'
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border-l-4 border-primary-600'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-100 border-l-4 border-transparent'
                     )}
                     title={item.description}
                   >
@@ -105,7 +104,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                       className={cn(
                         'mr-3 rounded-lg p-1.5 transition-colors',
                         isActive
-                          ? 'bg-gradient-to-br from-primary-500 to-accent-purple-500 text-white shadow-md'
+                          ? 'bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
                       )}
                     >
@@ -157,7 +156,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             {/* Stats Widget */}
             <div className="mt-6">
-              <div className="rounded-xl bg-gradient-to-br from-primary-500/10 to-accent-purple-500/10 border border-primary-500/20 p-4">
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-4">
                 <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2">
                   System Status
                 </h4>
@@ -195,8 +194,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     className={cn(
                       'group flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-gradient-to-r from-primary-500/10 to-accent-purple-500/10 text-primary-600 dark:text-primary-400'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50'
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border-l-4 border-primary-600'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 border-l-4 border-transparent'
                     )}
                     title={item.description}
                   >
@@ -211,8 +210,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="rounded-xl bg-gray-100 dark:bg-gray-800/50 p-3">
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary-500 to-accent-purple-500 flex items-center justify-center shadow-md">
-                    <span className="text-sm font-semibold text-white">
+                  <div className="h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-sm">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {user?.full_name
                         ?.split(' ')
                         .map((n) => n[0])

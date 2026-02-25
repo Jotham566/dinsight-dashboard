@@ -56,16 +56,16 @@ export function ProcessingDialog({
     }
   };
 
-  const getGradientColors = () => {
+  const getSolidColors = () => {
     switch (stage) {
       case 'baseline':
-        return 'from-primary-500 to-primary-600';
+        return 'bg-primary-600';
       case 'monitoring':
-        return 'from-accent-teal-500 to-accent-teal-600';
+        return 'bg-info-600';
       case 'complete':
-        return 'from-emerald-500 to-emerald-600';
+        return 'bg-emerald-600';
       default:
-        return 'from-gray-500 to-gray-600';
+        return 'bg-gray-600';
     }
   };
 
@@ -90,7 +90,7 @@ export function ProcessingDialog({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className={`w-12 h-12 bg-gradient-to-br ${getGradientColors()} rounded-xl flex items-center justify-center shadow-lg`}
+                className={`w-12 h-12 ${getSolidColors()} rounded-xl flex items-center justify-center shadow-sm text-white`}
               >
                 {getIcon()}
               </div>
@@ -180,7 +180,7 @@ export function ProcessingDialog({
             <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Button
                 asChild
-                className="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white"
+                className="flex-1 bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
               >
                 <a href="/dashboard/live">Open Live Monitor</a>
               </Button>
