@@ -31,6 +31,7 @@ const defaultOptions: Required<Omit<DatasetDiscoveryOptions, 'queryKey'>> = {
   refetchOnWindowFocus: true,
 };
 const EMPTY_DATASETS: DinsightDatasetSummary[] = [];
+let isDinsightListEndpointSupported: boolean | null = null;
 
 export function useDatasetDiscovery(options?: DatasetDiscoveryOptions): DatasetDiscoveryResult {
   const merged = { ...defaultOptions, ...options };
@@ -43,7 +44,47 @@ export function useDatasetDiscovery(options?: DatasetDiscoveryOptions): DatasetD
     refetchOnWindowFocus: merged.refetchOnWindowFocus,
     retry: false,
     queryFn: async () => {
-      const results: DinsightDatasetSummary[] = [];
+      const fromKnownIds = async (ids: number[]) => {
+        const summaries = await Promise.all(
+          ids.map(async (id) => {
+            try {
+              const response = await api.analysis.getDinsight(id);
+              if (!response?.data?.success) {
+                return null;
+              }
+              return normalizeDinsightDatasetSummary(id, response?.data?.data);
+            } catch {
+              return null;
+            }
+          })
+        );
+        return summaries
+          .filter((entry): entry is DinsightDatasetSummary => Boolean(entry))
+          .sort((a, b) => a.dinsight_id - b.dinsight_id);
+      };
+
+      if (isDinsightListEndpointSupported !== false) {
+        try {
+          const listResponse = await api.analysis.listDinsightIds();
+          isDinsightListEndpointSupported = true;
+          const rawIds = listResponse?.data?.data?.ids;
+          const ids = Array.isArray(rawIds)
+            ? rawIds
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0)
+                .sort((a, b) => a - b)
+            : [];
+
+          return fromKnownIds(ids);
+        } catch (error: any) {
+          if (error?.response?.status === 404) {
+            isDinsightListEndpointSupported = false;
+          }
+          // Fallback below keeps compatibility with older API servers.
+        }
+      }
+
+      const fallbackResults: DinsightDatasetSummary[] = [];
       const seenIds = new Set<number>();
       let consecutiveMisses = 0;
 
@@ -59,7 +100,7 @@ export function useDatasetDiscovery(options?: DatasetDiscoveryOptions): DatasetD
           if (response?.data?.success && summary) {
             if (!seenIds.has(summary.dinsight_id)) {
               seenIds.add(summary.dinsight_id);
-              results.push(summary);
+              fallbackResults.push(summary);
             }
             consecutiveMisses = 0;
           } else {
@@ -70,7 +111,7 @@ export function useDatasetDiscovery(options?: DatasetDiscoveryOptions): DatasetD
         }
       }
 
-      return results.sort((a, b) => a.dinsight_id - b.dinsight_id);
+      return fallbackResults.sort((a, b) => a.dinsight_id - b.dinsight_id);
     },
   });
 

@@ -87,12 +87,16 @@ describe('dashboard overview helpers', () => {
       throughputPerMinute: index,
     }));
 
-    const updated = appendHistoryPoint(history, {
-      timestamp: 25,
-      anomalyPercentage: 25,
-      wearScore: 25,
-      throughputPerMinute: 25,
-    });
+    const updated = appendHistoryPoint(
+      history,
+      {
+        timestamp: 25,
+        anomalyPercentage: 25,
+        wearScore: 25,
+        throughputPerMinute: 25,
+      },
+      24
+    );
 
     expect(updated).toHaveLength(24);
     expect(updated[0].timestamp).toBe(1);

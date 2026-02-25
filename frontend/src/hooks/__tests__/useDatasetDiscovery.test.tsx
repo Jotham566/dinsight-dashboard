@@ -12,6 +12,7 @@ vi.mock('@/lib/api-client', async () => {
       ...((actual as any).api ?? {}),
       analysis: {
         ...((actual as any).api?.analysis ?? {}),
+        listDinsightIds: vi.fn(),
         getDinsight: vi.fn(),
       },
     },
@@ -20,7 +21,12 @@ vi.mock('@/lib/api-client', async () => {
 
 describe('useDatasetDiscovery', () => {
   it('discovers and sorts valid datasets', async () => {
+    const mockedList = vi.mocked(api.analysis.listDinsightIds);
     const mocked = vi.mocked(api.analysis.getDinsight);
+
+    mockedList.mockResolvedValue({
+      data: { success: true, data: { ids: [1, 2, 3] } },
+    } as any);
 
     mocked.mockImplementation(async (id: number) => {
       if (id === 1 || id === 3) {

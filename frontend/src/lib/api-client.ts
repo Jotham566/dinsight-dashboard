@@ -135,8 +135,9 @@ apiClient.interceptors.response.use(
       };
 
       // Only log non-404 errors or 404s that aren't expected dataset checks
+      const url = error.config?.url ?? '';
       const isExpected404 =
-        error.response.status === 404 && error.config?.url?.includes('/dinsight/');
+        error.response.status === 404 && (url.includes('/dinsight/') || url === '/dinsight');
 
       if (!isExpected404) {
         console.warn('API Error:', errorInfo);
@@ -198,6 +199,7 @@ export const api = {
     },
     getConfig: () => apiClient.get('/config'),
     updateConfig: (config: any) => apiClient.post('/config', config),
+    listDinsightIds: () => apiClient.get('/dinsight'),
     getDinsight: (id: number) => apiClient.get(`/dinsight/${id}`),
   },
 

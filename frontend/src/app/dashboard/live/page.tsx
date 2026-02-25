@@ -94,6 +94,7 @@ type PersistedLiveMonitorPreferences = {
   metadataEnabled?: boolean;
   selectedMetadataKeys?: string[];
   insightsWearTrend?: unknown;
+  insightsWearTrendDraft?: unknown;
   __meta?: {
     deviceId?: string;
     updatedAt?: string;
@@ -152,11 +153,18 @@ const toSelectionBounds = (selection: any) => {
       xRange.length >= 2 &&
       yRange.length >= 2
     ) {
+      const x1 = Number(xRange[0]);
+      const x2 = Number(xRange[1]);
+      const y1 = Number(yRange[0]);
+      const y2 = Number(yRange[1]);
+      if (![x1, x2, y1, y2].every((value) => Number.isFinite(value))) {
+        return null;
+      }
       return {
-        x1: Number(xRange[0]),
-        x2: Number(xRange[1]),
-        y1: Number(yRange[0]),
-        y2: Number(yRange[1]),
+        x1,
+        x2,
+        y1,
+        y2,
       };
     }
   }
@@ -342,6 +350,7 @@ export default function LiveMonitorPage() {
   const localPrefsUpdatedAtRef = useRef(0);
   const hasLocalEditsRef = useRef(false);
   const insightsWearTrendRef = useRef<unknown>(undefined);
+  const insightsWearTrendDraftRef = useRef<unknown>(undefined);
   const serverPrefsSnapshotRef = useRef<Record<string, unknown>>({});
 
   const refreshIntervalMs = useMemo(() => {
@@ -430,16 +439,64 @@ export default function LiveMonitorPage() {
     if (!Array.isArray(values)) {
       return [];
     }
-    return values.filter(
-      (boundary): boundary is Boundary =>
-        !!boundary &&
-        typeof boundary === 'object' &&
-        (boundary.type === 'rectangle' ||
-          boundary.type === 'lasso' ||
-          boundary.type === 'circle' ||
-          boundary.type === 'oval') &&
-        Array.isArray(boundary.coordinates)
-    );
+
+    const isFiniteCoord = (coord: unknown): coord is [number, number] =>
+      Array.isArray(coord) &&
+      coord.length >= 2 &&
+      Number.isFinite(Number(coord[0])) &&
+      Number.isFinite(Number(coord[1]));
+
+    return values.filter((boundary): boundary is Boundary => {
+      if (!boundary || typeof boundary !== 'object') {
+        return false;
+      }
+
+      const candidate = boundary as Partial<Boundary>;
+      if (
+        candidate.type !== 'rectangle' &&
+        candidate.type !== 'lasso' &&
+        candidate.type !== 'circle' &&
+        candidate.type !== 'oval'
+      ) {
+        return false;
+      }
+
+      if (candidate.type === 'rectangle') {
+        return (
+          Array.isArray(candidate.coordinates) &&
+          candidate.coordinates.length >= 2 &&
+          isFiniteCoord(candidate.coordinates[0]) &&
+          isFiniteCoord(candidate.coordinates[1])
+        );
+      }
+
+      if (candidate.type === 'lasso') {
+        return (
+          Array.isArray(candidate.coordinates) &&
+          candidate.coordinates.length >= 3 &&
+          candidate.coordinates.every((coord) => isFiniteCoord(coord))
+        );
+      }
+
+      if (
+        !candidate.center ||
+        !Number.isFinite(Number(candidate.center.x)) ||
+        !Number.isFinite(Number(candidate.center.y))
+      ) {
+        return false;
+      }
+
+      if (candidate.type === 'circle') {
+        return Number.isFinite(Number(candidate.radius)) && Number(candidate.radius) > 0;
+      }
+
+      return (
+        Number.isFinite(Number(candidate.radiusX)) &&
+        Number(candidate.radiusX) > 0 &&
+        Number.isFinite(Number(candidate.radiusY)) &&
+        Number(candidate.radiusY) > 0
+      );
+    });
   }, []);
 
   const applyPersistedPreferences = useCallback(
@@ -450,6 +507,7 @@ export default function LiveMonitorPage() {
 
       const parsed = raw as PersistedLiveMonitorPreferences;
       insightsWearTrendRef.current = parsed.insightsWearTrend;
+      insightsWearTrendDraftRef.current = parsed.insightsWearTrendDraft;
 
       isApplyingPersistedPrefsRef.current = true;
 
@@ -573,6 +631,7 @@ export default function LiveMonitorPage() {
     }
     serverPrefsSnapshotRef.current = incoming as unknown as Record<string, unknown>;
     insightsWearTrendRef.current = incoming.insightsWearTrend;
+    insightsWearTrendDraftRef.current = incoming.insightsWearTrendDraft;
 
     const serverUpdatedAtRaw = serverPreferences?.updatedAt ?? incoming.__meta?.updatedAt;
     const serverUpdatedAt = serverUpdatedAtRaw ? Date.parse(serverUpdatedAtRaw) : NaN;
@@ -627,6 +686,7 @@ export default function LiveMonitorPage() {
       metadataEnabled,
       selectedMetadataKeys,
       insightsWearTrend: insightsWearTrendRef.current,
+      insightsWearTrendDraft: insightsWearTrendDraftRef.current,
       __meta: {
         deviceId: deviceIdRef.current || undefined,
         updatedAt: nowIso,
@@ -661,6 +721,7 @@ export default function LiveMonitorPage() {
             {}) as PersistedLiveMonitorPreferences;
           serverPrefsSnapshotRef.current = updatedPrefs as unknown as Record<string, unknown>;
           insightsWearTrendRef.current = updatedPrefs.insightsWearTrend;
+          insightsWearTrendDraftRef.current = updatedPrefs.insightsWearTrendDraft;
 
           const updatedAt =
             response?.data?.data?.updated_at || updatedPrefs?.__meta?.updatedAt || nowIso;
@@ -1734,7 +1795,6 @@ export default function LiveMonitorPage() {
                 layout={plotData.layout as any}
                 config={plotData.config as any}
                 style={{ width: '100%', height: '700px' }}
-                revision={monitoringCount}
                 onSelecting={() => {
                   if (manualSelectionEnabled) {
                     setIsSelecting(true);
