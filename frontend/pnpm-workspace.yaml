@@ -1,0 +1,6 @@
+onlyBuiltDependencies:
+  - es5-ext
+  - esbuild
+  - msw
+  - sharp
+  - unrs-resolver
