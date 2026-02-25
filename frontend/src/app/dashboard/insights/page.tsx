@@ -124,6 +124,8 @@ export default function HealthInsightsPage() {
   const hasHydratedPersistedConfigRef = useRef(false);
   const skipNextDatasetMetadataResetRef = useRef(false);
   const hasPinnedDatasetRef = useRef(false);
+  const pendingDraftRef = useRef<DraftWearTrendConfig | null>(null);
+  const draftPersistTimerRef = useRef<number | null>(null);
 
   const { datasets, latestDatasetId, isLoading } = useDatasetDiscovery({
     queryKey: ['available-dinsight-ids'],
@@ -288,7 +290,57 @@ export default function HealthInsightsPage() {
   }, [datasetId, metadataColumn]);
 
   useEffect(() => {
-    if (!hasFetchedUserPreferences || hasHydratedPersistedConfigRef.current) {
+    if (hasHydratedPersistedConfigRef.current) {
+      return;
+    }
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const localConfig = parseAppliedWearTrendConfig(
+      window.localStorage.getItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY)
+    );
+    const localDraftConfig = parseDraftWearTrendConfig(
+      window.localStorage.getItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY)
+    );
+    const resolvedLocal = localDraftConfig ?? localConfig;
+    if (!resolvedLocal) {
+      hasHydratedPersistedConfigRef.current = true;
+      return;
+    }
+
+    skipNextDatasetMetadataResetRef.current = true;
+    hasPinnedDatasetRef.current = true;
+    setDatasetId(resolvedLocal.datasetId);
+    setManualDatasetId(String(resolvedLocal.datasetId));
+    setMetadataColumn(resolvedLocal.metadataColumn);
+    setIncludeMonitoring(resolvedLocal.includeMonitoring);
+    setSelectedClusterValues(resolvedLocal.baselineClusterValues);
+    setRangeStart(resolvedLocal.baselineRange?.start ?? '');
+    setRangeEnd(resolvedLocal.baselineRange?.end ?? '');
+    setHasUserAdjustedCluster(
+      resolvedLocal.baselineClusterValues.length > 0 || resolvedLocal.baselineRange != null
+    );
+    setAppliedClusterSignature(
+      JSON.stringify(Array.from(new Set(resolvedLocal.baselineClusterValues)).sort())
+    );
+    setAppliedRangeSignature(
+      JSON.stringify({
+        start: resolvedLocal.baselineRange?.start ?? '',
+        end: resolvedLocal.baselineRange?.end ?? '',
+      })
+    );
+    setAppliedIncludeMonitoring(resolvedLocal.includeMonitoring);
+
+    if (localConfig) {
+      setHasAppliedWearTrendRun(true);
+      setLastWearTrendRunAt(localConfig.appliedAt);
+    }
+    hasHydratedPersistedConfigRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hasFetchedUserPreferences) {
       return;
     }
     if (typeof window === 'undefined') {
@@ -309,7 +361,6 @@ export default function HealthInsightsPage() {
     );
     const resolvedDraft = pickNewestDraftWearConfig(localDraftConfig, serverDraftConfig);
     const resolvedApplied = pickNewestWearConfig(localConfig, serverConfig);
-    hasHydratedPersistedConfigRef.current = true;
 
     const resolved = resolvedDraft ?? resolvedApplied;
     if (!resolved) {
@@ -381,9 +432,6 @@ export default function HealthInsightsPage() {
   }, []);
 
   useEffect(() => {
-    if (!hasHydratedPersistedConfigRef.current) {
-      return;
-    }
     if (!datasetId || !metadataColumn) {
       return;
     }
@@ -401,10 +449,17 @@ export default function HealthInsightsPage() {
       window.localStorage.setItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, JSON.stringify(nextDraftConfig));
     }
 
-    const timer = window.setTimeout(() => {
+    pendingDraftRef.current = nextDraftConfig;
+
+    if (draftPersistTimerRef.current) {
+      window.clearTimeout(draftPersistTimerRef.current);
+    }
+    draftPersistTimerRef.current = window.setTimeout(() => {
       void persistWearDraftToServer(nextDraftConfig);
+      draftPersistTimerRef.current = null;
     }, 700);
-    return () => window.clearTimeout(timer);
+
+    return undefined;
   }, [
     datasetId,
     metadataColumn,
@@ -414,6 +469,19 @@ export default function HealthInsightsPage() {
     rangeEnd,
     persistWearDraftToServer,
   ]);
+
+  useEffect(
+    () => () => {
+      if (draftPersistTimerRef.current) {
+        window.clearTimeout(draftPersistTimerRef.current);
+        draftPersistTimerRef.current = null;
+      }
+      if (pendingDraftRef.current) {
+        void persistWearDraftToServer(pendingDraftRef.current);
+      }
+    },
+    [persistWearDraftToServer]
+  );
 
   const clusterSignature = useMemo(
     () => JSON.stringify(Array.from(new Set(selectedClusterValues)).sort()),
