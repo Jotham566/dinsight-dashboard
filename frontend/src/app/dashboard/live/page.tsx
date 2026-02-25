@@ -648,12 +648,22 @@ export default function LiveMonitorPage() {
     }
     serverSaveTimerRef.current = window.setTimeout(() => {
       void api.users
-        .updateLiveMonitorPreferences(payload)
+        .getLiveMonitorPreferences()
+        .then((latest) => {
+          const existing = (latest?.data?.data?.preferences ?? {}) as Record<string, unknown>;
+          return api.users.updateLiveMonitorPreferences({
+            ...existing,
+            ...payload,
+          });
+        })
         .then((response) => {
+          const updatedPrefs = (response?.data?.data?.preferences ??
+            {}) as PersistedLiveMonitorPreferences;
+          serverPrefsSnapshotRef.current = updatedPrefs as unknown as Record<string, unknown>;
+          insightsWearTrendRef.current = updatedPrefs.insightsWearTrend;
+
           const updatedAt =
-            response?.data?.data?.updated_at ||
-            response?.data?.data?.preferences?.__meta?.updatedAt ||
-            nowIso;
+            response?.data?.data?.updated_at || updatedPrefs?.__meta?.updatedAt || nowIso;
           const parsed = Date.parse(updatedAt);
           if (Number.isFinite(parsed)) {
             localPrefsUpdatedAtRef.current = parsed;
