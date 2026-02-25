@@ -158,7 +158,7 @@ export const deriveDashboardMachineState = (input: {
 export const appendHistoryPoint = (
   history: DashboardHistoryPoint[],
   next: DashboardHistoryPoint,
-  maxItems = 24
+  maxItems = 10_000
 ): DashboardHistoryPoint[] => {
   const merged = [...history, next];
   if (merged.length <= maxItems) {

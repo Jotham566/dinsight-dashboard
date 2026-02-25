@@ -43,6 +43,7 @@ import {
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 const INSIGHTS_UI_PREFS_KEY = 'insights-ui-prefs-v1';
+const DISTANCE_AXIS_BASE_MAX = 2;
 
 type DatasetType = 'baseline' | 'monitoring';
 
@@ -748,6 +749,19 @@ export default function HealthInsightsPage() {
       interval.dataset_type === 'monitoring' ? interval.distance_from_g0 : null
     );
     const hasMonitoringSeries = monitoringSeries.some((value) => value != null);
+    const distanceValues = sorted
+      .map((interval) => interval.distance_from_g0)
+      .filter((value) => Number.isFinite(value) && value >= 0);
+    const yAxisMax = (() => {
+      if (distanceValues.length === 0) {
+        return DISTANCE_AXIS_BASE_MAX;
+      }
+      const observedMax = Math.max(...distanceValues);
+      if (observedMax <= DISTANCE_AXIS_BASE_MAX) {
+        return DISTANCE_AXIS_BASE_MAX;
+      }
+      return observedMax * 1.15;
+    })();
     const monitoringIndices = sorted
       .map((interval, index) => (interval.dataset_type === 'monitoring' ? index : -1))
       .filter((index) => index >= 0);
@@ -930,7 +944,10 @@ export default function HealthInsightsPage() {
           automargin: true,
           tickfont: { size: 11 },
         },
-        yaxis: { title: 'Distance from baseline reference G0' },
+        yaxis: {
+          title: 'Distance from baseline reference G0',
+          range: [0, yAxisMax],
+        },
         margin: { t: 72, r: 20, b: 55, l: 56 },
         uirevision: 'insights-distance',
         transition: { duration: 120 },
@@ -1051,6 +1068,19 @@ export default function HealthInsightsPage() {
           ]
         : []),
     ];
+    const transitionDistances = transitions
+      .map((transition) => transition.distance)
+      .filter((value) => Number.isFinite(value) && value >= 0);
+    const transitionAxisMax = (() => {
+      if (transitionDistances.length === 0) {
+        return DISTANCE_AXIS_BASE_MAX;
+      }
+      const observedMax = Math.max(...transitionDistances);
+      if (observedMax <= DISTANCE_AXIS_BASE_MAX) {
+        return DISTANCE_AXIS_BASE_MAX;
+      }
+      return observedMax * 1.15;
+    })();
     return {
       data: [
         {
@@ -1088,7 +1118,10 @@ export default function HealthInsightsPage() {
           automargin: true,
           tickfont: { size: 11 },
         },
-        yaxis: { title: 'Centroid movement distance (Gi→Gi+1)' },
+        yaxis: {
+          title: 'Centroid movement distance (Gi→Gi+1)',
+          range: [0, transitionAxisMax],
+        },
         margin: { t: 56, r: 20, b: 55, l: 56 },
         uirevision: 'insights-transitions',
         transition: { duration: 120 },

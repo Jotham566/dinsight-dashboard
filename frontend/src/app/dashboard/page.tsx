@@ -27,6 +27,7 @@ const stateTone: Record<'OK' | 'Deteriorating' | 'Failing', string> = {
   Failing:
     'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200',
 };
+const WEAR_PREVIEW_BASE_MAX = 2;
 
 const formatRelativeTime = (iso: string) => {
   const value = new Date(iso).getTime();
@@ -37,30 +38,6 @@ const formatRelativeTime = (iso: string) => {
   if (diff < minute) return 'Just now';
   if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
   return `${Math.floor(diff / hour)}h ago`;
-};
-
-const percentile = (values: number[], q: number): number | null => {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (sorted[base + 1] != null) {
-    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
-  }
-  return sorted[base];
-};
-
-const computeRobustRange = (values: number[]): { min: number; max: number } | null => {
-  if (values.length === 0) return null;
-  const p02 = percentile(values, 0.02);
-  const p98 = percentile(values, 0.98);
-  if (p02 == null || p98 == null) return null;
-  const lo = Math.min(Math.min(...values), p02);
-  const hi = Math.max(Math.max(...values), p98);
-  const span = Math.max(0.1, hi - lo);
-  const pad = span * 0.12;
-  return { min: lo - pad, max: hi + pad };
 };
 
 function Sparkline({ values, stroke }: { values: Array<number | null>; stroke: string }) {
@@ -82,10 +59,8 @@ function Sparkline({ values, stroke }: { values: Array<number | null>; stroke: s
 
 function WearPreview({
   points,
-  isStreaming,
 }: {
   points: Array<{ label: string; sortIndex: number; distance: number; datasetType: string }>;
-  isStreaming: boolean;
 }) {
   const chart = useMemo(() => {
     const width = 640;
@@ -103,9 +78,11 @@ function WearPreview({
       return null;
     }
 
-    const rangeCandidate = computeRobustRange(values);
-    const minData = Math.min(rangeCandidate?.min ?? Math.min(...values, 0), 0);
-    const maxData = Math.max(rangeCandidate?.max ?? Math.max(...values, 0.1), 0.1);
+    const observedMax = Math.max(...values);
+    const yAxisMax =
+      observedMax <= WEAR_PREVIEW_BASE_MAX ? WEAR_PREVIEW_BASE_MAX : observedMax * 1.15;
+    const minData = 0;
+    const maxData = Math.max(yAxisMax, 0.1);
     const range = Math.max(0.1, maxData - minData);
 
     const toX = (index: number) =>
@@ -140,9 +117,8 @@ function WearPreview({
       firstLabel: visiblePoints[0]?.label || 'N/A',
       lastLabel: visiblePoints[visiblePoints.length - 1]?.label || 'N/A',
       count: visiblePoints.length,
-      isFocused: isStreaming,
     };
-  }, [isStreaming, points]);
+  }, [points]);
 
   return (
     <svg viewBox="0 0 640 260" className="h-72 w-full" role="img" aria-label="Wear trend preview">
@@ -202,11 +178,6 @@ function WearPreview({
             Monitoring mean:{' '}
             {chart.monitoringMean != null ? chart.monitoringMean.toFixed(3) : 'N/A'}
           </text>
-          {chart.isFocused && (
-            <text x="8" y="82" fill="currentColor" className="text-xs text-muted-foreground">
-              Streaming focus: latest monitoring window
-            </text>
-          )}
           <text x="520" y={chart.baselineY - 4} fill="#64748b" className="text-xs">
             G0=0
           </text>
@@ -399,10 +370,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <WearPreview
-              points={wearSnapshot?.previewSeries ?? []}
-              isStreaming={Boolean(streamingStatus?.is_active)}
-            />
+            <WearPreview points={wearSnapshot?.previewSeries ?? []} />
           </CardContent>
         </Card>
       </div>
