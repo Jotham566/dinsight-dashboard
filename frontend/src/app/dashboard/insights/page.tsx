@@ -123,6 +123,7 @@ export default function HealthInsightsPage() {
   const [lastWearTrendRunAt, setLastWearTrendRunAt] = useState<string | null>(null);
   const hasHydratedPersistedConfigRef = useRef(false);
   const skipNextDatasetMetadataResetRef = useRef(false);
+  const hasPinnedDatasetRef = useRef(false);
 
   const { datasets, latestDatasetId, isLoading } = useDatasetDiscovery({
     queryKey: ['available-dinsight-ids'],
@@ -134,6 +135,9 @@ export default function HealthInsightsPage() {
   const preferredDatasetId = activeStreamingDatasetId ?? latestDatasetId ?? null;
 
   useEffect(() => {
+    if (hasPinnedDatasetRef.current) {
+      return;
+    }
     if (datasetId == null && preferredDatasetId) {
       setDatasetId(preferredDatasetId);
       setManualDatasetId(String(preferredDatasetId));
@@ -141,6 +145,9 @@ export default function HealthInsightsPage() {
   }, [datasetId, preferredDatasetId]);
 
   useEffect(() => {
+    if (hasPinnedDatasetRef.current || hasHydratedPersistedConfigRef.current) {
+      return;
+    }
     if (!activeStreamingDatasetId || datasetId === activeStreamingDatasetId) {
       return;
     }
@@ -310,6 +317,7 @@ export default function HealthInsightsPage() {
     }
 
     skipNextDatasetMetadataResetRef.current = true;
+    hasPinnedDatasetRef.current = true;
     setDatasetId(resolved.datasetId);
     setManualDatasetId(String(resolved.datasetId));
     setMetadataColumn(resolved.metadataColumn);
@@ -718,7 +726,7 @@ export default function HealthInsightsPage() {
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return;
     }
-
+    hasPinnedDatasetRef.current = true;
     setDatasetId(parsed);
   };
 
@@ -1274,6 +1282,7 @@ export default function HealthInsightsPage() {
                 value={datasetId != null ? String(datasetId) : ''}
                 onChange={(event) => {
                   const value = event.target.value;
+                  hasPinnedDatasetRef.current = true;
                   setDatasetId(value ? Number(value) : null);
                 }}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
