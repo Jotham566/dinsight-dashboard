@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  Bell,
   CheckCircle2,
   KeyRound,
   Loader2,
@@ -58,6 +59,39 @@ export default function AccountSecurityPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+
+  // Per-user notification opt-outs. Backed by /users/notification-
+  // preferences; alert.sendAlertNotifications consults this on every
+  // dispatch. Defaults to opt-in so the row appears as both-on for new
+  // users who haven't touched the toggles.
+  const { data: notificationPrefs } = useQuery<{
+    email_alerts: boolean;
+    email_system: boolean;
+  } | null>({
+    queryKey: ['notification-preferences'],
+    queryFn: async () => {
+      const res = await api.users.getNotificationPreferences();
+      return (res?.data?.data ?? null) as { email_alerts: boolean; email_system: boolean } | null;
+    },
+    retry: false,
+  });
+
+  const updatePrefsMutation = useMutation({
+    mutationFn: (data: { email_alerts?: boolean; email_system?: boolean }) =>
+      api.users.updateNotificationPreferences(data),
+    onSuccess: (response) => {
+      // Optimistic update with the server's authoritative response so
+      // subsequent toggles read the correct baseline.
+      const updated = response?.data?.data;
+      if (updated) {
+        queryClient.setQueryData(['notification-preferences'], updated);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+      }
+    },
+  });
 
   const {
     data: sessions,
@@ -403,6 +437,62 @@ export default function AccountSecurityPage() {
                 · Status: {licenseInfo.is_valid ? 'Valid' : 'Invalid'}
               </p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Bell className="h-5 w-5" />
+            Email notifications
+          </CardTitle>
+          <CardDescription>
+            Control whether emails are sent to your account address. Per-rule recipient lists are
+            configured by the rule&apos;s author; these toggles let you opt out of receiving
+            messages even when you&apos;re named as a recipient.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="flex items-center justify-between gap-3 rounded-md border border-strong p-3">
+            <div>
+              <p className="text-sm font-medium text-fg">Alert emails</p>
+              <p className="text-xs text-fg-muted">
+                Emails sent when a configured alert rule fires against a dataset you&apos;re listed
+                on.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={notificationPrefs?.email_alerts ?? true}
+              onChange={(e) => updatePrefsMutation.mutate({ email_alerts: e.target.checked })}
+              disabled={updatePrefsMutation.isPending}
+              className="h-5 w-5 rounded border-strong text-accent focus:ring-focus"
+              aria-label="Receive alert emails"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3 rounded-md border border-strong p-3">
+            <div>
+              <p className="text-sm font-medium text-fg">System emails</p>
+              <p className="text-xs text-fg-muted">
+                Reserved for account-event notifications (password changes, new-device logins). No
+                dispatch path consumes this yet — the preference is saved so it applies the moment
+                we wire one.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={notificationPrefs?.email_system ?? true}
+              onChange={(e) => updatePrefsMutation.mutate({ email_system: e.target.checked })}
+              disabled={updatePrefsMutation.isPending}
+              className="h-5 w-5 rounded border-strong text-accent focus:ring-focus"
+              aria-label="Receive system emails"
+            />
+          </label>
+          {updatePrefsMutation.isError && (
+            <p className="text-sm text-danger-text" role="alert">
+              Failed to save preference. Try again.
+            </p>
           )}
         </CardContent>
       </Card>

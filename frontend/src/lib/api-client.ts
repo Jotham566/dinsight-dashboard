@@ -233,6 +233,13 @@ export const api = {
     getLiveMonitorPreferences: () => apiClient.get('/users/live-monitor-preferences'),
     updateLiveMonitorPreferences: (preferences: Record<string, unknown>) =>
       apiClient.put('/users/live-monitor-preferences', { preferences }),
+    // Per-user notification opt-outs. Backed by the
+    // user_notification_preferences table; consumed by
+    // alert.sendAlertNotifications to skip recipients who turned
+    // email_alerts off.
+    getNotificationPreferences: () => apiClient.get('/users/notification-preferences'),
+    updateNotificationPreferences: (data: { email_alerts?: boolean; email_system?: boolean }) =>
+      apiClient.put('/users/notification-preferences', data),
   },
 
   // Analysis endpoints
