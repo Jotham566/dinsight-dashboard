@@ -1,4 +1,5 @@
 import {
+  Bell,
   Home,
   Database,
   Monitor,
@@ -56,6 +57,13 @@ export const mainNavItems: NavItem[] = [
     icon: ShieldAlert,
     requiresAuth: true,
     description: 'Anomaly and wear trend interpretation',
+  },
+  {
+    label: 'Alerts',
+    href: '/dashboard/alerts',
+    icon: Bell,
+    requiresAuth: true,
+    description: 'Active alerts and the rules that fire them',
   },
   {
     label: 'Account & Security',
