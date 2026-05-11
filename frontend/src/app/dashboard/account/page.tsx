@@ -25,7 +25,6 @@ export default function AccountSecurityPage() {
   const { user, refreshUser } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [theme, setTheme] = useState('auto');
   const [language, setLanguage] = useState('en');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
@@ -203,25 +202,12 @@ export default function AccountSecurityPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="theme">Theme</Label>
-                <select
-                  id="theme"
-                  value={theme}
-                  onChange={(event) => setTheme(event.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="auto">Auto</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="language">Language</Label>
                 <select
                   id="language"
                   value={language}
                   onChange={(event) => setLanguage(event.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-border bg-control-bg px-3 py-2 text-sm"
                 >
                   <option value="en">English</option>
                   <option value="es">Spanish</option>

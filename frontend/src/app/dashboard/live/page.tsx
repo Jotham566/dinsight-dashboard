@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -30,7 +29,7 @@ import { api } from '@/lib/api-client';
 import type { CoordinateSeries } from '@/lib/dataset-normalizers';
 import { cn } from '@/utils/cn';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+import { PlotCanvas as Plot } from '@/components/charts/plot-canvas';
 
 type SelectionMode = 'rectangle' | 'lasso' | 'circle' | 'oval';
 

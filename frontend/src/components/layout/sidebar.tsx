@@ -120,39 +120,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               })}
             </div>
 
-            {/* Divider */}
-            <div className="my-6 border-t border-border" />
-
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <h3 className="px-3 text-xs font-semibold text-fg-subtle uppercase tracking-wider">
-                Quick Actions
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="rounded-lg border-border hover:bg-surface-hover transition-colors"
-                >
-                  <Link href="/dashboard/data" onClick={onClose}>
-                    Upload
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="rounded-lg border-border hover:bg-surface-hover transition-colors"
-                >
-                  <Link href="/dashboard/insights" onClick={onClose}>
-                    Insights
-                  </Link>
-                </Button>
-              </div>
-            </div>
-
-            {/* Stats Widget */}
+            {/* System status widget (Quick Actions block removed — its links
+                duplicated entries already in MAIN MENU) */}
             <div className="mt-6">
               <div className="rounded-lg bg-surface-muted/50 border border-border p-4">
                 <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">

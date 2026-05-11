@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +14,7 @@ import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
 import { useUploadWorkflow } from '@/hooks/useUploadWorkflow';
 import { api } from '@/lib/api-client';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+import { PlotCanvas as Plot } from '@/components/charts/plot-canvas';
 
 type ProcessingConfig = {
   id?: number;
