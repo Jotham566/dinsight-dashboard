@@ -10,6 +10,7 @@ import {
   GitBranch,
   Loader2,
   Pencil,
+  Plus,
   ShieldCheck,
   ShieldQuestion,
   Tag,
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/table';
 import { CompatibilityCheckDialog } from '@/components/datasets/compatibility-check-dialog';
 import { EditMetadataDialog } from '@/components/datasets/edit-metadata-dialog';
+import { RegisterMetadataDialog } from '@/components/datasets/register-metadata-dialog';
 import { ValidationRulesPanel } from '@/components/datasets/validation-rules-panel';
 import { RequirePermission, usePermission } from '@/components/auth/require-permission';
 import { Actions } from '@/lib/permissions';
@@ -74,6 +76,8 @@ function CatalogView() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [selectedDatasetId, setSelectedDatasetId] = useState<number | null>(null);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const canCreate = usePermission(Actions.DatasetCreate);
 
   const listQuery = useQuery<DatasetMetadataItem[]>({
     queryKey: ['datasets', 'metadata', currentOrg?.id, typeFilter],
@@ -85,6 +89,19 @@ function CatalogView() {
       return (res?.data?.data?.datasets ?? []) as DatasetMetadataItem[];
     },
     enabled: Boolean(currentOrg?.id),
+  });
+
+  // Pull every dataset (regardless of typeFilter) for the
+  // "already-has-metadata" exclusion in the register dialog. Same
+  // query key the dialog could use, but resolving it here keeps the
+  // dialog's prop interface simple.
+  const allDatasetsQuery = useQuery<DatasetMetadataItem[]>({
+    queryKey: ['datasets', 'metadata', currentOrg?.id, 'all'],
+    queryFn: async () => {
+      const res = await api.datasets.list({ limit: 500 });
+      return (res?.data?.data?.datasets ?? []) as DatasetMetadataItem[];
+    },
+    enabled: Boolean(currentOrg?.id) && registerOpen,
   });
 
   const filtered = useMemo(() => {
@@ -114,12 +131,20 @@ function CatalogView() {
                 status. Mutations happen in the ingestion + processing pipelines.
               </CardDescription>
             </div>
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/data">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Data Ingestion
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              {canCreate && (
+                <Button onClick={() => setRegisterOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Register metadata
+                </Button>
+              )}
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/data">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Data Ingestion
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -216,6 +241,14 @@ function CatalogView() {
       {selectedDatasetId !== null && (
         <DetailDrawer datasetId={selectedDatasetId} onClose={() => setSelectedDatasetId(null)} />
       )}
+
+      <RegisterMetadataDialog
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
+        excludedDatasetIds={(allDatasetsQuery.data ?? listQuery.data ?? []).map(
+          (d) => d.dataset_id
+        )}
+      />
     </div>
   );
 }

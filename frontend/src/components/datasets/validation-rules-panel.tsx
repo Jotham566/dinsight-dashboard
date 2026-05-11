@@ -263,6 +263,18 @@ function CreateRuleDialog({ onClose, onCreated }: CreateRuleDialogProps) {
   const [severity, setSeverity] = useState('error');
   const [error, setError] = useState<string | null>(null);
 
+  // Per-rule-type parameter state. Each variant exposes the inputs that
+  // make sense for its check; the union is serialized into
+  // rule_definition (jsonb) at submit time.
+  const [rangeMin, setRangeMin] = useState<string>('');
+  const [rangeMax, setRangeMax] = useState<string>('');
+  const [rangeInclusive, setRangeInclusive] = useState(true);
+  const [formatRegex, setFormatRegex] = useState('');
+  const [formatFlags, setFormatFlags] = useState('');
+  const [completenessThreshold, setCompletenessThreshold] = useState<string>('95');
+  const [uniquenessFields, setUniquenessFields] = useState('');
+  const [customJson, setCustomJson] = useState('{}');
+
   const mutation = useMutation({
     mutationFn: (data: CreateValidationRuleRequest) => api.validation.createRule(data),
     onSuccess: () => onCreated(),
@@ -271,10 +283,88 @@ function CreateRuleDialog({ onClose, onCreated }: CreateRuleDialogProps) {
     },
   });
 
+  // buildRuleDefinition turns the per-type form state into the JSON
+  // shape the backend stores in rule_definition. Returns either the
+  // parsed object or an error string surfaced to the user.
+  const buildRuleDefinition = ():
+    | { ok: true; value: Record<string, unknown> }
+    | { ok: false; error: string } => {
+    switch (ruleType) {
+      case 'range': {
+        const min = rangeMin.trim() ? Number(rangeMin) : undefined;
+        const max = rangeMax.trim() ? Number(rangeMax) : undefined;
+        if (min === undefined && max === undefined) {
+          return { ok: false, error: 'Range rules require at least a minimum or maximum.' };
+        }
+        if (min !== undefined && Number.isNaN(min))
+          return { ok: false, error: 'Minimum must be a number.' };
+        if (max !== undefined && Number.isNaN(max))
+          return { ok: false, error: 'Maximum must be a number.' };
+        if (min !== undefined && max !== undefined && min > max) {
+          return { ok: false, error: 'Minimum cannot exceed maximum.' };
+        }
+        const def: Record<string, unknown> = { inclusive: rangeInclusive };
+        if (min !== undefined) def.min = min;
+        if (max !== undefined) def.max = max;
+        return { ok: true, value: def };
+      }
+      case 'format': {
+        if (!formatRegex.trim()) {
+          return { ok: false, error: 'Format rules require a regex pattern.' };
+        }
+        // Validate the regex compiles client-side so an obviously broken
+        // pattern fails here instead of inside the backend evaluator.
+        try {
+          new RegExp(formatRegex, formatFlags || undefined);
+        } catch (e: any) {
+          return { ok: false, error: `Invalid regex: ${e?.message ?? 'parse failed'}` };
+        }
+        const def: Record<string, unknown> = { regex: formatRegex };
+        if (formatFlags.trim()) def.flags = formatFlags.trim();
+        return { ok: true, value: def };
+      }
+      case 'completeness': {
+        const pct = Number(completenessThreshold);
+        if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+          return { ok: false, error: 'Threshold must be a number between 0 and 100.' };
+        }
+        return { ok: true, value: { threshold_pct: pct } };
+      }
+      case 'uniqueness': {
+        const fields = uniquenessFields
+          .split(',')
+          .map((f) => f.trim())
+          .filter((f) => f.length > 0);
+        if (fields.length === 0) {
+          return { ok: false, error: 'Uniqueness rules need at least one field.' };
+        }
+        return { ok: true, value: { fields } };
+      }
+      case 'custom': {
+        try {
+          const parsed = JSON.parse(customJson);
+          if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            return { ok: false, error: 'Custom rule definition must be a JSON object.' };
+          }
+          return { ok: true, value: parsed as Record<string, unknown> };
+        } catch (e: any) {
+          return { ok: false, error: `Invalid JSON: ${e?.message ?? 'parse failed'}` };
+        }
+      }
+      default:
+        return { ok: true, value: {} };
+    }
+  };
+
   const submit = () => {
     setError(null);
     if (!name.trim()) {
       setError('Name is required.');
+      return;
+    }
+    const def = buildRuleDefinition();
+    if (!def.ok) {
+      setError(def.error);
       return;
     }
     mutation.mutate({
@@ -282,6 +372,7 @@ function CreateRuleDialog({ onClose, onCreated }: CreateRuleDialogProps) {
       description: description.trim() || undefined,
       rule_type: ruleType,
       field_name: fieldName.trim() || undefined,
+      rule_definition: def.value,
       severity,
     });
   };
@@ -292,8 +383,8 @@ function CreateRuleDialog({ onClose, onCreated }: CreateRuleDialogProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>New validation rule</AlertDialogTitle>
           <AlertDialogDescription>
-            Defines a check that can be run against any dataset in this org. Rule parameters (range
-            bounds, regex, etc.) use backend defaults for now — tune via API.
+            Defines a check that can be run against any dataset in this org. Pick a type and fill in
+            the parameters that apply to it.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -359,6 +450,124 @@ function CreateRuleDialog({ onClose, onCreated }: CreateRuleDialogProps) {
               onChange={(e) => setFieldName(e.target.value)}
               placeholder="Leave empty for dataset-level rules"
             />
+          </div>
+
+          {/* Rule-type-specific parameters. Each branch maps to the */}
+          {/* shape buildRuleDefinition() produces.                    */}
+          <div className="space-y-3 rounded-md border border-strong bg-surface-muted p-3">
+            <p className="text-xs uppercase tracking-wide text-fg-muted">
+              {ruleType === 'range' && 'Range parameters'}
+              {ruleType === 'format' && 'Format parameters'}
+              {ruleType === 'completeness' && 'Completeness parameters'}
+              {ruleType === 'uniqueness' && 'Uniqueness parameters'}
+              {ruleType === 'custom' && 'Custom rule definition'}
+            </p>
+            {ruleType === 'range' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="rule-range-min">Minimum</Label>
+                    <Input
+                      id="rule-range-min"
+                      type="number"
+                      step="any"
+                      value={rangeMin}
+                      onChange={(e) => setRangeMin(e.target.value)}
+                      placeholder="leave blank for no lower bound"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="rule-range-max">Maximum</Label>
+                    <Input
+                      id="rule-range-max"
+                      type="number"
+                      step="any"
+                      value={rangeMax}
+                      onChange={(e) => setRangeMax(e.target.value)}
+                      placeholder="leave blank for no upper bound"
+                    />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-fg">
+                  <input
+                    type="checkbox"
+                    checked={rangeInclusive}
+                    onChange={(e) => setRangeInclusive(e.target.checked)}
+                    className="h-4 w-4 rounded border-strong text-accent focus:ring-focus"
+                  />
+                  Bounds are inclusive
+                </label>
+              </>
+            )}
+            {ruleType === 'format' && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label htmlFor="rule-format-regex">Regex pattern</Label>
+                  <Input
+                    id="rule-format-regex"
+                    value={formatRegex}
+                    onChange={(e) => setFormatRegex(e.target.value)}
+                    placeholder="^[A-Z]{3}-\d{4}$"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="rule-format-flags">Flags</Label>
+                  <Input
+                    id="rule-format-flags"
+                    value={formatFlags}
+                    onChange={(e) => setFormatFlags(e.target.value)}
+                    placeholder="i, m, …"
+                  />
+                </div>
+              </div>
+            )}
+            {ruleType === 'completeness' && (
+              <div className="space-y-1">
+                <Label htmlFor="rule-completeness-threshold">Minimum complete (%)</Label>
+                <Input
+                  id="rule-completeness-threshold"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={completenessThreshold}
+                  onChange={(e) => setCompletenessThreshold(e.target.value)}
+                />
+                <p className="text-xs text-fg-muted">
+                  Rule fails when fewer than this percentage of records have a non-null value.
+                </p>
+              </div>
+            )}
+            {ruleType === 'uniqueness' && (
+              <div className="space-y-1">
+                <Label htmlFor="rule-uniqueness-fields">Fields (comma-separated)</Label>
+                <Input
+                  id="rule-uniqueness-fields"
+                  value={uniquenessFields}
+                  onChange={(e) => setUniquenessFields(e.target.value)}
+                  placeholder="serial_id, machine_id"
+                />
+                <p className="text-xs text-fg-muted">
+                  Rule fails when any combination of these field values is duplicated.
+                </p>
+              </div>
+            )}
+            {ruleType === 'custom' && (
+              <div className="space-y-1">
+                <Label htmlFor="rule-custom-json">Rule definition (JSON)</Label>
+                <textarea
+                  id="rule-custom-json"
+                  value={customJson}
+                  onChange={(e) => setCustomJson(e.target.value)}
+                  rows={5}
+                  className="block w-full rounded-md border border-strong bg-surface px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-focus"
+                  placeholder='{"expression": "value > 0"}'
+                />
+                <p className="text-xs text-fg-muted">
+                  Free-form parameters passed to the backend&apos;s custom-rule evaluator.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

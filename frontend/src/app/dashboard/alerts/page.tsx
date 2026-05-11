@@ -548,6 +548,49 @@ interface RuleEditorProps {
   onSaved: () => void;
 }
 
+// Severity mapping shape: maps an anomaly-percentage band to a severity
+// label. The backend reads this from notification_config + severity_
+// mapping JSONB at fire time to decide which severity each alert gets.
+// Default bands are reasonable starting points; users adjust per rule.
+interface SeverityBand {
+  min_pct: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+}
+
+const DEFAULT_SEVERITY_BANDS: SeverityBand[] = [
+  { min_pct: 5, severity: 'low' },
+  { min_pct: 10, severity: 'medium' },
+  { min_pct: 20, severity: 'high' },
+  { min_pct: 30, severity: 'critical' },
+];
+
+function parseSeverityBands(raw?: Record<string, unknown>): SeverityBand[] {
+  // The backend stores severity_mapping as an arbitrary JSON object.
+  // Our shape is { bands: SeverityBand[] }; tolerate a missing or
+  // foreign shape by falling back to the defaults.
+  if (!raw || typeof raw !== 'object') return DEFAULT_SEVERITY_BANDS;
+  const bands = (raw as { bands?: unknown }).bands;
+  if (!Array.isArray(bands) || bands.length === 0) return DEFAULT_SEVERITY_BANDS;
+  return bands
+    .filter(
+      (b): b is SeverityBand =>
+        typeof b === 'object' &&
+        b !== null &&
+        typeof (b as any).min_pct === 'number' &&
+        ['low', 'medium', 'high', 'critical'].includes((b as any).severity)
+    )
+    .sort((a, b) => a.min_pct - b.min_pct);
+}
+
+function parseRecipients(raw?: Record<string, unknown>): string[] {
+  // Backend reads recipients from notification_config.emails (see
+  // alert.go: alertNotificationConfig).
+  if (!raw || typeof raw !== 'object') return [];
+  const emails = (raw as { emails?: unknown }).emails;
+  if (!Array.isArray(emails)) return [];
+  return emails.filter((e): e is string => typeof e === 'string' && e.trim().length > 0);
+}
+
 function RuleEditor({ rule, onClose, onSaved }: RuleEditorProps) {
   const isEdit = rule !== null;
   const [name, setName] = useState(rule?.name ?? '');
@@ -555,6 +598,12 @@ function RuleEditor({ rule, onClose, onSaved }: RuleEditorProps) {
   const [alertType, setAlertType] = useState(rule?.alert_type ?? 'anomaly');
   const [threshold, setThreshold] = useState(rule?.anomaly_threshold ?? 10);
   const [isActive, setIsActive] = useState(rule?.is_active ?? true);
+  const [severityBands, setSeverityBands] = useState<SeverityBand[]>(() =>
+    parseSeverityBands(rule?.severity_mapping)
+  );
+  const [recipientsRaw, setRecipientsRaw] = useState<string>(() =>
+    parseRecipients(rule?.notification_config).join(', ')
+  );
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -568,6 +617,24 @@ function RuleEditor({ rule, onClose, onSaved }: RuleEditorProps) {
     },
   });
 
+  const updateBand = (idx: number, patch: Partial<SeverityBand>) => {
+    setSeverityBands((bands) => bands.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+  };
+  const removeBand = (idx: number) => {
+    setSeverityBands((bands) => bands.filter((_, i) => i !== idx));
+  };
+  const addBand = () => {
+    setSeverityBands((bands) => {
+      // New band sits above the highest current min_pct.
+      const maxPct = bands.reduce((m, b) => Math.max(m, b.min_pct), 0);
+      const next: SeverityBand = {
+        min_pct: Math.min(maxPct + 5, 95),
+        severity: 'medium',
+      };
+      return [...bands, next].sort((a, b) => a.min_pct - b.min_pct);
+    });
+  };
+
   const submit = () => {
     setError(null);
     if (!name.trim()) {
@@ -578,11 +645,34 @@ function RuleEditor({ rule, onClose, onSaved }: RuleEditorProps) {
       setError('Threshold must be between 0.5 and 50.');
       return;
     }
+    // Severity bands: enforce ascending min_pct without duplicates.
+    const sortedBands = [...severityBands].sort((a, b) => a.min_pct - b.min_pct);
+    for (let i = 1; i < sortedBands.length; i++) {
+      if (sortedBands[i].min_pct <= sortedBands[i - 1].min_pct) {
+        setError('Severity bands must have strictly ascending minimum percentages.');
+        return;
+      }
+    }
+
+    // Recipients: split, trim, validate. Empty list is fine.
+    const recipients = recipientsRaw
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    for (const r of recipients) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)) {
+        setError(`"${r}" doesn't look like an email address.`);
+        return;
+      }
+    }
+
     mutation.mutate({
       name: name.trim(),
       description: description.trim() || undefined,
       alert_type: alertType,
       anomaly_threshold: threshold,
+      severity_mapping: { bands: sortedBands },
+      notification_config: { emails: recipients },
     });
   };
 
@@ -667,6 +757,87 @@ function RuleEditor({ rule, onClose, onSaved }: RuleEditorProps) {
               </Label>
             </div>
           )}
+
+          {/* Severity bands. When an alert fires, the backend looks   */}
+          {/* up the anomaly percentage against these bands and stamps */}
+          {/* the matching severity on the alert row.                  */}
+          <div className="space-y-2 rounded-md border border-strong bg-surface-muted p-3">
+            <div className="flex items-center justify-between">
+              <Label>Severity bands</Label>
+              <Button size="sm" variant="ghost" onClick={addBand}>
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add band
+              </Button>
+            </div>
+            <p className="text-xs text-fg-muted">
+              An alert&apos;s severity is the band with the highest min % that the anomaly still
+              crosses. Bands must be in ascending order.
+            </p>
+            <div className="space-y-2">
+              {severityBands.length === 0 && (
+                <p className="text-xs text-fg-muted italic">
+                  No bands defined — every alert will fall through to the default severity.
+                </p>
+              )}
+              {severityBands.map((band, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="text-xs text-fg-muted">at ≥</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    value={band.min_pct}
+                    onChange={(e) => updateBand(idx, { min_pct: Number(e.target.value) })}
+                    className="w-20"
+                    aria-label="Minimum anomaly percentage"
+                  />
+                  <span className="text-xs text-fg-muted">%, severity</span>
+                  <select
+                    value={band.severity}
+                    onChange={(e) =>
+                      updateBand(idx, { severity: e.target.value as SeverityBand['severity'] })
+                    }
+                    className="rounded-md border border-strong bg-surface px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+                    aria-label="Severity"
+                  >
+                    <option value="low">low</option>
+                    <option value="medium">medium</option>
+                    <option value="high">high</option>
+                    <option value="critical">critical</option>
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeBand(idx)}
+                    aria-label="Remove band"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-danger" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notification recipients. Backend's sendAlertNotifications */}
+          {/* fans out an email per recipient. Per-user opt-out via the */}
+          {/* /users/notification-preferences endpoint may suppress     */}
+          {/* delivery to that user.                                    */}
+          <div className="space-y-2">
+            <Label htmlFor="rule-recipients">Email recipients (comma-separated)</Label>
+            <textarea
+              id="rule-recipients"
+              value={recipientsRaw}
+              onChange={(e) => setRecipientsRaw(e.target.value)}
+              placeholder="ops@example.com, oncall@example.com"
+              rows={2}
+              className="block w-full rounded-md border border-strong bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+            />
+            <p className="text-xs text-fg-muted">
+              Leave empty to store alert rows without sending email. Users with email notifications
+              disabled won&apos;t receive messages even when listed.
+            </p>
+          </div>
         </div>
 
         <AlertDialogFooter>
