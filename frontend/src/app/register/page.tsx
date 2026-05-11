@@ -76,47 +76,41 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Feature Highlights */}
-      <div className="hidden lg:flex lg:flex-1 bg-surface-muted/50 border-r border-border">
+      {/* Left side — operator-tone "what happens next" guide */}
+      <div className="hidden lg:flex lg:flex-1 bg-surface-muted border-r border-border">
         <div className="flex-1 flex items-center justify-center p-12">
           <div className="max-w-md text-fg">
-            <h1 className="text-4xl font-bold mb-6">Join D'Insight</h1>
-            <p className="text-lg mb-8 text-fg-muted">
-              Start your journey to predictive maintenance excellence.
+            <h2 className="text-2xl font-semibold mb-2">Set up your D'Insight account</h2>
+            <p className="text-sm mb-8 text-fg-muted">
+              You'll be monitoring real machine condition in three short steps.
             </p>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-surface-muted rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="h-5 w-5 text-fg" />
-                </div>
+            <ol className="space-y-5">
+              <li className="flex items-start gap-3">
+                <Check className="h-5 w-5 mt-0.5 text-success" aria-hidden="true" />
                 <div>
-                  <h3 className="font-semibold mb-1">Register Account</h3>
-                  <p className="text-sm text-fg-muted">Simple and quick registration process</p>
+                  <p className="font-semibold text-fg">Create your account</p>
+                  <p className="mt-1 text-sm text-fg-muted">Email + password. No credit card.</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-surface-muted rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="h-5 w-5 text-fg" />
-                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="h-5 w-5 mt-0.5 text-success" aria-hidden="true" />
                 <div>
-                  <h3 className="font-semibold mb-1">Upload & Stream</h3>
-                  <p className="text-sm text-fg-muted">
-                    Upload data or Stream direct from your Machines
+                  <p className="font-semibold text-fg">Upload baseline or start streaming</p>
+                  <p className="mt-1 text-sm text-fg-muted">
+                    Bring CSV from healthy operation, or stream live from sensors.
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-surface-muted rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="h-5 w-5 text-fg" />
-                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="h-5 w-5 mt-0.5 text-success" aria-hidden="true" />
                 <div>
-                  <h3 className="font-semibold mb-1">Detect and Predict</h3>
-                  <p className="text-sm text-fg-muted">
-                    Detect anomalies and failures before they occur
+                  <p className="font-semibold text-fg">Watch state + deterioration</p>
+                  <p className="mt-1 text-sm text-fg-muted">
+                    OK / Deteriorating / Failing, plus the wear trend over time.
                   </p>
                 </div>
-              </div>
-            </div>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
@@ -127,8 +121,8 @@ export default function RegisterPage() {
           {/* Logo and Title */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 bg-surface dark:bg-surface-muted rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white dark:text-fg text-2xl font-bold">D</span>
+              <div className="w-16 h-16 bg-accent rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-accent-contrast text-2xl font-bold">D</span>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-fg">Create Account</h2>
@@ -299,7 +293,7 @@ export default function RegisterPage() {
                 disabled={isLoading}
                 className={cn(
                   'w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm',
-                  'text-sm font-medium text-white bg-accent hover:bg-accent-hover',
+                  'text-sm font-medium text-accent-contrast bg-accent hover:bg-accent-hover',
                   'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus',
                   'transition-all duration-200',
                   'disabled:opacity-50 disabled:cursor-not-allowed'

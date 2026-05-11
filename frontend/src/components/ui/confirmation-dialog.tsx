@@ -65,8 +65,8 @@ export function ConfirmationDialog({
             onClick={handleConfirm}
             className={
               variant === 'destructive'
-                ? 'bg-danger hover:bg-danger focus:ring-focus text-white px-4 py-2 shadow-sm'
-                : 'bg-info hover:bg-info focus:ring-focus text-white px-4 py-2 shadow-sm'
+                ? 'bg-danger hover:bg-danger focus:ring-focus text-accent-contrast px-4 py-2 shadow-sm'
+                : 'bg-info hover:bg-info focus:ring-focus text-accent-contrast px-4 py-2 shadow-sm'
             }
           >
             {confirmText}

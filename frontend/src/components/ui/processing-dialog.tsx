@@ -90,7 +90,7 @@ export function ProcessingDialog({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className={`w-12 h-12 ${getSolidColors()} rounded-lg flex items-center justify-center shadow-sm text-white`}
+                className={`w-12 h-12 ${getSolidColors()} rounded-lg flex items-center justify-center shadow-sm text-accent-contrast`}
               >
                 {getIcon()}
               </div>
@@ -174,7 +174,7 @@ export function ProcessingDialog({
             <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
               <Button
                 asChild
-                className="flex-1 bg-accent hover:bg-accent-hover text-white shadow-sm"
+                className="flex-1 bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm"
               >
                 <a href="/dashboard/live">Open Live Monitor</a>
               </Button>

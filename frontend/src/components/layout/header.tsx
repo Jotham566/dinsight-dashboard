@@ -42,7 +42,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
         <div className="flex items-center md:hidden">
           <Link href="/dashboard" aria-label="D'Insight" className="flex items-center">
             <div className="h-9 w-9 bg-accent rounded-lg flex items-center justify-center shadow-sm">
-              <Sparkles className="h-5 w-5 text-white" />
+              <Sparkles className="h-5 w-5 text-accent-contrast" />
             </div>
           </Link>
         </div>
@@ -99,7 +99,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 className="relative hover:bg-surface-hover rounded-lg transition-colors"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-xs font-medium text-white shadow-sm">
+                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-xs font-medium text-accent-contrast shadow-sm">
                   3
                 </span>
                 <span className="sr-only">Notifications</span>

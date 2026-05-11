@@ -55,7 +55,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Link href="/dashboard" className="flex items-center space-x-3 group" onClick={onClose}>
               <div className="relative">
                 <div className="relative h-10 w-10 bg-accent rounded-lg flex items-center justify-center shadow-sm">
-                  <Sparkles className="h-5 w-5 text-white" />
+                  <Sparkles className="h-5 w-5 text-accent-contrast" />
                 </div>
               </div>
               <div className="flex flex-col">
@@ -110,7 +110,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </div>
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-danger text-white">
+                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-danger text-accent-contrast">
                         {item.badge}
                       </span>
                     )}
