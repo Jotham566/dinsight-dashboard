@@ -2,14 +2,30 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/utils/cn';
 
+/**
+ * Alert / notice surface — DESIGN.md §11.8.
+ *
+ * Severities map to the semantic ramps so colour stays consistent with
+ * every other surface that consumes the same family (badge, kpi card,
+ * table row, toast). Title and Description compose on the same surface.
+ *
+ * Layout: a leading icon (rendered as a sibling <svg>) gets positioned
+ * top-left; the text content shifts right via the [&>svg~*] selector so
+ * authors don't need to add manual padding.
+ */
 const alertVariants = cva(
-  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-gray-950 dark:border-gray-800 dark:[&>svg]:text-gray-50',
+  'relative w-full rounded-lg border p-4 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:h-4 [&>svg]:w-4 [&>svg~*]:pl-7',
   {
     variants: {
       variant: {
-        default: 'bg-white text-gray-950 dark:bg-gray-950 dark:text-gray-50',
-        destructive:
-          'border-red-500/50 text-red-600 dark:border-red-500 [&>svg]:text-red-600 dark:border-red-900/50 dark:text-red-900 dark:dark:border-red-900 dark:[&>svg]:text-red-900',
+        default: 'border-border bg-surface text-fg [&>svg]:text-fg-muted',
+        info: 'border-info-border bg-info-bg text-info-text [&>svg]:text-info-text',
+        success: 'border-success-border bg-success-bg text-success-text [&>svg]:text-success-text',
+        warning: 'border-warning-border bg-warning-bg text-warning-text [&>svg]:text-warning-text',
+        // `destructive` retained as an alias for `danger` so existing call
+        // sites keep working until Phase C5 codemod swaps them.
+        destructive: 'border-danger-border bg-danger-bg text-danger-text [&>svg]:text-danger-text',
+        danger: 'border-danger-border bg-danger-bg text-danger-text [&>svg]:text-danger-text',
       },
     },
     defaultVariants: {
@@ -30,7 +46,7 @@ const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<H
   ({ className, ...props }, ref) => (
     <h5
       ref={ref}
-      className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      className={cn('mb-1 font-semibold leading-tight tracking-tight', className)}
       {...props}
     />
   )
@@ -41,8 +57,8 @@ const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+  <div ref={ref} className={cn('text-sm leading-relaxed [&_p]:leading-relaxed', className)} {...props} />
 ));
 AlertDescription.displayName = 'AlertDescription';
 
-export { Alert, AlertTitle, AlertDescription };
+export { Alert, AlertTitle, AlertDescription, alertVariants };
