@@ -26,33 +26,15 @@
 }
 
 @layer components {
-  /* Modern Glass Card */
-  .glass-card {
-    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800;
-    @apply shadow-sm transition-colors duration-200;
-  }
-
-  /* Solid Text */
-  .gradient-text {
-    @apply text-primary-700 dark:text-primary-300;
-  }
-
-  /* Card Hover Effects */
+  /* Card hover affordance — border + subtle shadow only, no scale or translate */
   .card-hover {
-    @apply transition-all duration-200;
-    @apply hover:shadow-md;
+    @apply transition-colors duration-150;
     @apply hover:border-primary-300 dark:hover:border-primary-700;
   }
 
-  /* Skeleton Loading */
+  /* Skeleton — opacity pulse only, no shimmering light sweep (DESIGN.md §10.2) */
   .skeleton {
-    @apply relative overflow-hidden bg-gray-200 dark:bg-gray-800;
-  }
-
-  .skeleton::after {
-    @apply absolute inset-0 -translate-x-full animate-pulse;
-    @apply bg-gradient-to-r from-transparent via-white/10 to-transparent;
-    content: '';
+    @apply animate-pulse bg-gray-200 dark:bg-gray-800;
   }
 }
 

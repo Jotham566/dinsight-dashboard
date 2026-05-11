@@ -38,7 +38,7 @@ export function ConfigDialog({
         )}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-2xl font-bold gradient-text flex items-center gap-3">
+          <AlertDialogTitle className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             {title}
           </AlertDialogTitle>
           {description && (
