@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Search, Bell, Menu, User, LogOut, Settings, ChevronDown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
@@ -23,18 +22,8 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
   const { user, logout } = useAuth();
-  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-
-  const getPageTitle = () => {
-    const segments = pathname.split('/').filter(Boolean);
-    const lastSegment = segments[segments.length - 1] || 'dashboard';
-    return lastSegment
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl">
@@ -50,19 +39,11 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
           <span className="sr-only">Toggle menu</span>
         </Button>
 
-        {/* Logo and Title */}
-        <div className="flex items-center space-x-3">
-          <Link href="/dashboard" className="flex items-center space-x-2 group">
-            <div className="relative">
-              <div className="relative h-9 w-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-            </div>
-            <div className="hidden sm:flex flex-col">
-              <span className="font-display font-bold text-lg text-primary-700 dark:text-primary-300">
-                D'Insight
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Predictive Analytics</span>
+        {/* Mobile brand anchor — sidebar is the canonical product mark on md+ */}
+        <div className="flex items-center md:hidden">
+          <Link href="/dashboard" aria-label="D'Insight" className="flex items-center">
+            <div className="h-9 w-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
           </Link>
         </div>
