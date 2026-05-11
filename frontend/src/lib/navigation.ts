@@ -1,14 +1,5 @@
-import {
-  Bell,
-  Home,
-  Database,
-  Monitor,
-  ShieldAlert,
-  UserCog,
-  ScrollText,
-  type LucideIcon,
-} from 'lucide-react';
-import { Actions, type Action } from '@/lib/permissions';
+import { Home, Database, Monitor, ShieldAlert, UserCog, type LucideIcon } from 'lucide-react';
+import { type Action } from '@/lib/permissions';
 
 export interface NavItem {
   label: string;
@@ -19,16 +10,22 @@ export interface NavItem {
   requiredRoles?: Array<'admin' | 'user' | 'viewer'>;
   // Restricts the item to users with this role in the currently-active
   // organization. Kept for nav entries that gate on a role itself rather
-  // than a specific action. New entries should prefer requiredAction.
+  // than a specific action.
   requiredOrgRoles?: Array<'admin' | 'operator' | 'viewer'>;
   // Restricts the item to users who can perform this Action in the
   // currently-active org. The action name matches the backend's policy
-  // table — a grep across both codebases finds every gate. Composes
-  // with requiredOrgRoles when both are set (both must allow).
+  // table — a grep across both codebases finds every gate.
   requiredAction?: Action;
   description?: string;
 }
 
+// Top-level sidebar IA. Five entries only — every settings-y surface
+// (alerts, audit log, license, etc.) lives under Account & Security
+// as tabs. Per-tab routing inside that page uses ?section=...
+//
+// Anything that USED to be top-level (alerts, audit) now redirects to
+// /dashboard/account?section=... — see src/app/dashboard/{alerts,audit}/
+// page.tsx for the redirect stubs.
 export const mainNavItems: NavItem[] = [
   {
     label: 'Machine Status',
@@ -59,31 +56,12 @@ export const mainNavItems: NavItem[] = [
     description: 'Anomaly and wear trend interpretation',
   },
   {
-    label: 'Alerts',
-    href: '/dashboard/alerts',
-    icon: Bell,
-    requiresAuth: true,
-    description:
-      'Active alerts fired against this organization. Rule management lives under Account & Security.',
-  },
-  {
     label: 'Account & Security',
     href: '/dashboard/account',
     icon: UserCog,
     requiresAuth: true,
     description:
-      'Profile, security, organizations, license, notifications, alert rules, validation rules.',
-  },
-  {
-    label: 'Audit Log',
-    href: '/dashboard/audit',
-    icon: ScrollText,
-    requiresAuth: true,
-    // Sourced from the same matrix the backend uses for middleware.
-    // RequireAction(policy.ActionAuditRead), so the cosmetic gate can
-    // never drift from the authoritative gate.
-    requiredAction: Actions.AuditRead,
-    description: 'Who changed what in this organization',
+      'Profile, security, organizations, license, notifications, active alerts, alert rules, validation rules, audit log.',
   },
 ];
 

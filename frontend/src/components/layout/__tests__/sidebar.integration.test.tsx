@@ -26,20 +26,21 @@ const renderWithQueryClient = (ui: React.ReactElement) => {
 };
 
 describe('Sidebar integration', () => {
-  it('shows the operator IA + alerts (audit hidden for non-admins)', () => {
+  it('shows exactly the five top-level pages (alerts + audit moved to settings)', () => {
     renderWithQueryClient(<Sidebar isOpen onClose={() => undefined} />);
 
     expect(screen.getByRole('link', { name: /Machine Status/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Data Ingestion/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Live Monitor/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Health Insights/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Alerts/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Account & Security/i })).toBeInTheDocument();
 
-    // Audit log is admin-only; the mock useAuth returns currentOrgRole: null
-    // so the requiredAction gate should hide it.
+    // Settings-y surfaces no longer have sidebar entries — they live
+    // as tabs under Account & Security.
+    expect(screen.queryByRole('link', { name: /^Alerts$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Audit/i })).not.toBeInTheDocument();
 
+    // Legacy routes that were dropped during the IA cleanup stay gone.
     expect(screen.queryByRole('link', { name: /Visualization/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Streaming/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Profile/i })).not.toBeInTheDocument();

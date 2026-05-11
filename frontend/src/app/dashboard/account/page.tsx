@@ -4,10 +4,12 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertOctagon,
   AlertTriangle,
   Bell,
   Building2,
   CheckCircle2,
+  ClipboardList,
   KeyRound,
   Loader2,
   ScrollText,
@@ -25,8 +27,12 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
+import { ActiveAlertsSection } from '@/components/alerts/active-alerts-section';
 import { AlertRulesSection } from '@/components/alerts/alert-rules-section';
 import { ValidationRulesPanel } from '@/components/datasets/validation-rules-panel';
+import { AuditLogSection } from '@/components/audit/audit-log-section';
+import { usePermission } from '@/components/auth/require-permission';
+import { Actions } from '@/lib/permissions';
 
 // Account & Security is the consolidated settings surface. Sub-sections
 // are tabs so the page stays a single route (deep-linkable via
@@ -40,6 +46,8 @@ import { ValidationRulesPanel } from '@/components/datasets/validation-rules-pan
 //   notifications  — per-user email opt-outs
 //   alert-rules    — CRUD for alert rules (org-scoped, role-gated)
 //   validation     — CRUD for validation rules (org-scoped, role-gated)
+//   active-alerts  — operational alerts feed (was /dashboard/alerts)
+//   audit-log      — recent activity (admin-only; was /dashboard/audit)
 
 const SECTION_VALUES = [
   'profile',
@@ -47,8 +55,10 @@ const SECTION_VALUES = [
   'organizations',
   'license',
   'notifications',
+  'active-alerts',
   'alert-rules',
   'validation',
+  'audit-log',
 ] as const;
 type SectionId = (typeof SECTION_VALUES)[number];
 
@@ -92,6 +102,7 @@ function AccountSecurityView() {
   const searchParams = useSearchParams();
   const { user, refreshUser } = useAuth();
   const queryClient = useQueryClient();
+  const canReadAudit = usePermission(Actions.AuditRead);
 
   // Active section from URL — keeps the page deep-linkable and lets
   // other pages (e.g. /dashboard/alerts) point at a specific tab.
@@ -287,6 +298,10 @@ function AccountSecurityView() {
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
+          <TabsTrigger value="active-alerts" className="gap-2">
+            <AlertOctagon className="h-4 w-4" />
+            Active alerts
+          </TabsTrigger>
           <TabsTrigger value="alert-rules" className="gap-2">
             <ShieldAlert className="h-4 w-4" />
             Alert rules
@@ -295,6 +310,12 @@ function AccountSecurityView() {
             <ShieldCheck className="h-4 w-4" />
             Validation rules
           </TabsTrigger>
+          {canReadAudit && (
+            <TabsTrigger value="audit-log" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Audit log
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -716,6 +737,25 @@ function AccountSecurityView() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="active-alerts" className="space-y-4">
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertOctagon className="h-5 w-5" />
+                Active alerts
+              </CardTitle>
+              <CardDescription>
+                Rows fired by alert rules against stored anomaly classifications. Acknowledge or
+                resolve to keep the operational view clean. To manage the rules themselves, switch
+                to the Alert rules tab.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActiveAlertsSection />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="alert-rules" className="space-y-4">
           <Card className="border-border/60">
             <CardHeader>
@@ -725,11 +765,7 @@ function AccountSecurityView() {
               </CardTitle>
               <CardDescription>
                 Rules drive alert generation when a stored anomaly classification crosses the
-                threshold. Active alerts fired by these rules live on{' '}
-                <a href="/dashboard/alerts" className="font-medium text-accent hover:underline">
-                  /dashboard/alerts
-                </a>
-                .
+                threshold. Active alerts fired by these rules live in the Active alerts tab.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -762,6 +798,26 @@ function AccountSecurityView() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {canReadAudit && (
+          <TabsContent value="audit-log" className="space-y-4">
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ClipboardList className="h-5 w-5" />
+                  Audit log
+                </CardTitle>
+                <CardDescription>
+                  Every mutating action in this organization, ordered by recency. Read traffic is
+                  intentionally omitted. Admin-only.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AuditLogSection />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

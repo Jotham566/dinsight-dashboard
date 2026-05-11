@@ -2,20 +2,13 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AuditPage from '@/app/dashboard/audit/page';
+import { AuditLogSection } from '@/components/audit/audit-log-section';
 
-// Bypass DashboardLayout's auth HOC and routing so the test can focus on
-// the page-level RBAC + table rendering. The real layout's behavior is
-// covered by sidebar.integration.test.tsx.
-vi.mock('@/components/layout/dashboard-layout', () => ({
-  DashboardLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/dashboard/audit',
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
-}));
+// AuditLogSection is the extracted body of the former /dashboard/audit
+// page. It's embedded as an admin-only tab under Account & Security.
+// These tests pin: the role gate, the table render, and the empty
+// state. The page-level redirect stub at /dashboard/audit isn't
+// covered here (it's a 5-line useEffect).
 
 const auditListMock = vi.fn();
 vi.mock('@/lib/api-client', () => ({
@@ -26,7 +19,6 @@ vi.mock('@/lib/api-client', () => ({
   },
 }));
 
-// useAuth state is rewritten per test.
 let mockAuthValue: any = {};
 vi.mock('@/context/auth-context', () => ({
   useAuth: () => mockAuthValue,
@@ -36,25 +28,24 @@ beforeEach(() => {
   auditListMock.mockReset();
 });
 
-const renderPage = () => {
+const renderSection = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <AuditPage />
+      <AuditLogSection />
     </QueryClientProvider>
   );
 };
 
-describe('AuditPage', () => {
-  it('blocks operator-role users with an admin-required notice', async () => {
+describe('AuditLogSection', () => {
+  it('blocks operator-role users with an admin-required notice', () => {
     mockAuthValue = {
       currentOrg: { id: 1, name: 'Default Organization' },
       currentOrgRole: 'operator',
     };
-    renderPage();
+    renderSection();
 
     expect(screen.getByText(/admin access required/i)).toBeInTheDocument();
-    // No API call when role check fails up-front.
     expect(auditListMock).not.toHaveBeenCalled();
   });
 
@@ -63,7 +54,7 @@ describe('AuditPage', () => {
       currentOrg: { id: 1, name: 'Default Organization' },
       currentOrgRole: 'viewer',
     };
-    renderPage();
+    renderSection();
 
     expect(screen.getByText(/admin access required/i)).toBeInTheDocument();
     expect(auditListMock).not.toHaveBeenCalled();
@@ -110,9 +101,8 @@ describe('AuditPage', () => {
         },
       },
     });
-    renderPage();
+    renderSection();
 
-    expect(screen.getByRole('heading', { name: /Audit Log/i, level: 1 })).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText('Admin User')).toBeInTheDocument();
     });
@@ -120,10 +110,8 @@ describe('AuditPage', () => {
     expect(screen.getByText('POST /api/v1/alerts/rules')).toBeInTheDocument();
     expect(screen.getByText('alerts #42')).toBeInTheDocument();
     expect(screen.getByText('datasets #9')).toBeInTheDocument();
-    // Outcome badges visible.
     expect(screen.getByText('success')).toBeInTheDocument();
     expect(screen.getByText('failure')).toBeInTheDocument();
-    // API was called once for the page.
     expect(auditListMock).toHaveBeenCalledTimes(1);
   });
 
@@ -135,7 +123,7 @@ describe('AuditPage', () => {
     auditListMock.mockResolvedValueOnce({
       data: { success: true, data: { items: [], total: 0, limit: 50, offset: 0 } },
     });
-    renderPage();
+    renderSection();
 
     await waitFor(() => {
       expect(screen.getByText(/No audit entries yet/i)).toBeInTheDocument();

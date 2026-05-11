@@ -6,21 +6,25 @@ import { mainNavItems, quickActions } from '@/lib/navigation';
 const dashboardRoot = path.resolve(process.cwd(), 'src/app/dashboard');
 
 describe('IA regression checks', () => {
-  // Operator IA + the alerts page (org-wide read, role-gated writes)
-  // + /dashboard/audit (org-admin-only; hidden by the sidebar's
-  // requiredAction gate, surfaced here so deep links work for the
-  // admins who can see it).
-  it('keeps the operator IA plus alerts plus the org-admin audit route', () => {
+  // Five top-level pages. Settings-y surfaces (alerts, audit log,
+  // license, notifications, validation rules) all live as tabs under
+  // /dashboard/account so the sidebar stays scannable.
+  it('keeps the sidebar trimmed to the five top-level pages', () => {
     const hrefs = mainNavItems.map((item) => item.href);
     expect(hrefs).toEqual([
       '/dashboard',
       '/dashboard/data',
       '/dashboard/live',
       '/dashboard/insights',
-      '/dashboard/alerts',
       '/dashboard/account',
-      '/dashboard/audit',
     ]);
+  });
+
+  it('keeps the legacy alerts + audit routes as redirect stubs (no sidebar entry)', () => {
+    // The routes still exist so bookmarks don't break — they redirect
+    // to /dashboard/account?section=... See app/dashboard/{alerts,audit}/page.tsx.
+    expect(fs.existsSync(path.join(dashboardRoot, 'alerts', 'page.tsx'))).toBe(true);
+    expect(fs.existsSync(path.join(dashboardRoot, 'audit', 'page.tsx'))).toBe(true);
   });
 
   it('ensures legacy dashboard routes are removed from codebase', () => {
