@@ -59,7 +59,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="font-display font-bold text-xl text-primary-700 dark:text-primary-300">
+                <span className="font-semibold text-xl text-primary-700 dark:text-primary-300">
                   D'Insight
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Analytics Platform</span>

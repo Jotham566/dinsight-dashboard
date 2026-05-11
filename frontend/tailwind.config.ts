@@ -119,10 +119,11 @@ const config: Config = {
           950: '#020617',
         },
       },
+      // DESIGN.md §8.1 — IBM Plex Sans for UI, IBM Plex Mono for technical
+      // values. The CSS variables are injected by next/font in app/layout.tsx.
       fontFamily: {
-        // IBM Plex swap happens in Phase B4 (paired with the next/font import).
-        sans: ['Inter var', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: ['var(--font-plex-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-plex-mono)', 'ui-monospace', 'monospace'],
       },
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
