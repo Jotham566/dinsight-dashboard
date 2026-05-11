@@ -26,14 +26,19 @@ const renderWithQueryClient = (ui: React.ReactElement) => {
 };
 
 describe('Sidebar integration', () => {
-  it('shows only the final 5-page IA links', () => {
+  it('shows the operator IA + alerts (audit hidden for non-admins)', () => {
     renderWithQueryClient(<Sidebar isOpen onClose={() => undefined} />);
 
     expect(screen.getByRole('link', { name: /Machine Status/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Data Ingestion/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Live Monitor/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Health Insights/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Alerts/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Account & Security/i })).toBeInTheDocument();
+
+    // Audit log is admin-only; the mock useAuth returns currentOrgRole: null
+    // so the requiredAction gate should hide it.
+    expect(screen.queryByRole('link', { name: /Audit/i })).not.toBeInTheDocument();
 
     expect(screen.queryByRole('link', { name: /Visualization/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Streaming/i })).not.toBeInTheDocument();

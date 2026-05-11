@@ -9,10 +9,12 @@ import { useAuth } from '@/context/auth-context';
 import {
   appendHistoryPoint,
   buildWearTrendAlerts,
+  DashboardAlert,
   DashboardHistoryPoint,
   deriveDashboardMachineState,
   deriveWearDirection,
   summarizeAlerts,
+  type AlertSeverity,
 } from '@/lib/dashboard-overview';
 import {
   AppliedWearTrendConfig,
@@ -710,7 +712,44 @@ export function useDashboardOverview() {
     retry: false,
   });
 
-  const alerts = useMemo(
+  // Backend alerts: persisted records from rules that fired against
+  // stored anomaly classifications. Polled every 30s so the dashboard's
+  // alert tile stays fresh without hammering the server.
+  const backendAlertsQuery = useQuery<DashboardAlert[]>({
+    queryKey: ['dashboard-active-alerts'],
+    queryFn: async () => {
+      const res = await api.alerts.list({ status: 'active' });
+      const items = (res?.data?.data ?? []) as Array<{
+        id: number;
+        title: string;
+        message: string;
+        severity: string;
+        status: string;
+        anomaly_percentage: number;
+        created_at: string;
+      }>;
+      return items.map((a) => ({
+        id: a.id,
+        title: a.title,
+        message: a.message,
+        severity: (['low', 'medium', 'high', 'critical'].includes(a.severity)
+          ? a.severity
+          : 'medium') as AlertSeverity,
+        status: 'active' as const,
+        anomalyPercentage: a.anomaly_percentage,
+        createdAt: a.created_at,
+      }));
+    },
+    refetchInterval: 30_000,
+    retry: false,
+  });
+
+  // Synthesized wear-trend advisories. These run on local data shape
+  // (no backend involvement) so they keep working even before the
+  // alert pipeline has any rules + classifications. Combined with
+  // backend alerts so the dashboard tile reflects every reason a user
+  // should pay attention right now.
+  const wearTrendAlerts = useMemo(
     () =>
       buildWearTrendAlerts({
         datasetId: wearSnapshot?.datasetId ?? null,
@@ -721,6 +760,10 @@ export function useDashboardOverview() {
         sampleCount: wearSnapshot?.monitoringDistance.sampleCount ?? 0,
       }),
     [wearColumn, wearSnapshot]
+  );
+  const alerts = useMemo(
+    () => [...(backendAlertsQuery.data ?? []), ...wearTrendAlerts],
+    [backendAlertsQuery.data, wearTrendAlerts]
   );
   const alertSummary = useMemo(() => summarizeAlerts(alerts), [alerts]);
   const liveAnomalyPercentage = manualModeEnabled

@@ -850,6 +850,45 @@ export default function LiveMonitorPage() {
     }
   }, [streamingStatus]);
 
+  // Streaming-completion side-effect: when a session transitions from
+  // active to completed, fire a one-shot detect-with-storage so the
+  // final classification is persisted. This is the hook that lets
+  // backend alert rules see the result and fire real Alert rows. The
+  // hot-path detect (line ~892) stays ephemeral — running it through
+  // detect-with-storage on every frame would write a classification
+  // per frame.
+  const lastPersistedDatasetRef = useRef<number | null>(null);
+  const prevStreamingActiveRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (!streamingStatus || !selectedId) return;
+    const wasActive = prevStreamingActiveRef.current;
+    const justCompleted =
+      wasActive &&
+      !streamingStatus.is_active &&
+      streamingStatus.status === 'completed' &&
+      streamingStatus.total_points > 0;
+    prevStreamingActiveRef.current = streamingStatus.is_active;
+
+    if (!justCompleted) return;
+    if (lastPersistedDatasetRef.current === selectedId) return;
+    lastPersistedDatasetRef.current = selectedId;
+
+    api.anomaly
+      .detectWithStorage({
+        baseline_dataset_id: selectedId,
+        comparison_dataset_id: selectedId,
+        sensitivity_factor: 3.0,
+        detection_method: 'mahalanobis',
+        store_classification: true,
+        generate_alerts: true,
+      })
+      .catch(() => {
+        // Best-effort. The ephemeral detect already provides the live
+        // UI signal; persistence failure shouldn't surface as an
+        // error to the operator. The next streaming session can retry.
+      });
+  }, [streamingStatus, selectedId]);
+
   useEffect(() => {
     if (!autoRefresh || !selectedId || isSelecting) {
       return;

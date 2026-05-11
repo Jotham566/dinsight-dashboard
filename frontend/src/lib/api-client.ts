@@ -283,9 +283,41 @@ export const api = {
     ) => apiClient.post(`/deterioration/${dinsightId}/analyze`, data),
   },
 
-  // Anomaly detection endpoints
+  // Anomaly detection endpoints. detect() is the ephemeral path used
+  // by the live monitor for ad-hoc previews; detectWithStorage() is
+  // the persisted variant that creates an AnomalyClassification +
+  // fires alert rules. Use the latter when the user has elected to
+  // monitor a baseline against rules.
   anomaly: {
-    detect: (data: any) => apiClient.post('/anomaly/detect', data),
+    detect: (data: AnomalyDetectionRequest) => apiClient.post('/anomaly/detect', data),
+    detectWithStorage: (data: AnomalyDetectionWithStorageRequest) =>
+      apiClient.post('/anomaly/detect-with-storage', data),
+    getThreshold: (datasetId: number, sensitivityFactor?: number) =>
+      apiClient.get(`/anomaly/threshold/${datasetId}`, {
+        params: sensitivityFactor !== undefined ? { sensitivity_factor: sensitivityFactor } : {},
+      }),
+  },
+
+  // Alert management. Org-scoped (every member with the right role
+  // sees every rule + alert in the org); role gates live on the
+  // backend's RequireAction middleware. The FE mirrors the same
+  // gates cosmetically via <RequirePermission> on destructive buttons.
+  alerts: {
+    // Rules: who fires + what severity + who gets notified.
+    listRules: (active?: boolean) =>
+      apiClient.get('/alerts/rules', {
+        params: active !== undefined ? { active } : {},
+      }),
+    createRule: (data: CreateAlertRuleRequest) => apiClient.post('/alerts/rules', data),
+    updateRule: (id: number, data: UpdateAlertRuleRequest) =>
+      apiClient.put(`/alerts/rules/${id}`, data),
+    deleteRule: (id: number) => apiClient.delete(`/alerts/rules/${id}`),
+    // Active alerts: rows fired by a rule against a stored classification.
+    list: (params?: { status?: 'active' | 'acknowledged' | 'resolved'; limit?: number }) =>
+      apiClient.get('/alerts', { params }),
+    acknowledge: (id: number, message?: string) =>
+      apiClient.post(`/alerts/${id}/acknowledge`, { message: message ?? '' }),
+    resolve: (id: number, message: string) => apiClient.post(`/alerts/${id}/resolve`, { message }),
   },
 
   // Streaming endpoints
@@ -294,6 +326,45 @@ export const api = {
     reset: (baselineId: number) => apiClient.delete(`/streaming/${baselineId}/reset`),
   },
 };
+
+// Request payload shapes for the anomaly + alert endpoints. These
+// mirror the BE handler's struct literals exactly — keep field names
+// in lockstep with internal/handler/anomaly.go + alert.go.
+
+export interface AnomalyDetectionRequest {
+  baseline_dataset_id: number;
+  comparison_dataset_id?: number;
+  sensitivity_factor: number;
+  // Some callers pass detection_method + per-method params. Backend
+  // accepts these via the same struct; keep the type permissive so
+  // existing call sites (live page, dashboard overview) compile.
+  detection_method?: string;
+  [key: string]: unknown;
+}
+
+export interface AnomalyDetectionWithStorageRequest extends AnomalyDetectionRequest {
+  store_classification?: boolean;
+  generate_alerts?: boolean;
+}
+
+export interface CreateAlertRuleRequest {
+  name: string;
+  description?: string;
+  alert_type: string;
+  anomaly_threshold: number;
+  severity_mapping?: Record<string, unknown>;
+  notification_config?: Record<string, unknown>;
+}
+
+export interface UpdateAlertRuleRequest {
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+  alert_type?: string;
+  anomaly_threshold?: number;
+  severity_mapping?: Record<string, unknown>;
+  notification_config?: Record<string, unknown>;
+}
 
 export default apiClient;
 export { apiClient };
