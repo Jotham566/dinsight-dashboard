@@ -15,6 +15,7 @@ Four weeks of foundation work, plus a closeout pass.
 - **Week 3** — SSO sign-in button + admin-only audit log page
 - **Week 4** — Permission table mirror + RequirePermission primitives + canonical pref-sync hook
 - **Week 4 closeout** — Wire RequirePermission into the audit page + sidebar nav
+- **Week 4 follow-up close-out** — Hook variants for local-only + conflict-aware pref sync
 
 ---
 
@@ -111,11 +112,28 @@ Inspected `live/page.tsx` and `insights/page.tsx` for migrating to `useDebounced
 - **`live/page.tsx`** has cross-device conflict detection (deviceId + updatedAt arbitration with a user-facing conflict modal) layered on top of the four canonical steps. The current hook doesn't model this; migrating would silently drop the feature.
 - **`insights/page.tsx`** has NO remote layer — purely local persistence with a `setTimeout` debounce. Using a remote-prefs hook here would force a fake network round-trip.
 
-The right answer is to build hook variants when there's a third real case: `useDebouncedRemotePrefsWithConflict<T>` for live, `useDebouncedLocalPrefs<T>` for insights. The current hook still serves as the canonical pattern for the simple multi-device case.
+The right answer is to build hook variants when there's a third real case: `useDebouncedRemotePrefsWithConflict<T>` for live, `useDebouncedLocalPrefs<T>` for insights. **Both variants landed in the Week 4 follow-up close-out below.**
 
 ---
 
-### Documentation refresh (this PR)
+### Week 4 follow-up close-out — Hook variants for local-only + conflict-aware pref sync
+
+The two hook variants flagged at the end of the Week 4 closeout PR are now built and tested. The `useDebouncedRemotePrefs` family now covers all three patterns the foundation work surfaced.
+
+#### Added
+
+- **`src/hooks/useDebouncedLocalPrefs.ts`** — local-only variant. No fetchRemote / saveRemote / merge layer. Just hydrate from user-scoped localStorage on mount + debounced writes (default 250ms) + flush-on-unmount. Use when a surface has preferences that should be remembered across reloads on the same device but don't need cross-device sync. The canonical example is the insights page's UI layout toggles (`includeMonitoring`, `showWearSummaryMetrics`, `activePlotTab`, `isControlsCollapsed`).
+- **`src/hooks/useDebouncedRemotePrefsWithConflict.ts`** — multi-device variant with cross-device conflict detection. Adds a fifth step to the canonical four: when the server snapshot is from a different `deviceId` AND newer than the local copy AND the user has unsaved local edits, the hook surfaces a `PrefsConflict<T>` via the `onConflict` callback instead of auto-merging. The page renders a modal and calls `resolveConflict({ kind: 'use-local' | 'merge', merged?: T })` with the user's choice. Required payload shape: `T extends PrefsWithMeta` (a `__meta?: { deviceId, updatedAt, version }` slot that the hook stamps automatically). When `onConflict` is omitted, behavior matches the simple `useDebouncedRemotePrefs` (server-wins).
+- **8 tests for `useDebouncedLocalPrefs`** — hydration, default-when-empty, corrupt-JSON survival, debounced-writes-collapse, synchronous-state-update, flushNow, unmount-flush, per-user namespacing.
+- **7 tests for `useDebouncedRemotePrefsWithConflict`** — local hydration, server-auto-apply when same device, conflict detection on foreign device + newer + local edits, `resolveConflict('merge', merged)` applies + saves, `resolveConflict('use-local')` schedules a save with the current value, `setPrefs` stamps `__meta`, fallback to server-wins when no `onConflict` callback.
+
+#### Not done — explicitly parked
+
+The live and insights pages still inline their own pref-sync logic. The hooks are now available; migrating each page is a separate refactor on a ~2000-line file with real regression risk. The hook variants alone close the "we need variants for the third case" follow-up; the page refactors are their own work item. New surfaces should prefer the hooks; existing surfaces can migrate opportunistically.
+
+---
+
+### Documentation refresh (PR-merged separately)
 
 - **`CHANGELOG.md`** created — frontend was missing a per-repo changelog. This file covers the full four-week arc + closeout.
 - Root **`README.md`** features list updated to reflect multi-tenancy, RBAC, SSO, and the audit log. Pre-foundation it only mentioned "JWT-based authentication with role-based access control" — now lists the full capability set.
@@ -124,7 +142,7 @@ The right answer is to build hook variants when there's a third real case: `useD
 
 ### Test totals
 
-After Week 4 closeout: **106 / 106 tests green**, `pnpm type-check` clean, `pnpm lint` clean.
+After Week 4 follow-up close-out: **121 / 121 tests green** (106 Week 4 + 15 new from the two hook variants), `pnpm type-check` clean, `pnpm lint` clean.
 
 | Suite                                | Tests |
 |--------------------------------------|------:|
@@ -147,5 +165,7 @@ After Week 4 closeout: **106 / 106 tests green**, `pnpm type-check` clean, `pnpm
 | `src/hooks/__tests__/useBaselineMonitoringData.test.tsx`          | 1 |
 | `src/hooks/__tests__/useDatasetDiscovery.test.tsx`                | 1 |
 | `src/hooks/__tests__/useDebouncedRemotePrefs.test.tsx`            | 10 |
+| `src/hooks/__tests__/useDebouncedLocalPrefs.test.tsx`             | 8 |
+| `src/hooks/__tests__/useDebouncedRemotePrefsWithConflict.test.tsx`| 7 |
 | `src/hooks/__tests__/useMachineHealthStatus.test.ts`              | 2 |
 | `src/hooks/__tests__/useUploadWorkflow.test.tsx`                  | 1 |
