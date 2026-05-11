@@ -9,6 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
+import { readScoped, writeScoped } from '@/lib/scoped-storage';
+
+// User-scoped suffixes. The helper prefixes with `dinsight:u<userId>:` so
+// the email-notification toggle from one user doesn't bleed into another's
+// session on the same browser.
+const PREF_EMAIL_NOTIFICATIONS = 'prefs:email_notifications';
+const PREF_SYSTEM_UPDATES = 'prefs:system_updates';
 
 interface UserSession {
   id: string;
@@ -66,8 +73,8 @@ export default function AccountSecurityPage() {
       return;
     }
 
-    const persistedEmail = window.localStorage.getItem('dinsight:prefs:email_notifications');
-    const persistedUpdates = window.localStorage.getItem('dinsight:prefs:system_updates');
+    const persistedEmail = readScoped(PREF_EMAIL_NOTIFICATIONS, user?.id);
+    const persistedUpdates = readScoped(PREF_SYSTEM_UPDATES, user?.id);
 
     if (persistedEmail != null) {
       setEmailNotifications(persistedEmail === 'true');
@@ -75,15 +82,15 @@ export default function AccountSecurityPage() {
     if (persistedUpdates != null) {
       setSystemUpdates(persistedUpdates === 'true');
     }
-  }, []);
+  }, [user?.id]);
 
   const persistPreferences = () => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    window.localStorage.setItem('dinsight:prefs:email_notifications', String(emailNotifications));
-    window.localStorage.setItem('dinsight:prefs:system_updates', String(systemUpdates));
+    writeScoped(PREF_EMAIL_NOTIFICATIONS, user?.id, String(emailNotifications));
+    writeScoped(PREF_SYSTEM_UPDATES, user?.id, String(systemUpdates));
   };
 
   const saveProfile = async () => {

@@ -4,6 +4,8 @@ import { api } from '@/lib/api-client';
 import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
 import { useActiveStreamingDataset } from '@/hooks/useActiveStreamingDataset';
 import { normalizeCoordinateSeriesFromMonitoringRows } from '@/lib/dataset-normalizers';
+import { buildScopedKey, readScoped, writeScoped } from '@/lib/scoped-storage';
+import { useAuth } from '@/context/auth-context';
 import {
   appendHistoryPoint,
   buildWearTrendAlerts,
@@ -89,8 +91,11 @@ const resolveRefreshMs = (streamSpeed: StreamSpeed | undefined): number => {
   return 2000;
 };
 
-const LIVE_MONITOR_PREFS_KEY = 'dinsight:live-monitor:prefs:v1';
-const DASHBOARD_TIMELINE_HISTORY_KEY = 'dinsight:dashboard:timeline-history:v1';
+// User-scoped suffixes passed to readScoped / writeScoped. The helper builds
+// the `dinsight:u<userId>:` prefix so multiple users on the same browser
+// don't share live-monitor preferences or timeline history.
+const LIVE_MONITOR_PREFS_KEY = 'live-monitor:prefs:v1';
+const DASHBOARD_TIMELINE_HISTORY_KEY = 'dashboard:timeline-history:v1';
 const DASHBOARD_TIMELINE_HISTORY_PREFS_FIELD = 'dashboardTimelineHistory';
 
 const sanitizeBoundaries = (values: unknown): Boundary[] => {
@@ -205,11 +210,13 @@ const isPointInPolygon = (x: number, y: number, coordinates: number[][]) => {
   return inside;
 };
 
-const readAppliedConfigFromStorage = (): AppliedWearTrendConfig | null => {
+const readAppliedConfigFromStorage = (
+  userId: number | string | null | undefined
+): AppliedWearTrendConfig | null => {
   if (typeof window === 'undefined') {
     return null;
   }
-  return parseAppliedWearTrendConfig(window.localStorage.getItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY));
+  return parseAppliedWearTrendConfig(readScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId));
 };
 
 const sanitizeDashboardHistoryPoints = (payload: unknown): DashboardHistoryPoint[] => {
@@ -270,6 +277,8 @@ const pickNewestHistoryStore = (
 };
 
 export function useDashboardOverview() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [history, setHistory] = useState<DashboardHistoryPoint[]>([]);
   const [appliedWearConfig, setAppliedWearConfig] = useState<AppliedWearTrendConfig | null>(null);
   const [finalizedAnomalyPercentage, setFinalizedAnomalyPercentage] = useState<number | null>(null);
@@ -281,11 +290,15 @@ export function useDashboardOverview() {
   const historyPersistTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const sync = () => setAppliedWearConfig(readAppliedConfigFromStorage());
+    const sync = () => setAppliedWearConfig(readAppliedConfigFromStorage(userId));
     sync();
 
+    // Storage events fire with the fully-qualified scoped key (e.g.
+    // `dinsight:u123:insights-applied-wear-config-v1`), so we compare
+    // against the scoped form, not the bare suffix.
+    const scopedAppliedKey = buildScopedKey(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId);
     const onStorage = (event: StorageEvent) => {
-      if (event.key == null || event.key === INSIGHTS_APPLIED_WEAR_CONFIG_KEY) {
+      if (event.key == null || event.key === scopedAppliedKey) {
         sync();
       }
     };
@@ -296,7 +309,7 @@ export function useDashboardOverview() {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener(INSIGHTS_APPLIED_WEAR_CONFIG_EVENT, sync);
     };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const syncLocalPrefs = () => {
@@ -304,7 +317,7 @@ export function useDashboardOverview() {
         return;
       }
       try {
-        const raw = window.localStorage.getItem(LIVE_MONITOR_PREFS_KEY);
+        const raw = readScoped(LIVE_MONITOR_PREFS_KEY, userId);
         setLocalLivePrefs(parseLiveMonitorPrefs(raw ? JSON.parse(raw) : null));
       } catch {
         setLocalLivePrefs(null);
@@ -312,29 +325,30 @@ export function useDashboardOverview() {
     };
 
     syncLocalPrefs();
+    const scopedLivePrefsKey = buildScopedKey(LIVE_MONITOR_PREFS_KEY, userId);
     const onStorage = (event: StorageEvent) => {
-      if (event.key == null || event.key === LIVE_MONITOR_PREFS_KEY) {
+      if (event.key == null || event.key === scopedLivePrefsKey) {
         syncLocalPrefs();
       }
     };
 
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
     try {
-      const raw = window.localStorage.getItem(DASHBOARD_TIMELINE_HISTORY_KEY);
+      const raw = readScoped(DASHBOARD_TIMELINE_HISTORY_KEY, userId);
       setLocalHistoryStore(parseDashboardHistoryStore(raw ? JSON.parse(raw) : null));
     } catch {
       setLocalHistoryStore(null);
     } finally {
       setIsLocalHistoryLoaded(true);
     }
-  }, []);
+  }, [userId]);
 
   const {
     datasets,
@@ -827,7 +841,7 @@ export function useDashboardOverview() {
       selectedDatasetId: activeDatasetId ?? null,
       updatedAt: new Date().toISOString(),
     };
-    window.localStorage.setItem(DASHBOARD_TIMELINE_HISTORY_KEY, JSON.stringify(payload));
+    writeScoped(DASHBOARD_TIMELINE_HISTORY_KEY, userId, JSON.stringify(payload));
 
     if (historyPersistTimerRef.current) {
       window.clearTimeout(historyPersistTimerRef.current);
@@ -841,7 +855,7 @@ export function useDashboardOverview() {
         window.clearTimeout(historyPersistTimerRef.current);
       }
     };
-  }, [activeDatasetId, history, persistTimelineHistoryToServer]);
+  }, [activeDatasetId, history, persistTimelineHistoryToServer, userId]);
 
   return {
     datasets,

@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import type { ComponentProps } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 /**
  * Plotly wrapper that checks for WebGL once on mount and renders an Alert
@@ -53,5 +54,22 @@ export function PlotCanvas(props: PlotProps) {
   // While detecting, render nothing rather than flashing the Plotly fallback.
   if (webglOk === null) return null;
 
-  return <Plot {...props} />;
+  // Wrap the Plotly mount so a render-time crash inside plotly.js (rare but
+  // observed on degenerate data shapes) surfaces an inline fallback instead
+  // of tearing down the entire dashboard.
+  return (
+    <ErrorBoundary
+      fallback={
+        <Alert variant="warning" className="m-4">
+          <AlertTitle>Chart failed to render</AlertTitle>
+          <AlertDescription>
+            Something went wrong rendering this chart. The rest of the page is unaffected; refresh
+            to try again.
+          </AlertDescription>
+        </Alert>
+      }
+    >
+      <Plot {...props} />
+    </ErrorBoundary>
+  );
 }

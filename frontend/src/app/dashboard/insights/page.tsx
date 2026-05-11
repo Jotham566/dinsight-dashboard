@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDatasetDiscovery } from '@/hooks/useDatasetDiscovery';
 import { useActiveStreamingDataset } from '@/hooks/useActiveStreamingDataset';
 import { api } from '@/lib/api-client';
+import { readScoped, writeScoped } from '@/lib/scoped-storage';
+import { useAuth } from '@/context/auth-context';
 import { STREAMING_MONITORING_EMPHASIS_POINTS } from '@/lib/chart-focus-config';
 import {
   AppliedWearTrendConfig,
@@ -94,6 +96,8 @@ interface StreamingStatus {
 }
 
 export default function HealthInsightsPage() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [datasetId, setDatasetId] = useState<number | null>(null);
   const [manualDatasetId, setManualDatasetId] = useState('');
   const [metadataColumn, setMetadataColumn] = useState<string>('');
@@ -175,7 +179,7 @@ export default function HealthInsightsPage() {
     }
 
     try {
-      const raw = window.localStorage.getItem(INSIGHTS_UI_PREFS_KEY);
+      const raw = readScoped(INSIGHTS_UI_PREFS_KEY, userId);
       if (!raw) {
         if (window.matchMedia('(max-width: 1279px)').matches) {
           setIsControlsCollapsed(true);
@@ -207,15 +211,16 @@ export default function HealthInsightsPage() {
         setIsControlsCollapsed(true);
       }
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    window.localStorage.setItem(
+    writeScoped(
       INSIGHTS_UI_PREFS_KEY,
+      userId,
       JSON.stringify({
         includeMonitoring,
         showWearSummaryMetrics,
@@ -223,7 +228,7 @@ export default function HealthInsightsPage() {
         isControlsCollapsed,
       })
     );
-  }, [activePlotTab, includeMonitoring, isControlsCollapsed, showWearSummaryMetrics]);
+  }, [activePlotTab, includeMonitoring, isControlsCollapsed, showWearSummaryMetrics, userId]);
 
   const metadataColumnsQuery = useQuery<string[]>({
     queryKey: ['deterioration-metadata-columns', datasetId],
@@ -297,10 +302,10 @@ export default function HealthInsightsPage() {
     }
 
     const localConfig = parseAppliedWearTrendConfig(
-      window.localStorage.getItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY)
+      readScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId)
     );
     const localDraftConfig = parseDraftWearTrendConfig(
-      window.localStorage.getItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY)
+      readScoped(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, userId)
     );
     const resolvedLocal = localDraftConfig ?? localConfig;
     if (!resolvedLocal) {
@@ -336,7 +341,7 @@ export default function HealthInsightsPage() {
       setLastWearTrendRunAt(localConfig.appliedAt);
     }
     hasHydratedPersistedConfigRef.current = true;
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!hasFetchedUserPreferences) {
@@ -347,13 +352,13 @@ export default function HealthInsightsPage() {
     }
 
     const localConfig = parseAppliedWearTrendConfig(
-      window.localStorage.getItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY)
+      readScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId)
     );
     const serverConfig = parseAppliedWearTrendConfigFromUnknown(
       userPreferences?.[INSIGHTS_WEAR_PREFS_FIELD]
     );
     const localDraftConfig = parseDraftWearTrendConfig(
-      window.localStorage.getItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY)
+      readScoped(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, userId)
     );
     const serverDraftConfig = parseDraftWearTrendConfigFromUnknown(
       userPreferences?.[INSIGHTS_DRAFT_WEAR_PREFS_FIELD]
@@ -392,17 +397,14 @@ export default function HealthInsightsPage() {
     if (resolvedApplied) {
       setHasAppliedWearTrendRun(true);
       setLastWearTrendRunAt(resolvedApplied.appliedAt);
-      window.localStorage.setItem(
-        INSIGHTS_APPLIED_WEAR_CONFIG_KEY,
-        JSON.stringify(resolvedApplied)
-      );
+      writeScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId, JSON.stringify(resolvedApplied));
       window.dispatchEvent(new CustomEvent(INSIGHTS_APPLIED_WEAR_CONFIG_EVENT));
     }
 
     if (resolvedDraft) {
-      window.localStorage.setItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, JSON.stringify(resolvedDraft));
+      writeScoped(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, userId, JSON.stringify(resolvedDraft));
     }
-  }, [hasFetchedUserPreferences, userPreferences]);
+  }, [hasFetchedUserPreferences, userPreferences, userId]);
 
   const persistWearConfigToServer = useCallback(async (nextConfig: AppliedWearTrendConfig) => {
     try {
@@ -445,7 +447,7 @@ export default function HealthInsightsPage() {
     };
 
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, JSON.stringify(nextDraftConfig));
+      writeScoped(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, userId, JSON.stringify(nextDraftConfig));
     }
 
     pendingDraftRef.current = nextDraftConfig;
@@ -467,6 +469,7 @@ export default function HealthInsightsPage() {
     rangeStart,
     rangeEnd,
     persistWearDraftToServer,
+    userId,
   ]);
 
   useEffect(
@@ -705,7 +708,7 @@ export default function HealthInsightsPage() {
         baselineRange,
         appliedAt: new Date().toISOString(),
       };
-      window.localStorage.setItem(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, JSON.stringify(nextConfig));
+      writeScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId, JSON.stringify(nextConfig));
       window.dispatchEvent(new CustomEvent(INSIGHTS_APPLIED_WEAR_CONFIG_EVENT));
       void persistWearConfigToServer(nextConfig);
     }
@@ -722,6 +725,7 @@ export default function HealthInsightsPage() {
     rangeStart,
     selectedClusterValues,
     persistWearConfigToServer,
+    userId,
   ]);
 
   const resetToLastAppliedSelection = () => {

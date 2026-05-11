@@ -27,6 +27,8 @@ import { useBaselineMonitoringData } from '@/hooks/useBaselineMonitoringData';
 import { useMachineHealthStatus } from '@/hooks/useMachineHealthStatus';
 import { api } from '@/lib/api-client';
 import type { CoordinateSeries } from '@/lib/dataset-normalizers';
+import { readScoped, writeScoped } from '@/lib/scoped-storage';
+import { useAuth } from '@/context/auth-context';
 import { cn } from '@/utils/cn';
 
 import { PlotCanvas as Plot } from '@/components/charts/plot-canvas';
@@ -72,7 +74,13 @@ const stateTone: Record<'OK' | 'Deteriorating' | 'Failing', string> = {
   Failing: 'border-danger-border bg-danger-bg text-danger-text   ',
 };
 
-const LIVE_MONITOR_PREFS_KEY = 'dinsight:live-monitor:prefs:v1';
+// LIVE_MONITOR_PREFS_KEY is the bare suffix passed to readScoped/writeScoped;
+// the helper prefixes it with `dinsight:u<userId>:` so two users on the same
+// browser can't read each other's saved live-monitor preferences.
+//
+// LIVE_MONITOR_DEVICE_ID_KEY is intentionally NOT user-scoped — it identifies
+// the browser/device for multi-device sync, not the user, so it stays flat.
+const LIVE_MONITOR_PREFS_KEY = 'live-monitor:prefs:v1';
 const LIVE_MONITOR_DEVICE_ID_KEY = 'dinsight:live-monitor:device-id:v1';
 
 type PersistedLiveMonitorPreferences = {
@@ -314,6 +322,7 @@ const buildBoundaryShape = (boundary: Boundary) => {
 };
 
 export default function LiveMonitorPage() {
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualDatasetId, setManualDatasetId] = useState('');
   const [datasetError, setDatasetError] = useState<string | null>(null);
@@ -604,7 +613,7 @@ export default function LiveMonitorPage() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(LIVE_MONITOR_PREFS_KEY);
+      const raw = readScoped(LIVE_MONITOR_PREFS_KEY, user?.id);
       if (!raw) {
         setIsPrefsHydrated(true);
         return;
@@ -615,7 +624,7 @@ export default function LiveMonitorPage() {
     } finally {
       setIsPrefsHydrated(true);
     }
-  }, [applyPersistedPreferences]);
+  }, [applyPersistedPreferences, user?.id]);
 
   useEffect(() => {
     if (!serverPreferencesFetched) {
@@ -691,7 +700,7 @@ export default function LiveMonitorPage() {
       },
     };
     try {
-      window.localStorage.setItem(LIVE_MONITOR_PREFS_KEY, JSON.stringify(payload));
+      writeScoped(LIVE_MONITOR_PREFS_KEY, user?.id, JSON.stringify(payload));
     } catch {
       // no-op
     }
@@ -748,6 +757,7 @@ export default function LiveMonitorPage() {
     showContours,
     streamSpeed,
     isServerPrefsLoaded,
+    user?.id,
   ]);
 
   useEffect(

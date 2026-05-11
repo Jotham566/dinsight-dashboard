@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
 import { useAuth, withAuth } from '@/context/auth-context';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -12,11 +13,6 @@ interface DashboardLayoutProps {
 function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isLoading } = useAuth();
-
-  // Close sidebar on mobile when route changes
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, []);
 
   // Handle responsive sidebar behavior
   useEffect(() => {
@@ -50,9 +46,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         {/* Header */}
         <Header onMenuClick={() => setSidebarOpen(true)} isSidebarOpen={sidebarOpen} />
 
-        {/* Page content */}
+        {/* Page content — wrapped so a render-time crash in one page surfaces
+            the ErrorBoundary fallback instead of breaking the entire app shell. */}
         <main className="flex-1 overflow-y-auto bg-canvas">
-          <div className="container mx-auto px-4 py-6 max-w-7xl">{children}</div>
+          <div className="container mx-auto px-4 py-6 max-w-7xl">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </div>
         </main>
       </div>
     </div>

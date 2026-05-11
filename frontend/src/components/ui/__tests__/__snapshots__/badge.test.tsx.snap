@@ -1,0 +1,81 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Badge > keeps back-compat alias default rendering during Phase C5 codemod sweep 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-transparent bg-accent text-accent-contrast"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > keeps back-compat alias destructive rendering during Phase C5 codemod sweep 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-danger-border bg-danger-bg text-danger-text"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > keeps back-compat alias secondary rendering during Phase C5 codemod sweep 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-border bg-surface-muted text-fg"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the accent variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-transparent bg-accent text-accent-contrast"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the danger variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-danger-border bg-danger-bg text-danger-text"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the info variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-info-border bg-info-bg text-info-text"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the neutral variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-border bg-surface-muted text-fg"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the outline variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-border bg-transparent text-fg-muted"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the success variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-success-border bg-success-bg text-success-text"
+>
+  Label
+</span>
+`;
+
+exports[`Badge > renders the warning variant with the right semantic classes 1`] = `
+<span
+  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas border-warning-border bg-warning-bg text-warning-text"
+>
+  Label
+</span>
+`;

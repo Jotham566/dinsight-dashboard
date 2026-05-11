@@ -10,9 +10,18 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
+    // Authentication fixture — runs once before any chromium test and writes
+    // playwright/.auth/user.json (gitignored). Downstream specs that need an
+    // authenticated session import STORAGE_STATE from e2e/auth.setup.ts and
+    // declare `test.use({ storageState: STORAGE_STATE })` at the top.
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
     },
   ],
   webServer: {
