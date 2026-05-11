@@ -129,12 +129,8 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 className="relative hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <Bell className="h-5 w-5" />
-                {/* Notification badge with pulse animation */}
-                <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 text-xs text-white items-center justify-center font-medium shadow-sm">
-                    3
-                  </span>
+                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-medium text-white shadow-sm">
+                  3
                 </span>
                 <span className="sr-only">Notifications</span>
               </Button>

@@ -164,7 +164,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600 dark:text-gray-400">API Status</span>
                     <span className="flex items-center text-xs">
-                      <span className="h-2 w-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                      <span className="h-2 w-2 bg-green-500 rounded-full mr-1"></span>
                       <span className="text-green-600 dark:text-green-400 font-medium">Online</span>
                     </span>
                   </div>
