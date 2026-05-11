@@ -63,14 +63,22 @@ const SEVERITIES = [
 ];
 
 export interface ValidationRulesPanelProps {
-  /** Dataset the "Run validation" button targets. */
-  datasetId: number;
+  /**
+   * Dataset the "Run validation" button targets. Omit to use the panel
+   * as a global rule-management view (list + create, no "Run" affordance).
+   * The settings page uses the no-dataset form; the catalog drawer
+   * passes a dataset_id.
+   */
+  datasetId?: number;
 }
 
 export function ValidationRulesPanel({ datasetId }: ValidationRulesPanelProps) {
   const queryClient = useQueryClient();
   const canCreate = usePermission(Actions.ValidationRuleCreate);
-  const canRun = usePermission(Actions.ValidationRun);
+  // "Run" only makes sense when a dataset is in scope. Hide the button
+  // + selection checkboxes in the global view even for users who have
+  // ValidationRun.
+  const canRun = usePermission(Actions.ValidationRun) && datasetId !== undefined;
 
   const [creating, setCreating] = useState(false);
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<number>>(new Set());
@@ -86,11 +94,15 @@ export function ValidationRulesPanel({ datasetId }: ValidationRulesPanelProps) {
   });
 
   const runMutation = useMutation({
-    mutationFn: (ruleIds: number[]) =>
-      api.validation.run({
+    mutationFn: (ruleIds: number[]) => {
+      if (datasetId === undefined) {
+        return Promise.reject(new Error('No dataset selected'));
+      }
+      return api.validation.run({
         dataset_id: datasetId,
         validation_rule_ids: ruleIds.length > 0 ? ruleIds : undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       setRunMessage(
         selectedRuleIds.size > 0
@@ -99,9 +111,9 @@ export function ValidationRulesPanel({ datasetId }: ValidationRulesPanelProps) {
       );
       setRunError(null);
       setSelectedRuleIds(new Set());
-      // Validation-results panel above this lives in the same drawer;
-      // invalidate so it refetches.
-      queryClient.invalidateQueries({ queryKey: ['dataset', datasetId, 'validation'] });
+      if (datasetId !== undefined) {
+        queryClient.invalidateQueries({ queryKey: ['dataset', datasetId, 'validation'] });
+      }
     },
     onError: (e: any) => {
       setRunError(e?.response?.data?.message || 'Failed to run validation.');

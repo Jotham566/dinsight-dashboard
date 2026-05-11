@@ -63,14 +63,16 @@ export const mainNavItems: NavItem[] = [
     href: '/dashboard/alerts',
     icon: Bell,
     requiresAuth: true,
-    description: 'Active alerts and the rules that fire them',
+    description:
+      'Active alerts fired against this organization. Rule management lives under Account & Security.',
   },
   {
     label: 'Account & Security',
     href: '/dashboard/account',
     icon: UserCog,
     requiresAuth: true,
-    description: 'Profile, password, sessions, and preferences',
+    description:
+      'Profile, security, organizations, license, notifications, alert rules, validation rules.',
   },
   {
     label: 'Audit Log',
