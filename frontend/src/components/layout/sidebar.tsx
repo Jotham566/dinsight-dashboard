@@ -16,7 +16,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, currentOrgRole } = useAuth();
 
   const isActiveLink = (href: string) => {
     if (href === '/dashboard') {
@@ -28,8 +28,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const hasPermission = (item: (typeof mainNavItems)[0]) => {
     if (!item.requiresAuth) return true;
     if (!user) return false;
-    if (!item.requiredRoles) return true;
-    return item.requiredRoles.includes(user.role);
+    if (item.requiredRoles && !item.requiredRoles.includes(user.role)) {
+      return false;
+    }
+    // Per-org role gate (e.g. audit log = admin-only inside this org).
+    // The backend enforces the same gate; this just hides the nav so a
+    // viewer/operator doesn't get a 403 by clicking.
+    if (item.requiredOrgRoles && item.requiredOrgRoles.length > 0) {
+      if (!currentOrgRole || !item.requiredOrgRoles.includes(currentOrgRole)) {
+        return false;
+      }
+    }
+    return true;
   };
 
   return (
