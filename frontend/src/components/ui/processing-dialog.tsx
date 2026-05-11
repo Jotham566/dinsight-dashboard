@@ -85,7 +85,7 @@ export function ProcessingDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[500px] bg-canvas border border-strong shadow-2xl">
+      <AlertDialogContent className="sm:max-w-[500px] bg-canvas border border-strong shadow-md">
         <AlertDialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

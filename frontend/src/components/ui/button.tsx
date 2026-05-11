@@ -15,12 +15,14 @@ const buttonVariants = cva(
         ghost: 'hover:bg-surface-hover text-fg',
         link: 'text-accent underline-offset-4 hover:underline',
       },
+      // DESIGN.md §11.2 mandates 40px min-height for buttons; §12.6 mandates
+      // 44px touch targets on mobile. We meet both with h-10 (40px) as the floor.
       size: {
         default: 'h-10 px-4 py-2 rounded-lg text-sm',
-        sm: 'h-8 rounded-lg px-3 text-xs',
+        sm: 'h-10 rounded-lg px-3 text-xs',
         lg: 'h-12 rounded-lg px-8 text-base',
         icon: 'h-10 w-10 rounded-lg',
-        'icon-sm': 'h-8 w-8 rounded-lg',
+        'icon-sm': 'h-10 w-10 rounded-lg',
         'icon-lg': 'h-12 w-12 rounded-lg',
       },
     },

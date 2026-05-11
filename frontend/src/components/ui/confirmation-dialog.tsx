@@ -47,7 +47,7 @@ export function ConfirmationDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[425px] bg-canvas border border-strong shadow-2xl">
+      <AlertDialogContent className="sm:max-w-[425px] bg-canvas border border-strong shadow-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-lg font-semibold text-fg">{title}</AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-fg leading-relaxed">

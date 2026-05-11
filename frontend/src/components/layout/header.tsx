@@ -23,10 +23,9 @@ interface HeaderProps {
 export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-white/80 dark:bg-canvas/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-surface">
       <div className="flex h-16 items-center px-4 sm:px-6">
         {/* Mobile menu button */}
         <Button
@@ -50,27 +49,17 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
 
         {/* Search Bar */}
         <div className="flex-1 max-w-2xl mx-4 hidden md:flex">
-          <div
-            className={cn(
-              'relative w-full transition-all duration-300',
-              searchFocused && 'scale-[1.02]'
-            )}
-          >
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" />
             <input
               type="search"
               placeholder="Search analyses, datasets, or features..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
               className={cn(
-                'w-full rounded-lg border bg-surface-muted/50 pl-10 pr-4 py-2.5 text-sm',
-                'focus:border-control-border-focus focus:bg-white dark:focus:bg-surface',
-                'focus:outline-none focus:ring-2 focus:ring-focus/20',
-                'transition-all duration-200',
+                'w-full rounded-lg border border-border bg-surface-muted pl-10 pr-4 py-2.5 text-sm transition-colors duration-150',
                 'placeholder:text-fg-subtle',
-                'border-border'
+                'focus:outline-none focus-visible:border-control-border-focus focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas'
               )}
             />
             {searchQuery && (

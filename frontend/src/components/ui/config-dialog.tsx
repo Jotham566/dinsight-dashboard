@@ -33,7 +33,7 @@ export function ConfigDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent
         className={cn(
-          'sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-canvas border border-strong shadow-2xl',
+          'sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-canvas border border-strong shadow-md',
           contentClassName
         )}
       >

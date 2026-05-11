@@ -1514,7 +1514,7 @@ export default function HealthInsightsPage() {
                 )}
               </div>
 
-              <div className="sticky bottom-0 space-y-2 rounded-lg border border-input bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+              <div className="sticky bottom-0 space-y-2 rounded-lg border border-border bg-surface p-3">
                 <p className="text-sm font-medium">Apply analysis</p>
                 <div className="grid gap-2">
                   <Button onClick={applyWearTrendSelection} disabled={!canRunWearTrend}>
