@@ -196,6 +196,16 @@ export const api = {
       apiClient.post('/auth/reset-password', { token, password }),
     refresh: (refreshToken: string) =>
       apiClient.post('/auth/refresh', { refresh_token: refreshToken }),
+    // SSO discovery — public, always available. Returns
+    //   { enabled: boolean, label: string }
+    // The login page reads it to decide whether to render the SSO button.
+    ssoConfig: () => apiClient.get('/auth/sso/config'),
+  },
+
+  // Audit log
+  audit: {
+    list: (params?: { limit?: number; offset?: number; resource_type?: string }) =>
+      apiClient.get('/audit', { params }),
   },
 
   // User endpoints

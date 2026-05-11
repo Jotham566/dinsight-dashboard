@@ -1,4 +1,12 @@
-import { Home, Database, Monitor, ShieldAlert, UserCog, type LucideIcon } from 'lucide-react';
+import {
+  Home,
+  Database,
+  Monitor,
+  ShieldAlert,
+  UserCog,
+  ScrollText,
+  type LucideIcon,
+} from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -7,6 +15,10 @@ export interface NavItem {
   badge?: number;
   requiresAuth?: boolean;
   requiredRoles?: Array<'admin' | 'user' | 'viewer'>;
+  // Restricts the item to users with this role in the currently-active
+  // organization. Read by the sidebar to hide org-admin-only entries
+  // (audit log, soon: org settings, invites) from operators/viewers.
+  requiredOrgRoles?: Array<'admin' | 'operator' | 'viewer'>;
   description?: string;
 }
 
@@ -45,6 +57,14 @@ export const mainNavItems: NavItem[] = [
     icon: UserCog,
     requiresAuth: true,
     description: 'Profile, password, sessions, and preferences',
+  },
+  {
+    label: 'Audit Log',
+    href: '/dashboard/audit',
+    icon: ScrollText,
+    requiresAuth: true,
+    requiredOrgRoles: ['admin'],
+    description: 'Who changed what in this organization',
   },
 ];
 

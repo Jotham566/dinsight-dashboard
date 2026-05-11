@@ -6,7 +6,10 @@ import { mainNavItems, quickActions } from '@/lib/navigation';
 const dashboardRoot = path.resolve(process.cwd(), 'src/app/dashboard');
 
 describe('IA regression checks', () => {
-  it('keeps exactly the 5 target navigation routes', () => {
+  // The 5 operator-facing pages plus /dashboard/audit (org-admin-only;
+  // hidden by the sidebar's requiredOrgRoles gate, surfaced in the
+  // navigation array so deep links work for the admins who can see it).
+  it('keeps the operator IA plus the org-admin audit route', () => {
     const hrefs = mainNavItems.map((item) => item.href);
     expect(hrefs).toEqual([
       '/dashboard',
@@ -14,6 +17,7 @@ describe('IA regression checks', () => {
       '/dashboard/live',
       '/dashboard/insights',
       '/dashboard/account',
+      '/dashboard/audit',
     ]);
   });
 

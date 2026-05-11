@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, KeyRound } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { api } from '@/lib/api-client';
 import { cn } from '@/utils/cn';
 
 const loginSchema = z.object({
@@ -25,9 +26,36 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // SSO is discovered at mount via /auth/sso/config. When the backend has
+  // no OIDC env vars set the response is { enabled: false } and the SSO
+  // button stays hidden. ssoLabel surfaces the deployment-configured
+  // button label (defaults to "Single sign-on").
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+  const [ssoLabel, setSsoLabel] = useState('Single sign-on');
 
   const registered = searchParams.get('registered') === 'true';
   const returnUrl = searchParams.get('returnUrl');
+
+  useEffect(() => {
+    let cancelled = false;
+    api.auth
+      .ssoConfig()
+      .then((res) => {
+        if (cancelled) return;
+        const cfg = res.data?.data as { enabled?: boolean; label?: string } | undefined;
+        if (cfg?.enabled) {
+          setSsoEnabled(true);
+          if (cfg.label) setSsoLabel(cfg.label);
+        }
+      })
+      .catch(() => {
+        // Backend SSO discovery failure is silently treated as disabled —
+        // the password flow is the default and stays available.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
@@ -197,6 +225,36 @@ function LoginForm() {
                 )}
               </button>
             </div>
+
+            {/* SSO sign-in. Only renders when the backend reports
+                /auth/sso/config { enabled: true }. The button is a plain
+                <a> (full-page navigation) because the OIDC dance unloads
+                the SPA, hits the IdP, and returns the user to the
+                callback URL with cookies set. */}
+            {ssoEnabled && (
+              <div className="space-y-3">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-canvas px-2 text-fg-subtle">or</span>
+                  </div>
+                </div>
+                <a
+                  href="/api/v1/auth/sso/login"
+                  className={cn(
+                    'w-full flex items-center justify-center py-3 px-4 border border-border rounded-lg',
+                    'text-sm font-medium text-fg bg-surface hover:bg-surface-hover',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas',
+                    'transition-colors duration-150'
+                  )}
+                >
+                  <KeyRound className="h-4 w-4 mr-2 text-fg-muted" aria-hidden="true" />
+                  Continue with {ssoLabel}
+                </a>
+              </div>
+            )}
 
             {/* Sign up link */}
             <div className="text-center">
