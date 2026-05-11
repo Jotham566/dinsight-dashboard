@@ -16,7 +16,11 @@ Dinsight Dashboard is a comprehensive data analytics platform that specializes i
 - **📈 Real-time Monitoring**: Live data monitoring with configurable parameters
 - **🎬 Streaming Simulation**: Python-based real-time data streaming simulator
 - **🚨 Anomaly Detection**: Mahalanobis Distance-based anomaly classification
-- **👥 User Management**: JWT-based authentication with role-based access control
+- **🏢 Multi-tenancy**: Organizations + teams + memberships. Records are tenant-isolated at the database level (`organization_id NOT NULL` on every records-side table). Active org per request via the `X-Org-ID` header. See [`Dinsight_API/docs/TENANCY_AND_RBAC.md`](Dinsight_API/docs/TENANCY_AND_RBAC.md).
+- **🔑 RBAC**: Three-role capability matrix (admin / operator / viewer). Backend `middleware.RequireAction` gates server-side; frontend `RequirePermission` mirrors the same matrix to hide UI affordances.
+- **🪪 OIDC SSO** (optional): Plug an external identity provider via four env vars. Configured? The `/login` page shows an SSO button. Unset? Endpoints return 404 and password flow stays the only option.
+- **📋 Audit Log**: Every write request to org-scoped routes is recorded with actor, action, resource, outcome, IP. Async writer (buffered channel + background goroutine) keeps the request path cheap. Admin-only viewer at `/dashboard/audit`.
+- **🔒 JWT-based authentication**: Access + refresh tokens. JWT carries the user's full membership list so per-request org resolution is one parse, not one DB round-trip.
 - **⚙️ Configuration Management**: Flexible parameter tuning for analysis algorithms
 - **📱 Modern UI**: Responsive Next.js frontend with real-time visualizations
 - **🔐 Enterprise Security**: Custom license verification system
@@ -396,6 +400,10 @@ npm run dev
 - [API Documentation](./api_endpoints.md)
 - [Architecture Specs](./specs/README.md)
 - [Streaming Guide](./STREAMING_GUIDE.md)
+- [Backend CHANGELOG](./Dinsight_API/CHANGELOG.md) — Per-week breakdown of the foundation arc
+- [Frontend CHANGELOG](./frontend/CHANGELOG.md) — Frontend half of the same arc
+- [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API/docs/TENANCY_AND_RBAC.md) — Data model, JWT memberships, role matrix, SSO setup, audit log schema
+- [NOT NULL migration runbook](./Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md) — Deploy-day ops runbook for the Week 4 `organization_id NOT NULL` enforcement
 
 ## 📄 License
 
