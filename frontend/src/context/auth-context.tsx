@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { api, tokenManager } from '@/lib/api-client';
-import { User, LoginRequest, RegisterRequest } from '@/types';
+import { User, UserOrganization, OrgRole, LoginRequest, RegisterRequest } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -13,12 +13,33 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  // Active organization. Resolved from the current_org_id cookie if set
+  // and present in user.organizations, else the user's first membership.
+  // Null when the user has zero memberships (legitimate during onboarding).
+  currentOrg: UserOrganization | null;
+  setCurrentOrg: (orgId: number) => void;
+  // Caller's role in the active org. null when no current org.
+  currentOrgRole: OrgRole | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// resolveActiveOrg picks the active organization for a freshly-loaded
+// user. Cookie-stored choice wins if it's still a member; else default
+// to the first membership (matches the backend's ResolveOrg default).
+function resolveActiveOrg(orgs: UserOrganization[] | undefined): UserOrganization | null {
+  if (!orgs || orgs.length === 0) return null;
+  const cookieId = tokenManager.getCurrentOrgId();
+  if (cookieId) {
+    const fromCookie = orgs.find((o) => String(o.id) === cookieId);
+    if (fromCookie) return fromCookie;
+  }
+  return orgs[0];
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [currentOrg, setCurrentOrgState] = useState<UserOrganization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -31,7 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const response = await api.users.getProfile();
-      setUser(response.data.data);
+      const fetched = response.data.data as User;
+      setUser(fetched);
+      // Resolve and persist the active org so the axios interceptor's
+      // X-Org-ID header is stable across reloads.
+      const active = resolveActiveOrg(fetched.organizations);
+      setCurrentOrgState(active);
+      if (active) {
+        tokenManager.setCurrentOrg(active.id);
+      } else {
+        tokenManager.clearCurrentOrg();
+      }
     } catch (error) {
       console.error('Failed to fetch user:', error);
       tokenManager.clearTokens();
@@ -50,7 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { access_token, refresh_token, expires_in, user } = response.data.data;
 
       tokenManager.setTokens(access_token, refresh_token, expires_in);
+      // Login's response carries only identity (no memberships) — fetchUser
+      // below pulls /users/profile which carries the organizations array.
+      // We set user immediately so the spinner clears, then refresh to
+      // hydrate the membership list and active-org state.
       setUser(user);
+      await fetchUser();
 
       // Redirect to dashboard or return URL
       let returnUrl = '/dashboard';
@@ -85,8 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      tokenManager.clearTokens();
+      tokenManager.clearTokens(); // also clears current_org_id
       setUser(null);
+      setCurrentOrgState(null);
       router.push('/login');
     }
   };
@@ -95,7 +132,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchUser();
   };
 
-  const value = {
+  // Switch the active organization. Updates the cookie so the axios
+  // interceptor stamps the new X-Org-ID on subsequent requests, then
+  // updates the in-memory state so consumers (sidebar switcher, query
+  // invalidation, etc.) react. Caller is responsible for invalidating
+  // any cached queries that should not leak across orgs.
+  const setCurrentOrg = useCallback(
+    (orgId: number) => {
+      const next = user?.organizations?.find((o) => o.id === orgId) ?? null;
+      if (!next) return;
+      setCurrentOrgState(next);
+      tokenManager.setCurrentOrg(next.id);
+    },
+    [user]
+  );
+
+  const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user,
@@ -103,6 +155,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     refreshUser,
+    currentOrg,
+    setCurrentOrg,
+    currentOrgRole: currentOrg?.role ?? null,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

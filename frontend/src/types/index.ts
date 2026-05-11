@@ -1,4 +1,21 @@
 // User and Authentication Types
+
+// Role the caller holds inside an organization. Mirrors model.Role* on
+// the backend; the global User.role field above is identity-level, this
+// one is per-organization.
+export type OrgRole = 'admin' | 'operator' | 'viewer';
+
+// One row of the user's membership list, mirroring the backend's
+// handler.ProfileOrganization shape returned by /users/profile.
+export interface UserOrganization {
+  id: number;
+  name: string;
+  slug: string;
+  plan: string;
+  subscription_status: string;
+  role: OrgRole;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -8,6 +25,11 @@ export interface User {
   email_verified?: boolean;
   last_login?: string;
   created_at?: string;
+  // Populated by GET /users/profile. Empty array is legitimate (user
+  // belongs to no org yet). The auth context resolves a current_org_id
+  // from this list + a persisted cookie; the axios interceptor stamps
+  // X-Org-ID from there.
+  organizations?: UserOrganization[];
 }
 
 export interface LoginRequest {
