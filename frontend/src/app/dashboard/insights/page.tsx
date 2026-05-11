@@ -211,14 +211,16 @@ export default function HealthInsightsPage() {
         setIsControlsCollapsed(true);
       }
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    writeScoped(INSIGHTS_UI_PREFS_KEY, userId,
+    writeScoped(
+      INSIGHTS_UI_PREFS_KEY,
+      userId,
       JSON.stringify({
         includeMonitoring,
         showWearSummaryMetrics,
@@ -226,7 +228,7 @@ export default function HealthInsightsPage() {
         isControlsCollapsed,
       })
     );
-  }, [activePlotTab, includeMonitoring, isControlsCollapsed, showWearSummaryMetrics]);
+  }, [activePlotTab, includeMonitoring, isControlsCollapsed, showWearSummaryMetrics, userId]);
 
   const metadataColumnsQuery = useQuery<string[]>({
     queryKey: ['deterioration-metadata-columns', datasetId],
@@ -339,7 +341,7 @@ export default function HealthInsightsPage() {
       setLastWearTrendRunAt(localConfig.appliedAt);
     }
     hasHydratedPersistedConfigRef.current = true;
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!hasFetchedUserPreferences) {
@@ -395,16 +397,14 @@ export default function HealthInsightsPage() {
     if (resolvedApplied) {
       setHasAppliedWearTrendRun(true);
       setLastWearTrendRunAt(resolvedApplied.appliedAt);
-      writeScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId,
-        JSON.stringify(resolvedApplied)
-      );
+      writeScoped(INSIGHTS_APPLIED_WEAR_CONFIG_KEY, userId, JSON.stringify(resolvedApplied));
       window.dispatchEvent(new CustomEvent(INSIGHTS_APPLIED_WEAR_CONFIG_EVENT));
     }
 
     if (resolvedDraft) {
       writeScoped(INSIGHTS_DRAFT_WEAR_CONFIG_KEY, userId, JSON.stringify(resolvedDraft));
     }
-  }, [hasFetchedUserPreferences, userPreferences]);
+  }, [hasFetchedUserPreferences, userPreferences, userId]);
 
   const persistWearConfigToServer = useCallback(async (nextConfig: AppliedWearTrendConfig) => {
     try {
@@ -469,6 +469,7 @@ export default function HealthInsightsPage() {
     rangeStart,
     rangeEnd,
     persistWearDraftToServer,
+    userId,
   ]);
 
   useEffect(
@@ -724,6 +725,7 @@ export default function HealthInsightsPage() {
     rangeStart,
     selectedClusterValues,
     persistWearConfigToServer,
+    userId,
   ]);
 
   const resetToLastAppliedSelection = () => {

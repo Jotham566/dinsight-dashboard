@@ -757,6 +757,7 @@ export default function LiveMonitorPage() {
     showContours,
     streamSpeed,
     isServerPrefsLoaded,
+    user?.id,
   ]);
 
   useEffect(
