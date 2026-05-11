@@ -44,28 +44,28 @@ export function ProcessingDialog({
   const getIcon = () => {
     switch (type) {
       case 'uploading':
-        return <Upload className="w-8 h-8 text-blue-600 animate-pulse" />;
+        return <Upload className="w-8 h-8 text-info-text animate-pulse" />;
       case 'processing':
-        return <Activity className="w-8 h-8 text-blue-600 animate-spin" />;
+        return <Activity className="w-8 h-8 text-info-text animate-spin" />;
       case 'completed':
-        return <CheckCircle className="w-8 h-8 text-emerald-600" />;
+        return <CheckCircle className="w-8 h-8 text-success-text" />;
       case 'error':
-        return <AlertCircle className="w-8 h-8 text-red-600" />;
+        return <AlertCircle className="w-8 h-8 text-danger-text" />;
       default:
-        return <Database className="w-8 h-8 text-gray-600" />;
+        return <Database className="w-8 h-8 text-fg-muted" />;
     }
   };
 
   const getSolidColors = () => {
     switch (stage) {
       case 'baseline':
-        return 'bg-primary-600';
+        return 'bg-accent';
       case 'monitoring':
         return 'bg-info-600';
       case 'complete':
-        return 'bg-emerald-600';
+        return 'bg-success';
       default:
-        return 'bg-gray-600';
+        return 'bg-fg-muted';
     }
   };
 
@@ -85,20 +85,18 @@ export function ProcessingDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-600 shadow-2xl">
+      <AlertDialogContent className="sm:max-w-[500px] bg-canvas border border-strong shadow-md">
         <AlertDialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className={`w-12 h-12 ${getSolidColors()} rounded-xl flex items-center justify-center shadow-sm text-white`}
+                className={`w-12 h-12 ${getSolidColors()} rounded-lg flex items-center justify-center shadow-sm text-accent-contrast`}
               >
                 {getIcon()}
               </div>
               <div>
-                <AlertDialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {title}
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-600 dark:text-gray-300 mt-1">
+                <AlertDialogTitle className="text-xl font-bold text-fg">{title}</AlertDialogTitle>
+                <AlertDialogDescription className="text-fg-muted mt-1">
                   {description}
                 </AlertDialogDescription>
               </div>
@@ -111,7 +109,7 @@ export function ProcessingDialog({
                   onClose?.();
                   onOpenChange(false);
                 }}
-                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="h-8 w-8 p-0 hover:bg-surface-hover"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -127,16 +125,14 @@ export function ProcessingDialog({
 
               {type === 'processing' && (
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex justify-between items-center text-sm text-fg-muted">
                     <span className="flex-1">{statusMessage || 'Processing data...'}</span>
                     {progress !== undefined && progress >= 0 && (
-                      <span className="font-mono text-primary-600 dark:text-primary-400 ml-2">
-                        {progress}%
-                      </span>
+                      <span className="font-mono text-accent ml-2">{progress}%</span>
                     )}
                   </div>
                   {progress === 0 && (
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                    <div className="text-xs text-fg-subtle">
                       Initializing processing pipeline...
                     </div>
                   )}
@@ -144,19 +140,17 @@ export function ProcessingDialog({
               )}
 
               {type === 'uploading' && (
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Uploading files to server...
-                </div>
+                <div className="text-sm text-fg-muted">Uploading files to server...</div>
               )}
             </div>
           )}
 
           {/* Error Section */}
           {type === 'error' && errorMessage && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="p-4 bg-danger-bg border border-danger-border rounded-lg">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-red-800 dark:text-red-200">
+                <AlertCircle className="w-5 h-5 text-danger-text mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-danger-text">
                   <strong>Error:</strong> {errorMessage}
                 </div>
               </div>
@@ -165,10 +159,10 @@ export function ProcessingDialog({
 
           {/* Success Section */}
           {type === 'completed' && stage === 'complete' && (
-            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+            <div className="p-4 bg-success-bg border border-success-border rounded-lg">
               <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                <div className="text-sm text-emerald-800 dark:text-emerald-200">
+                <CheckCircle className="w-5 h-5 text-success-text" />
+                <div className="text-sm text-success-text ">
                   Your data has been successfully processed and is ready for analysis!
                 </div>
               </div>
@@ -177,10 +171,10 @@ export function ProcessingDialog({
 
           {/* Action Buttons */}
           {showActions && type === 'completed' && stage === 'complete' && (
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
               <Button
                 asChild
-                className="flex-1 bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
+                className="flex-1 bg-accent hover:bg-accent-hover text-accent-contrast shadow-sm"
               >
                 <a href="/dashboard/live">Open Live Monitor</a>
               </Button>
@@ -192,7 +186,7 @@ export function ProcessingDialog({
 
           {/* Retry Button for Errors */}
           {type === 'error' && onRetry && (
-            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex gap-3 pt-4 border-t border-border">
               <Button onClick={onRetry} className="flex-1">
                 Try Again
               </Button>
@@ -211,7 +205,7 @@ export function ProcessingDialog({
 
           {/* Simple Close Button for Completed States */}
           {type === 'completed' && stage !== 'complete' && (
-            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-end pt-4 border-t border-border">
               <Button
                 onClick={() => {
                   onClose?.();

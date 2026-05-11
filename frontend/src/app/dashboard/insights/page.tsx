@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -41,7 +40,7 @@ import {
   pickNewestWearConfig,
 } from '@/lib/insights-wear-config';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+import { PlotCanvas as Plot } from '@/components/charts/plot-canvas';
 const INSIGHTS_UI_PREFS_KEY = 'insights-ui-prefs-v1';
 const DISTANCE_AXIS_BASE_MAX = 2;
 
@@ -1303,7 +1302,7 @@ export default function HealthInsightsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardContent className="space-y-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -1395,7 +1394,7 @@ export default function HealthInsightsPage() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {!isControlsCollapsed && (
-          <Card className="border-gray-200/60 dark:border-gray-800/60 xl:col-span-3 xl:sticky xl:top-20 xl:h-fit">
+          <Card className="border-border/60 xl:col-span-3 xl:sticky xl:top-20 xl:h-fit">
             <CardHeader>
               <CardTitle className="text-lg">Controls</CardTitle>
               <CardDescription>
@@ -1508,13 +1507,13 @@ export default function HealthInsightsPage() {
                   intervals selected.
                 </p>
                 {hasPartialClusterRange && (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-warning-text">
                     Enter both range start and range end to use cluster range filtering.
                   </p>
                 )}
               </div>
 
-              <div className="sticky bottom-0 space-y-2 rounded-lg border border-input bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+              <div className="sticky bottom-0 space-y-2 rounded-lg border border-border bg-surface p-3">
                 <p className="text-sm font-medium">Apply analysis</p>
                 <div className="grid gap-2">
                   <Button onClick={applyWearTrendSelection} disabled={!canRunWearTrend}>
@@ -1547,7 +1546,7 @@ export default function HealthInsightsPage() {
         <div
           className={`${isControlsCollapsed ? 'xl:col-span-12' : 'xl:col-span-9'} min-w-0 space-y-6`}
         >
-          <Card className="border-gray-200/60 dark:border-gray-800/60">
+          <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <TrendingDown className="h-5 w-5" />
@@ -1581,7 +1580,7 @@ export default function HealthInsightsPage() {
                   Baseline selection changed. Click <strong>Run wear trend</strong> to update plots.
                 </p>
               ) : wearError ? (
-                <p className="text-sm text-red-600">{wearError}</p>
+                <p className="text-sm text-danger-text">{wearError}</p>
               ) : wearResult ? (
                 <>
                   {isUpdatingWearTrend && (
@@ -1988,7 +1987,7 @@ export default function HealthInsightsPage() {
         </div>
       </div>
 
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardContent className="flex flex-wrap gap-3 py-4">
           <Button asChild>
             <Link href="/dashboard/live">

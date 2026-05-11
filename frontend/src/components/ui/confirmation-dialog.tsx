@@ -47,19 +47,17 @@ export function ConfirmationDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-600 shadow-2xl">
+      <AlertDialogContent className="sm:max-w-[425px] bg-canvas border border-strong shadow-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {title}
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+          <AlertDialogTitle className="text-lg font-semibold text-fg">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm text-fg leading-relaxed">
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex gap-3 pt-4">
           <AlertDialogCancel
             onClick={handleCancel}
-            className="px-4 py-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
+            className="px-4 py-2 border-strong text-fg hover:bg-surface-hover hover:border-strong "
           >
             {cancelText}
           </AlertDialogCancel>
@@ -67,8 +65,8 @@ export function ConfirmationDialog({
             onClick={handleConfirm}
             className={
               variant === 'destructive'
-                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white px-4 py-2 shadow-sm'
-                : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white px-4 py-2 shadow-sm'
+                ? 'bg-danger hover:bg-danger focus:ring-focus text-accent-contrast px-4 py-2 shadow-sm'
+                : 'bg-info hover:bg-info focus:ring-focus text-accent-contrast px-4 py-2 shadow-sm'
             }
           >
             {confirmText}

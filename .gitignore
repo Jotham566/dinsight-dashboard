@@ -74,3 +74,4 @@ coverage/
 # Crush
 .crush/
 crush.md
+.gstack/

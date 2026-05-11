@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -30,7 +29,7 @@ import { api } from '@/lib/api-client';
 import type { CoordinateSeries } from '@/lib/dataset-normalizers';
 import { cn } from '@/utils/cn';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+import { PlotCanvas as Plot } from '@/components/charts/plot-canvas';
 
 type SelectionMode = 'rectangle' | 'lasso' | 'circle' | 'oval';
 
@@ -68,11 +67,9 @@ interface AnomalyDetectionResult {
 }
 
 const stateTone: Record<'OK' | 'Deteriorating' | 'Failing', string> = {
-  OK: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-200',
-  Deteriorating:
-    'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-200',
-  Failing:
-    'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/20 dark:text-red-200',
+  OK: 'border-success-border bg-success-bg text-success-text   ',
+  Deteriorating: 'border-warning-border bg-warning-bg text-warning-text   ',
+  Failing: 'border-danger-border bg-danger-bg text-danger-text   ',
 };
 
 const LIVE_MONITOR_PREFS_KEY = 'dinsight:live-monitor:prefs:v1';
@@ -1444,9 +1441,9 @@ export default function LiveMonitorPage() {
       </Card>
 
       {prefsConflict && (
-        <Card className="border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
+        <Card className="border-warning-border bg-warning-bg ">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-            <p className="text-amber-900 dark:text-amber-200">
+            <p className="text-warning-text ">
               Newer monitor settings were detected from another device
               {prefsConflict.updatedAt
                 ? ` (${new Date(prefsConflict.updatedAt).toLocaleString()})`
@@ -1466,7 +1463,7 @@ export default function LiveMonitorPage() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-4">
-        <Card className="xl:col-span-1 border-gray-200/60 dark:border-gray-800/60">
+        <Card className="xl:col-span-1 border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Activity className="h-5 w-5" />
@@ -1513,7 +1510,7 @@ export default function LiveMonitorPage() {
                   Apply
                 </Button>
               </div>
-              {datasetError && <p className="text-xs text-red-600">{datasetError}</p>}
+              {datasetError && <p className="text-xs text-danger-text">{datasetError}</p>}
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
@@ -1579,7 +1576,7 @@ export default function LiveMonitorPage() {
                 onClick={() => setAutoRefresh((prev) => !prev)}
                 className={cn(
                   'h-6 w-11 rounded-full p-1 transition-colors',
-                  autoRefresh ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-700'
+                  autoRefresh ? 'bg-accent' : 'bg-surface-muted'
                 )}
                 aria-pressed={autoRefresh}
                 aria-label="Toggle auto refresh"
@@ -1604,9 +1601,9 @@ export default function LiveMonitorPage() {
                 <Badge
                   variant="outline"
                   className={cn(
-                    statusLabel === 'completed' && 'border-emerald-300 text-emerald-700',
-                    statusLabel === 'streaming' && 'border-blue-300 text-blue-700',
-                    statusLabel === 'not_started' && 'border-gray-300 text-gray-700'
+                    statusLabel === 'completed' && 'border-success-border text-success-text',
+                    statusLabel === 'streaming' && 'border-info-border text-info-text',
+                    statusLabel === 'not_started' && 'border-strong text-fg'
                   )}
                 >
                   {statusLabel === 'completed'
@@ -1748,7 +1745,7 @@ export default function LiveMonitorPage() {
           </CardContent>
         </Card>
 
-        <Card className="xl:col-span-3 border-gray-200/60 dark:border-gray-800/60">
+        <Card className="xl:col-span-3 border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShieldAlert className="h-5 w-5" />
@@ -1761,7 +1758,7 @@ export default function LiveMonitorPage() {
           </CardHeader>
           <CardContent>
             {(baselineError || monitoringError) && (
-              <div className="mb-4 space-y-1 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+              <div className="mb-4 space-y-1 rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text ">
                 {baselineError && <p>{baselineError}</p>}
                 {monitoringError && <p>{monitoringError}</p>}
               </div>
@@ -1817,7 +1814,7 @@ export default function LiveMonitorPage() {
         </Card>
       </div>
 
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardContent className="flex flex-wrap gap-3 py-4">
           <Button asChild>
             <Link href="/dashboard/insights">

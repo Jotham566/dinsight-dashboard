@@ -128,28 +128,28 @@ export function FileUpload({
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
       case 'pending':
-        return <File className="h-4 w-4 text-gray-400 dark:text-gray-500" />;
+        return <File className="h-4 w-4 text-fg-subtle" />;
       case 'uploading':
-        return <Upload className="h-4 w-4 text-blue-500 animate-pulse" />;
+        return <Upload className="h-4 w-4 text-info-text animate-pulse" />;
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-success-text" />;
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-danger-text" />;
       default:
-        return <File className="h-4 w-4 text-gray-400 dark:text-gray-500" />;
+        return <File className="h-4 w-4 text-fg-subtle" />;
     }
   };
 
   const getStatusColor = (status: UploadedFile['status']) => {
     switch (status) {
       case 'success':
-        return 'text-green-600 bg-green-50 border-green-200';
+        return 'text-success-text bg-success-bg border-success-border';
       case 'error':
-        return 'text-red-600 bg-red-50 border-red-200';
+        return 'text-danger-text bg-danger-bg border-danger-border';
       case 'uploading':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-info-text bg-info-bg border-info-border';
       default:
-        return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700';
+        return 'text-fg-muted bg-surface-muted border-border';
     }
   };
 
@@ -160,33 +160,28 @@ export function FileUpload({
         {...getRootProps()}
         className={cn(
           'relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors duration-200',
-          isDragActive
-            ? 'border-primary-500 bg-primary-50'
-            : 'border-gray-300 hover:border-gray-400',
+          isDragActive ? 'border-strong bg-surface-selected' : 'border-strong hover:border-strong',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       >
         <input {...getInputProps()} />
         <Upload
-          className={cn(
-            'mx-auto h-12 w-12 mb-4',
-            isDragActive ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'
-          )}
+          className={cn('mx-auto h-12 w-12 mb-4', isDragActive ? 'text-accent' : 'text-fg-subtle')}
         />
         {isDragActive ? (
           <div>
-            <p className="text-lg font-medium text-primary-600">Drop the files here...</p>
-            <p className="text-sm text-primary-500">Ready to upload your CSV files</p>
+            <p className="text-lg font-medium text-accent">Drop the files here...</p>
+            <p className="text-sm text-accent">Ready to upload your CSV files</p>
           </div>
         ) : (
           <div>
-            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <p className="text-lg font-medium text-fg">
               Drag & drop CSV files here, or click to browse
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            <p className="text-sm text-fg-muted mt-2">
               Maximum file size: {formatBytes(maxSize)} • Maximum {maxFiles} files
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Supported formats: CSV</p>
+            <p className="text-sm text-fg-muted">Supported formats: CSV</p>
           </div>
         )}
       </div>
@@ -195,9 +190,7 @@ export function FileUpload({
       {files.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-              Uploaded Files ({files.length})
-            </h3>
+            <h3 className="text-lg font-medium text-fg">Uploaded Files ({files.length})</h3>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={clearAll}>
                 Clear All
@@ -238,11 +231,11 @@ export function FileUpload({
                   {getStatusIcon(uploadedFile.status)}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-fg-muted">
                       {formatBytes(uploadedFile.file.size)} • {uploadedFile.file.type || 'CSV'}
                     </p>
                     {uploadedFile.error && (
-                      <p className="text-xs text-red-600 mt-1">{uploadedFile.error}</p>
+                      <p className="text-xs text-danger-text mt-1">{uploadedFile.error}</p>
                     )}
                   </div>
                 </div>
@@ -250,11 +243,11 @@ export function FileUpload({
                   <span
                     className={cn(
                       'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                      uploadedFile.status === 'success' && 'bg-green-100 text-green-800',
-                      uploadedFile.status === 'error' && 'bg-red-100 text-red-800',
-                      uploadedFile.status === 'uploading' && 'bg-blue-100 text-blue-800',
+                      uploadedFile.status === 'success' && 'bg-success-bg text-success-text',
+                      uploadedFile.status === 'error' && 'bg-danger-bg text-danger-text',
+                      uploadedFile.status === 'uploading' && 'bg-info-bg text-info-text',
                       uploadedFile.status === 'pending' &&
-                        'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        'bg-surface-muted dark:bg-surface-muted text-fg'
                     )}
                   >
                     {uploadedFile.status === 'success' && 'Uploaded'}

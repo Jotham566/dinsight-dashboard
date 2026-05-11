@@ -2,17 +2,161 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens — single source of truth per DESIGN.md §6 and §7.
+ *
+ * Components must consume these semantic tokens (via Tailwind utilities like
+ * `bg-surface`, `text-default`, `border-default`, `bg-accent`, etc. — see
+ * tailwind.config.ts) instead of raw color families (gray-500, blue-600).
+ */
 @layer base {
-  * {
-    border-color: theme('colors.gray.200');
+  :root {
+    /* Surfaces (§7.2 light) */
+    --color-canvas: #f3f5f7;
+    --color-surface: #ffffff;
+    --color-surface-raised: #ffffff;
+    --color-surface-muted: #e9eef3;
+    --color-surface-hover: #f8fafc;
+    --color-surface-selected: #eaf2ff;
+    --color-surface-disabled: #f2f4f7;
+
+    /* Borders */
+    --color-border: #d5dee7;
+    --color-border-strong: #b7c4d1;
+    --color-disabled-border: #d0d5dd;
+
+    /* Text */
+    --color-text: #0f1720;
+    --color-text-muted: #475467;
+    --color-text-subtle: #667085;
+    --color-disabled-text: #98a2b3;
+
+    /* Accent (single industrial blue — §7.1) */
+    --color-accent: #155eef;
+    --color-accent-hover: #004eeb;
+    --color-accent-contrast: #ffffff;
+
+    /* Focus */
+    --color-focus: #155eef;
+
+    /* Overlay */
+    --color-overlay-scrim: rgba(15, 23, 32, 0.48);
+
+    /* Semantic single-color anchors */
+    --color-success: #15803d;
+    --color-warning: #b45309;
+    --color-danger: #b42318;
+    --color-info: #0f6e8c;
+
+    /* Semantic ramps (§7.4) */
+    --color-success-bg: #ecfdf3;
+    --color-success-border: #abefc6;
+    --color-success-text: #067647;
+    --color-warning-bg: #fffaeb;
+    --color-warning-border: #fedf89;
+    --color-warning-text: #b54708;
+    --color-danger-bg: #fef3f2;
+    --color-danger-border: #fecdca;
+    --color-danger-text: #b42318;
+    --color-info-bg: #f0f9ff;
+    --color-info-border: #b9e6fe;
+    --color-info-text: #026aa2;
+
+    /* Control surfaces (§7.3) */
+    --color-control-bg: #ffffff;
+    --color-control-bg-hover: #fcfcfd;
+    --color-control-bg-disabled: #f2f4f7;
+    --color-control-border: #d5dee7;
+    --color-control-border-hover: #b7c4d1;
+    --color-control-border-focus: #155eef;
+    --color-control-border-disabled: #d0d5dd;
+
+    /* Chart support */
+    --color-chart-grid: #e4e7ec;
+    --color-chart-axis: #667085;
+    --color-chart-neutral-line: #98a2b3;
+    --color-chart-threshold: #b45309;
   }
 
-  .dark * {
-    border-color: theme('colors.gray.800');
+  .dark {
+    /* Surfaces (§7.2 dark) */
+    --color-canvas: #0b1218;
+    --color-surface: #111a22;
+    --color-surface-raised: #15212c;
+    --color-surface-muted: #1b2a36;
+    --color-surface-hover: #16212b;
+    --color-surface-selected: #1c3047;
+    --color-surface-disabled: #121a22;
+
+    /* Borders */
+    --color-border: #2a3a47;
+    --color-border-strong: #425466;
+    --color-disabled-border: #31414d;
+
+    /* Text */
+    --color-text: #f3f5f7;
+    --color-text-muted: #c7d0d9;
+    --color-text-subtle: #98a7b5;
+    --color-disabled-text: #748190;
+
+    /* Accent */
+    --color-accent: #6ea8fe;
+    --color-accent-hover: #8bc0ff;
+    --color-accent-contrast: #0b1218;
+
+    /* Focus */
+    --color-focus: #6ea8fe;
+
+    /* Overlay */
+    --color-overlay-scrim: rgba(3, 10, 16, 0.64);
+
+    /* Semantic single-color anchors */
+    --color-success: #22a75a;
+    --color-warning: #d18a1d;
+    --color-danger: #e35d5b;
+    --color-info: #4fa7c6;
+
+    /* Semantic ramps */
+    --color-success-bg: #0d2217;
+    --color-success-border: #1f7a47;
+    --color-success-text: #6ce9a6;
+    --color-warning-bg: #261a08;
+    --color-warning-border: #9a6700;
+    --color-warning-text: #fec84b;
+    --color-danger-bg: #2b1110;
+    --color-danger-border: #b9382f;
+    --color-danger-text: #fda29b;
+    --color-info-bg: #0d1f29;
+    --color-info-border: #175c7d;
+    --color-info-text: #7cd4fd;
+
+    /* Control surfaces */
+    --color-control-bg: #111a22;
+    --color-control-bg-hover: #15212c;
+    --color-control-bg-disabled: #121a22;
+    --color-control-border: #2a3a47;
+    --color-control-border-hover: #425466;
+    --color-control-border-focus: #6ea8fe;
+    --color-control-border-disabled: #31414d;
+
+    /* Chart support */
+    --color-chart-grid: #263542;
+    --color-chart-axis: #98a7b5;
+    --color-chart-neutral-line: #748190;
+    --color-chart-threshold: #d18a1d;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
-    @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
+    background-color: var(--color-canvas);
+    color: var(--color-text);
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
@@ -20,85 +164,78 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  html {
-    @apply scroll-smooth;
+  /* Default border tint for elements that don't set their own */
+  * {
+    border-color: var(--color-border);
   }
 }
 
 @layer components {
-  /* Modern Glass Card */
-  .glass-card {
-    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800;
-    @apply shadow-sm transition-colors duration-200;
-  }
-
-  /* Solid Text */
-  .gradient-text {
-    @apply text-primary-700 dark:text-primary-300;
-  }
-
-  /* Card Hover Effects */
+  /* Card hover affordance — border + colour transition only (DESIGN.md §10) */
   .card-hover {
-    @apply transition-all duration-200;
-    @apply hover:shadow-md;
-    @apply hover:border-primary-300 dark:hover:border-primary-700;
+    @apply transition-colors duration-150;
+  }
+  .card-hover:hover {
+    border-color: var(--color-border-strong);
   }
 
-  /* Skeleton Loading */
+  /* Skeleton — opacity pulse only, no shimmering light sweep (DESIGN.md §10.2) */
   .skeleton {
-    @apply relative overflow-hidden bg-gray-200 dark:bg-gray-800;
-  }
-
-  .skeleton::after {
-    @apply absolute inset-0 -translate-x-full animate-pulse;
-    @apply bg-gradient-to-r from-transparent via-white/10 to-transparent;
-    content: '';
+    @apply animate-pulse;
+    background-color: var(--color-surface-muted);
   }
 }
 
 @layer utilities {
-  /* Custom Scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;
   }
-
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 }
 
-/* Custom Scrollbar Styles */
+/* Scrollbar chrome — uses semantic tokens so it tracks both themes */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-900;
+  background-color: var(--color-surface-muted);
 }
-
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-600 rounded-full;
-  @apply hover:bg-gray-500 dark:hover:bg-gray-500;
+  background-color: var(--color-border-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-subtle);
 }
 
-/* Selection Colors */
+/* Text selection */
 ::selection {
-  @apply bg-primary-500/20 text-primary-900 dark:text-primary-100;
+  background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  color: var(--color-text);
 }
 
-/* Focus Visible */
-.focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
-  @apply dark:focus-visible:ring-offset-gray-900;
+/* Reusable focus helper for places that don't have the primitive ring baked in */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-canvas),
+    0 0 0 4px var(--color-focus);
 }
 
-/* Loading Spinner */
+/* Loading spinner — neutral, restrained (DESIGN.md §10) */
 .spinner {
-  @apply inline-block w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-accent);
+  border-top-color: transparent;
+  border-radius: 9999px;
+  animation: spin 1s linear infinite;
 }

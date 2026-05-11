@@ -67,19 +67,17 @@ function LoginForm() {
           {/* Logo and Title */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 bg-gray-900 dark:bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white dark:text-gray-900 text-2xl font-bold">D</span>
+              <div className="w-16 h-16 bg-accent rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-accent-contrast text-2xl font-bold">D</span>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Welcome back</h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Sign in to your D'Insight account
-            </p>
+            <h2 className="text-3xl font-bold text-fg">Welcome back</h2>
+            <p className="mt-2 text-sm text-fg-muted">Sign in to your D'Insight account</p>
           </div>
 
           {/* Success message for new registration */}
           {registered && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div className="bg-success-bg border border-success-border text-success-text px-4 py-3 rounded-lg">
               <p className="text-sm">
                 Registration successful! Please sign in with your credentials.
               </p>
@@ -88,7 +86,7 @@ function LoginForm() {
 
           {/* Error message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+            <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               <p className="text-sm">{error}</p>
             </div>
@@ -99,10 +97,7 @@ function LoginForm() {
             <div className="space-y-4">
               {/* Email Field */}
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
+                <label htmlFor="email" className="block text-sm font-medium text-fg">
                   Email Address
                 </label>
                 <input
@@ -110,26 +105,21 @@ function LoginForm() {
                   type="email"
                   autoComplete="email"
                   className={cn(
-                    'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
-                    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                    'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm bg-surface text-fg',
+                    'focus:outline-none focus:ring-2 focus:ring-focus focus:border-control-border-focus',
                     'transition-colors duration-200',
-                    errors.email
-                      ? 'border-red-300 text-red-900 placeholder-red-300'
-                      : 'border-gray-300 dark:border-gray-600'
+                    errors.email ? 'border-danger-border text-danger-text ' : 'border-strong'
                   )}
                   placeholder="you@example.com"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-danger-text">{errors.email.message}</p>
                 )}
               </div>
 
               {/* Password Field */}
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
+                <label htmlFor="password" className="block text-sm font-medium text-fg">
                   Password
                 </label>
                 <div className="mt-1 relative">
@@ -138,12 +128,10 @@ function LoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     className={cn(
-                      'block w-full px-3 py-2 pr-10 border rounded-lg shadow-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
-                      'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                      'block w-full px-3 py-2 pr-10 border rounded-lg shadow-sm bg-surface text-fg',
+                      'focus:outline-none focus:ring-2 focus:ring-focus focus:border-control-border-focus',
                       'transition-colors duration-200',
-                      errors.password
-                        ? 'border-red-300 text-red-900 placeholder-red-300'
-                        : 'border-gray-300 dark:border-gray-600'
+                      errors.password ? 'border-danger-border text-danger-text ' : 'border-strong'
                     )}
                     placeholder="Enter your password"
                   />
@@ -153,14 +141,14 @@ function LoginForm() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                      <EyeOff className="h-5 w-5 text-fg-subtle" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                      <Eye className="h-5 w-5 text-fg-subtle" />
                     )}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-1 text-sm text-danger-text">{errors.password.message}</p>
                 )}
               </div>
             </div>
@@ -172,21 +160,15 @@ function LoginForm() {
                   {...register('remember_me')}
                   id="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-accent focus:ring-focus border-strong rounded"
                 />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-                >
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-fg">
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <Link
-                  href="/forgot-password"
-                  className="font-medium text-primary-600 hover:text-primary-500"
-                >
+                <Link href="/forgot-password" className="font-medium text-accent hover:text-accent">
                   Forgot password?
                 </Link>
               </div>
@@ -199,8 +181,8 @@ function LoginForm() {
                 disabled={isLoading}
                 className={cn(
                   'w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm',
-                  'text-sm font-medium text-white bg-primary-600 hover:bg-primary-700',
-                  'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500',
+                  'text-sm font-medium text-accent-contrast bg-accent hover:bg-accent-hover',
+                  'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus',
                   'transition-all duration-200',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
@@ -218,12 +200,9 @@ function LoginForm() {
 
             {/* Sign up link */}
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-fg-muted">
                 Don't have an account?{' '}
-                <Link
-                  href="/register"
-                  className="font-medium text-primary-600 hover:text-primary-500"
-                >
+                <Link href="/register" className="font-medium text-accent hover:text-accent">
                   Sign up
                 </Link>
               </p>
@@ -232,50 +211,35 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Right side - Feature Highlights */}
-      <div className="hidden lg:flex lg:flex-1 bg-gray-50 dark:bg-gray-900/50 border-l border-gray-200 dark:border-gray-800">
+      {/* Right side — operator-tone capability summary, not marketing copy */}
+      <div className="hidden lg:flex lg:flex-1 bg-surface-muted border-l border-border">
         <div className="flex-1 flex items-center justify-center p-12">
-          <div className="max-w-md text-gray-900 dark:text-gray-100">
-            <h1 className="text-4xl font-bold mb-6">D'Insight Dashboard</h1>
-            <p className="text-lg mb-8 text-gray-600 dark:text-gray-400">
-              Advanced predictive maintenance analytics platform with real-time monitoring and
-              anomaly detection.
+          <div className="max-w-md text-fg">
+            <h2 className="text-2xl font-semibold mb-2">Sign in to continue monitoring</h2>
+            <p className="text-sm mb-8 text-fg-muted">
+              D'Insight watches your equipment for early signs of deterioration so the team can act
+              before failures escalate.
             </p>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-sm font-semibold">1</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-1">Real-time Monitoring</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Monitor your equipment health in real-time with advanced analytics
-                  </p>
-                </div>
+            <dl className="space-y-5">
+              <div>
+                <dt className="text-sm font-semibold text-fg">Live machine state</dt>
+                <dd className="mt-1 text-sm text-fg-muted">
+                  OK, Deteriorating, or Failing — at a glance, on every screen.
+                </dd>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-sm font-semibold">2</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-1">Anomaly Detection</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Detect anomalies before they become critical failures
-                  </p>
-                </div>
+              <div>
+                <dt className="text-sm font-semibold text-fg">Baseline-aware anomaly detection</dt>
+                <dd className="mt-1 text-sm text-fg-muted">
+                  Surfaces drift from healthy behaviour the moment it starts.
+                </dd>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-sm font-semibold">3</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-1">Predictive Insights</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Get actionable insights to optimize maintenance schedules
-                  </p>
-                </div>
+              <div>
+                <dt className="text-sm font-semibold text-fg">Deterioration trend</dt>
+                <dd className="mt-1 text-sm text-fg-muted">
+                  Quantifies wear over time so maintenance can be scheduled, not reactive.
+                </dd>
               </div>
-            </div>
+            </dl>
           </div>
         </div>
       </div>

@@ -35,13 +35,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-strong"></div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex bg-gray-50 dark:bg-gray-950">
+    <div className="h-screen flex bg-canvas">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -51,7 +51,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         <Header onMenuClick={() => setSidebarOpen(true)} isSidebarOpen={sidebarOpen} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+        <main className="flex-1 overflow-y-auto bg-canvas">
           <div className="container mx-auto px-4 py-6 max-w-7xl">{children}</div>
         </main>
       </div>

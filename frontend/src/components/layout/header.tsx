@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Search, Bell, Menu, User, LogOut, Settings, ChevronDown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
@@ -23,79 +22,50 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
   const { user, logout } = useAuth();
-  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
-
-  const getPageTitle = () => {
-    const segments = pathname.split('/').filter(Boolean);
-    const lastSegment = segments[segments.length - 1] || 'dashboard';
-    return lastSegment
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-surface">
       <div className="flex h-16 items-center px-4 sm:px-6">
         {/* Mobile menu button */}
         <Button
           variant="ghost"
           size="icon"
-          className="mr-2 md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="mr-2 md:hidden hover:bg-surface-hover rounded-lg transition-colors"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle menu</span>
         </Button>
 
-        {/* Logo and Title */}
-        <div className="flex items-center space-x-3">
-          <Link href="/dashboard" className="flex items-center space-x-2 group">
-            <div className="relative">
-              <div className="relative h-9 w-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-            </div>
-            <div className="hidden sm:flex flex-col">
-              <span className="font-display font-bold text-lg text-primary-700 dark:text-primary-300">
-                D'Insight
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Predictive Analytics</span>
+        {/* Mobile brand anchor — sidebar is the canonical product mark on md+ */}
+        <div className="flex items-center md:hidden">
+          <Link href="/dashboard" aria-label="D'Insight" className="flex items-center">
+            <div className="h-9 w-9 bg-accent rounded-lg flex items-center justify-center shadow-sm">
+              <Sparkles className="h-5 w-5 text-accent-contrast" />
             </div>
           </Link>
         </div>
 
         {/* Search Bar */}
         <div className="flex-1 max-w-2xl mx-4 hidden md:flex">
-          <div
-            className={cn(
-              'relative w-full transition-all duration-300',
-              searchFocused && 'scale-[1.02]'
-            )}
-          >
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" />
             <input
               type="search"
               placeholder="Search analyses, datasets, or features..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
               className={cn(
-                'w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-sm',
-                'focus:border-primary-500 focus:bg-white dark:focus:bg-gray-900',
-                'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
-                'transition-all duration-200',
-                'placeholder:text-gray-400 dark:placeholder:text-gray-500',
-                'border-gray-200 dark:border-gray-800'
+                'w-full rounded-lg border border-border bg-surface-muted pl-10 pr-4 py-2.5 text-sm transition-colors duration-150',
+                'placeholder:text-fg-subtle',
+                'focus:outline-none focus-visible:border-control-border-focus focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:ring-offset-canvas'
               )}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted dark:hover:text-fg-subtle"
               >
                 <span className="text-xs">ESC</span>
               </button>
@@ -111,7 +81,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="md:hidden hover:bg-surface-hover rounded-lg transition-colors"
           >
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
@@ -126,80 +96,66 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                className="relative hover:bg-surface-hover rounded-lg transition-colors"
               >
                 <Bell className="h-5 w-5" />
-                {/* Notification badge with pulse animation */}
-                <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 text-xs text-white items-center justify-center font-medium shadow-sm">
-                    3
-                  </span>
+                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-xs font-medium text-accent-contrast shadow-sm">
+                  3
                 </span>
                 <span className="sr-only">Notifications</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="right" className="w-80 rounded-xl">
-              <div className="px-4 py-3 border-b dark:border-gray-800">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  You have 3 unread notifications
-                </p>
+            <DropdownMenuContent align="right" className="w-80 rounded-lg">
+              <div className="px-4 py-3 border-b dark:border-border">
+                <h3 className="font-semibold text-fg">Notifications</h3>
+                <p className="text-sm text-fg-muted">You have 3 unread notifications</p>
               </div>
               <div className="py-2">
-                <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <DropdownMenuItem className="px-4 py-3 hover:bg-surface-hover/50 transition-colors">
                   <div className="flex gap-3 w-full">
                     <div className="flex-shrink-0">
-                      <div className="h-2 w-2 bg-red-500 rounded-full mt-1.5" />
+                      <div className="h-2 w-2 bg-danger rounded-full mt-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        High Anomaly Detected
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm font-medium text-fg">High Anomaly Detected</p>
+                      <p className="text-xs text-fg-muted mt-0.5">
                         Dataset analysis - 18.5% anomaly rate
                       </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">2 minutes ago</p>
+                      <p className="text-xs text-fg-subtle mt-1">2 minutes ago</p>
                     </div>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <DropdownMenuItem className="px-4 py-3 hover:bg-surface-hover/50 transition-colors">
                   <div className="flex gap-3 w-full">
                     <div className="flex-shrink-0">
-                      <div className="h-2 w-2 bg-green-500 rounded-full mt-1.5" />
+                      <div className="h-2 w-2 bg-success rounded-full mt-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Analysis Complete
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm font-medium text-fg">Analysis Complete</p>
+                      <p className="text-xs text-fg-muted mt-0.5">
                         Baseline data processing finished
                       </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">1 hour ago</p>
+                      <p className="text-xs text-fg-subtle mt-1">1 hour ago</p>
                     </div>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <DropdownMenuItem className="px-4 py-3 hover:bg-surface-hover/50 transition-colors">
                   <div className="flex gap-3 w-full">
                     <div className="flex-shrink-0">
-                      <div className="h-2 w-2 bg-yellow-500 rounded-full mt-1.5" />
+                      <div className="h-2 w-2 bg-warning rounded-full mt-1.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Maintenance Due
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        System maintenance scheduled
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">3 hours ago</p>
+                      <p className="text-sm font-medium text-fg">Maintenance Due</p>
+                      <p className="text-xs text-fg-muted mt-0.5">System maintenance scheduled</p>
+                      <p className="text-xs text-fg-subtle mt-1">3 hours ago</p>
                     </div>
                   </div>
                 </DropdownMenuItem>
               </div>
-              <div className="border-t dark:border-gray-800 p-2">
+              <div className="border-t dark:border-border p-2">
                 <Link
                   href="/dashboard/insights"
-                  className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+                  className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-accent hover:bg-surface-hover/50 rounded-lg transition-colors"
                 >
                   Open health insights
                 </Link>
@@ -212,59 +168,55 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-10 px-2 sm:px-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                className="h-10 px-2 sm:px-3 hover:bg-surface-hover rounded-lg transition-colors"
               >
                 <div className="flex items-center space-x-2">
                   <div className="relative">
-                    <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-sm">
-                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <div className="h-8 w-8 rounded-lg bg-surface-muted flex items-center justify-center shadow-sm">
+                      <span className="text-sm font-semibold text-fg">
                         {user?.full_name
                           ?.split(' ')
                           .map((n) => n[0])
                           .join('') || 'U'}
                       </span>
                     </div>
-                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full" />
+                    <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-success border-2 border-white dark:border-canvas rounded-full" />
                   </div>
                   <div className="hidden md:flex flex-col text-left">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {user?.full_name || 'User'}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-sm font-medium text-fg">{user?.full_name || 'User'}</span>
+                    <span className="text-xs text-fg-muted">
                       {user?.role
                         ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
                         : 'Member'}
                     </span>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <ChevronDown className="h-4 w-4 text-fg-subtle" />
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="right" className="w-56 rounded-xl">
-              <div className="px-3 py-2 border-b dark:border-gray-800">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {user?.full_name}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+            <DropdownMenuContent align="right" className="w-56 rounded-lg">
+              <div className="px-3 py-2 border-b dark:border-border">
+                <p className="text-sm font-medium text-fg">{user?.full_name}</p>
+                <p className="text-xs text-fg-muted truncate">{user?.email}</p>
               </div>
               <div className="py-2">
                 <Link href="/dashboard/account">
-                  <DropdownMenuItem className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
+                  <DropdownMenuItem className="px-3 py-2 hover:bg-surface-hover/50 transition-colors cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
                     <span>Account</span>
                   </DropdownMenuItem>
                 </Link>
                 <Link href="/dashboard/account">
-                  <DropdownMenuItem className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
+                  <DropdownMenuItem className="px-3 py-2 hover:bg-surface-hover/50 transition-colors cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Security</span>
                   </DropdownMenuItem>
                 </Link>
               </div>
-              <div className="border-t dark:border-gray-800 py-2">
+              <div className="border-t dark:border-border py-2">
                 <DropdownMenuItem
                   onClick={logout}
-                  className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                  className="px-3 py-2 text-danger-text hover:bg-danger-bg transition-colors"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign Out</span>
