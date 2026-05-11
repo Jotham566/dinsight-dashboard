@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Sidebar } from '@/components/layout/sidebar';
 
 vi.mock('next/navigation', () => ({
@@ -9,13 +10,24 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/context/auth-context', () => ({
   useAuth: () => ({
-    user: { id: 1, full_name: 'Operator One', role: 'user' },
+    user: { id: 1, full_name: 'Operator One', role: 'user', organizations: [] },
+    currentOrg: null,
+    setCurrentOrg: () => undefined,
+    currentOrgRole: null,
   }),
 }));
 
+// OrgSwitcher (rendered inside Sidebar) uses useQueryClient to invalidate
+// cached queries on org switch, so the test render needs a QueryClient in
+// scope even when the switcher itself short-circuits to null.
+const renderWithQueryClient = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
+
 describe('Sidebar integration', () => {
   it('shows only the final 5-page IA links', () => {
-    render(<Sidebar isOpen onClose={() => undefined} />);
+    renderWithQueryClient(<Sidebar isOpen onClose={() => undefined} />);
 
     expect(screen.getByRole('link', { name: /Machine Status/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Data Ingestion/i })).toBeInTheDocument();

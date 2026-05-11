@@ -13,10 +13,17 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30000, // 30 seconds
 });
 
-// Token management
+// Token management.
+//
+// The currentOrgId cookie persists the user's active organization across
+// reloads. The axios request interceptor below stamps it as X-Org-ID on
+// every outbound request so the backend's ResolveOrg middleware can pick
+// the right scope. setCurrentOrg / clearCurrentOrg are called by the auth
+// context when the user switches orgs or signs out.
 export const tokenManager = {
   getAccessToken: () => Cookies.get('access_token'),
   getRefreshToken: () => Cookies.get('refresh_token'),
+  getCurrentOrgId: () => Cookies.get('current_org_id'),
   setTokens: (accessToken: string, refreshToken: string, expiresIn: number) => {
     const expiryDate = new Date(new Date().getTime() + expiresIn * 1000);
     const isProduction = process.env.NODE_ENV === 'production';
@@ -32,18 +39,41 @@ export const tokenManager = {
       sameSite: 'strict',
     }); // 30 days
   },
+  setCurrentOrg: (orgId: number | string) => {
+    const isProduction = process.env.NODE_ENV === 'production';
+    Cookies.set('current_org_id', String(orgId), {
+      expires: 365,
+      secure: isProduction,
+      sameSite: 'strict',
+    });
+  },
+  clearCurrentOrg: () => {
+    Cookies.remove('current_org_id');
+  },
   clearTokens: () => {
     Cookies.remove('access_token');
     Cookies.remove('refresh_token');
+    Cookies.remove('current_org_id');
   },
 };
 
-// Request interceptor
+// Request interceptor. Stamps both Authorization (Bearer JWT) and
+// X-Org-ID (active organization) on every outbound request. The backend's
+// ResolveOrg middleware reads X-Org-ID to pick the active org scope; if
+// the header is missing, the backend defaults to the user's first
+// membership inside the JWT.
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (!config.headers) {
+      return config;
+    }
     const token = tokenManager.getAccessToken();
-    if (token && config.headers) {
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const orgId = tokenManager.getCurrentOrgId();
+    if (orgId) {
+      config.headers['X-Org-ID'] = orgId;
     }
     return config;
   },

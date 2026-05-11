@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { X, ChevronRight, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
+import { OrgSwitcher } from '@/components/layout/org-switcher';
 import { mainNavItems, bottomNavItems } from '@/lib/navigation';
 import { cn } from '@/utils/cn';
 
@@ -72,6 +73,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <X className="h-5 w-5" />
               <span className="sr-only">Close sidebar</span>
             </Button>
+          </div>
+
+          {/* Org switcher — shows active organization + role, opens a
+              picker when the user belongs to more than one. */}
+          <div className="border-b border-border px-4 py-3">
+            <OrgSwitcher />
           </div>
 
           {/* Navigation */}
