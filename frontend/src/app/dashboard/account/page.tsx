@@ -2,14 +2,38 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, KeyRound, Loader2, Shield, User, UserCog } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  ScrollText,
+  Shield,
+  User,
+  UserCog,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
 import { readScoped, writeScoped } from '@/lib/scoped-storage';
+
+// LicenseInfo mirrors the backend's LicenseInfoResponse. Keep the field
+// names in sync with internal/handler/license.go.
+interface LicenseInfo {
+  customer_id: string;
+  version: string;
+  features: string[];
+  expires_at: string;
+  days_until_expiry: number;
+  max_devices: number;
+  registered_devices: number;
+  is_valid: boolean;
+  last_validated_at: string;
+}
 
 // User-scoped suffixes. The helper prefixes with `dinsight:u<userId>:` so
 // the email-notification toggle from one user doesn't bleed into another's
@@ -56,6 +80,20 @@ export default function AccountSecurityPage() {
       const response = await api.users.getSessions();
       return response?.data?.data?.sessions ?? [];
     },
+    retry: false,
+  });
+
+  // License details are deployment-level, not per-user. We refetch
+  // hourly so a renewed license appears without a manual reload, but
+  // not so often that we're polling for no reason.
+  const { data: licenseInfo, isLoading: licenseLoading } = useQuery<LicenseInfo | null>({
+    queryKey: ['license'],
+    queryFn: async () => {
+      const response = await api.license.get();
+      return (response?.data?.data ?? null) as LicenseInfo | null;
+    },
+    staleTime: 60 * 60_000,
+    refetchInterval: 60 * 60_000,
     retry: false,
   });
 
@@ -323,6 +361,123 @@ export default function AccountSecurityPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ScrollText className="h-5 w-5" />
+            License
+          </CardTitle>
+          <CardDescription>
+            Deployment-level license details. The license is provisioned by your administrator at
+            install time and isn&apos;t mutable from this page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {licenseLoading ? (
+            <div className="flex items-center gap-2 text-sm text-fg-muted">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading license details
+            </div>
+          ) : !licenseInfo ? (
+            <p className="text-sm text-fg-muted">
+              License details are unavailable. Contact your administrator if this persists.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {/* Expiry warning. Red below 30 days, amber-style warning */}
+              {/* below 60. Both are surfaced so the customer can renew    */}
+              {/* before the deployment goes dark.                          */}
+              {licenseInfo.days_until_expiry < 30 && (
+                <div className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-danger" aria-hidden="true" />
+                  <div>
+                    <p className="font-medium text-fg">License expires soon</p>
+                    <p className="text-fg-muted">
+                      {licenseInfo.days_until_expiry <= 0
+                        ? 'This license has expired.'
+                        : `Expires in ${licenseInfo.days_until_expiry} day${
+                            licenseInfo.days_until_expiry === 1 ? '' : 's'
+                          }.`}{' '}
+                      Contact your administrator to renew before access is interrupted.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {licenseInfo.days_until_expiry >= 30 && licenseInfo.days_until_expiry < 60 && (
+                <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" aria-hidden="true" />
+                  <div>
+                    <p className="font-medium text-fg">License renewal coming up</p>
+                    <p className="text-fg-muted">
+                      Expires in {licenseInfo.days_until_expiry} days.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm md:grid-cols-2">
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-fg-muted">Customer</Label>
+                  <p className="mt-1 font-mono text-fg">{licenseInfo.customer_id || '—'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-fg-muted">Version</Label>
+                  <p className="mt-1 text-fg">{licenseInfo.version || '—'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-fg-muted">Expires</Label>
+                  <p className="mt-1 text-fg">
+                    {new Date(licenseInfo.expires_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}{' '}
+                    <span className="text-fg-muted">
+                      ({licenseInfo.days_until_expiry} day
+                      {licenseInfo.days_until_expiry === 1 ? '' : 's'} from now)
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-fg-muted">
+                    Device usage
+                  </Label>
+                  <p className="mt-1 text-fg">
+                    {licenseInfo.registered_devices} /{' '}
+                    {licenseInfo.max_devices < 0 ? '∞' : licenseInfo.max_devices}{' '}
+                    <span className="text-fg-muted">
+                      device{licenseInfo.registered_devices === 1 ? '' : 's'} registered
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {licenseInfo.features?.length > 0 && (
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-fg-muted">Features</Label>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {licenseInfo.features.map((feature) => (
+                      <Badge key={feature} variant="secondary">
+                        {feature}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-fg-muted">
+                Last validated{' '}
+                {new Date(licenseInfo.last_validated_at).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}{' '}
+                · Status: {licenseInfo.is_valid ? 'Valid' : 'Invalid'}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-border/60">
         <CardHeader>

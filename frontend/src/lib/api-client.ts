@@ -194,12 +194,21 @@ export const api = {
     forgotPassword: (email: string) => apiClient.post('/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
       apiClient.post('/auth/reset-password', { token, password }),
+    verifyEmail: (token: string) => apiClient.post('/auth/verify-email', { token }),
+    resendVerification: (email: string) => apiClient.post('/auth/resend-verification', { email }),
     refresh: (refreshToken: string) =>
       apiClient.post('/auth/refresh', { refresh_token: refreshToken }),
     // SSO discovery — public, always available. Returns
     //   { enabled: boolean, label: string }
     // The login page reads it to decide whether to render the SSO button.
     ssoConfig: () => apiClient.get('/auth/sso/config'),
+  },
+
+  // License details for the account page. Backend reads the deployment's
+  // license.lic and returns the claims + device usage. Read-only; the
+  // license itself is provisioned at deploy time and isn't mutable here.
+  license: {
+    get: () => apiClient.get('/license'),
   },
 
   // Audit log
