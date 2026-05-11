@@ -101,7 +101,7 @@ export function DropdownMenuContent({
     <div
       ref={contentRef}
       className={cn(
-        'absolute z-50 mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-xl backdrop-blur-sm animate-fade-in',
+        'absolute z-50 mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 shadow-xl backdrop-blur-sm animate-fade-in',
         align === 'right' ? 'right-0' : 'left-0',
         className
       )}

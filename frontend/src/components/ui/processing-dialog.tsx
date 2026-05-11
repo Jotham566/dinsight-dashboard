@@ -90,7 +90,7 @@ export function ProcessingDialog({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className={`w-12 h-12 ${getSolidColors()} rounded-xl flex items-center justify-center shadow-sm text-white`}
+                className={`w-12 h-12 ${getSolidColors()} rounded-lg flex items-center justify-center shadow-sm text-white`}
               >
                 {getIcon()}
               </div>

@@ -42,7 +42,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
         {/* Mobile brand anchor — sidebar is the canonical product mark on md+ */}
         <div className="flex items-center md:hidden">
           <Link href="/dashboard" aria-label="D'Insight" className="flex items-center">
-            <div className="h-9 w-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
+            <div className="h-9 w-9 bg-primary-600 rounded-lg flex items-center justify-center shadow-sm">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
           </Link>
@@ -65,7 +65,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               className={cn(
-                'w-full rounded-xl border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-sm',
+                'w-full rounded-lg border bg-gray-50 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-sm',
                 'focus:border-primary-500 focus:bg-white dark:focus:bg-gray-900',
                 'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
                 'transition-all duration-200',
@@ -116,7 +116,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 <span className="sr-only">Notifications</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="right" className="w-80 rounded-xl">
+            <DropdownMenuContent align="right" className="w-80 rounded-lg">
               <div className="px-4 py-3 border-b dark:border-gray-800">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -217,7 +217,7 @@ export function Header({ onMenuClick, isSidebarOpen }: HeaderProps) {
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="right" className="w-56 rounded-xl">
+            <DropdownMenuContent align="right" className="w-56 rounded-lg">
               <div className="px-3 py-2 border-b dark:border-gray-800">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {user?.full_name}
