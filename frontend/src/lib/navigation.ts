@@ -7,6 +7,7 @@ import {
   ScrollText,
   type LucideIcon,
 } from 'lucide-react';
+import { Actions, type Action } from '@/lib/permissions';
 
 export interface NavItem {
   label: string;
@@ -16,9 +17,14 @@ export interface NavItem {
   requiresAuth?: boolean;
   requiredRoles?: Array<'admin' | 'user' | 'viewer'>;
   // Restricts the item to users with this role in the currently-active
-  // organization. Read by the sidebar to hide org-admin-only entries
-  // (audit log, soon: org settings, invites) from operators/viewers.
+  // organization. Kept for nav entries that gate on a role itself rather
+  // than a specific action. New entries should prefer requiredAction.
   requiredOrgRoles?: Array<'admin' | 'operator' | 'viewer'>;
+  // Restricts the item to users who can perform this Action in the
+  // currently-active org. The action name matches the backend's policy
+  // table — a grep across both codebases finds every gate. Composes
+  // with requiredOrgRoles when both are set (both must allow).
+  requiredAction?: Action;
   description?: string;
 }
 
@@ -63,7 +69,10 @@ export const mainNavItems: NavItem[] = [
     href: '/dashboard/audit',
     icon: ScrollText,
     requiresAuth: true,
-    requiredOrgRoles: ['admin'],
+    // Sourced from the same matrix the backend uses for middleware.
+    // RequireAction(policy.ActionAuditRead), so the cosmetic gate can
+    // never drift from the authoritative gate.
+    requiredAction: Actions.AuditRead,
     description: 'Who changed what in this organization',
   },
 ];
