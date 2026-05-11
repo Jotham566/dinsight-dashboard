@@ -325,7 +325,96 @@ export const api = {
     getStatus: (baselineId: number) => apiClient.get(`/streaming/${baselineId}/status`),
     reset: (baselineId: number) => apiClient.delete(`/streaming/${baselineId}/reset`),
   },
+
+  // Catalog: dataset metadata, lineage, validation, compatibility,
+  // example datasets. All org-scoped via the backend's ResolveOrg
+  // middleware; writes are role-gated (operator+ for create/update,
+  // admin for delete which doesn't exist on these surfaces yet).
+  datasets: {
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      dataset_type?: string;
+      validation_status?: string;
+    }) => apiClient.get('/datasets/metadata', { params }),
+    getMetadata: (datasetId: number) => apiClient.get(`/datasets/${datasetId}/metadata`),
+    createMetadata: (data: CreateDatasetMetadataRequest) =>
+      apiClient.post('/datasets/metadata', data),
+    updateMetadata: (datasetId: number, data: Partial<CreateDatasetMetadataRequest>) =>
+      apiClient.put(`/datasets/${datasetId}/metadata`, data),
+    getLineage: (datasetId: number) => apiClient.get(`/datasets/${datasetId}/lineage`),
+    getImpact: (datasetId: number) => apiClient.get(`/datasets/${datasetId}/lineage/impact`),
+    getValidationResults: (datasetId: number) =>
+      apiClient.get(`/datasets/${datasetId}/validation-results`),
+    getCompatible: (datasetId: number) => apiClient.get(`/datasets/${datasetId}/compatible`),
+    checkCompatibility: (datasetId1: number, datasetId2: number) =>
+      apiClient.post('/datasets/compatibility/check', {
+        dataset_id_1: datasetId1,
+        dataset_id_2: datasetId2,
+      }),
+  },
+
+  lineage: {
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      transformation_type?: string;
+      status?: string;
+    }) => apiClient.get('/data-lineage', { params }),
+    create: (data: CreateDataLineageRequest) => apiClient.post('/data-lineage', data),
+  },
+
+  validation: {
+    listRules: (params?: { rule_type?: string; active?: boolean }) =>
+      apiClient.get('/data-validation/rules', { params }),
+    createRule: (data: CreateValidationRuleRequest) =>
+      apiClient.post('/data-validation/rules', data),
+    run: (data: { dataset_id: number; validation_rule_ids?: number[] }) =>
+      apiClient.post('/data-validation/validate', data),
+  },
+
+  exampleDatasets: {
+    listTypes: () => apiClient.get('/example-datasets/types'),
+    list: () => apiClient.get('/example-datasets'),
+    load: (exampleType: string) =>
+      apiClient.post('/example-datasets/load', { example_type: exampleType }),
+  },
 };
+
+// Catalog request shapes. Keep field names in sync with the BE handler
+// struct literals — see internal/handler/dataset_metadata.go,
+// data_lineage.go, data_validation.go.
+
+export interface CreateDatasetMetadataRequest {
+  dataset_id: number;
+  dataset_type: string; // "baseline" | "comparison" | "monitoring"
+  name: string;
+  description?: string;
+  tags?: string[];
+  processing_stage?: string;
+  sampling_frequency?: string;
+  version?: string;
+  parent_dataset_id?: number;
+}
+
+export interface CreateDataLineageRequest {
+  source_dataset_id: number;
+  target_dataset_id: number;
+  transformation_type: string;
+  transformation_id?: number;
+  process_name: string;
+  process_version?: string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface CreateValidationRuleRequest {
+  name: string;
+  description?: string;
+  rule_type: string; // "range" | "format" | "completeness" | "uniqueness" | "custom"
+  field_name?: string;
+  rule_definition?: Record<string, unknown>;
+  severity?: string; // "warning" | "error" | "critical"
+}
 
 // Request payload shapes for the anomaly + alert endpoints. These
 // mirror the BE handler's struct literals exactly — keep field names

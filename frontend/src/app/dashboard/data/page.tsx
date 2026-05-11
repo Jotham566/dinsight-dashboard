@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Loader2, Upload } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Database, Loader2, Upload } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -806,6 +806,22 @@ export default function DataIngestionPage() {
       </ConfigDialog>
 
       <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-fg">Data Ingestion</h1>
+            <p className="text-sm text-fg-muted">
+              Upload baseline and monitoring datasets, then browse the catalog for lineage and
+              validation history.
+            </p>
+          </div>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/data/catalog">
+              <Database className="mr-2 h-4 w-4" />
+              View catalog
+            </Link>
+          </Button>
+        </div>
+
         <div className="space-y-6">
           <Card className="border-border/60">
             <CardHeader>
