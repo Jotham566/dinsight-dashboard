@@ -46,9 +46,26 @@ logger = logging.getLogger(__name__)
 
 class StreamingSimulator:
     """Simulates real-time sensor data streaming for D'insight analysis."""
-    
-    def __init__(self, api_base_url: str = "http://localhost:8080/api/v1"):
+
+    def __init__(
+        self,
+        api_base_url: str = "http://localhost:8080/api/v1",
+        auth_email: Optional[str] = None,
+        auth_password: Optional[str] = None,
+    ):
         self.api_base_url = api_base_url
+        # Auth credentials used to obtain a JWT before the simulation begins.
+        # Default to the seeded healthcheck user that ./scripts/health-smoke.sh
+        # registers, so the simulator works out of the box against a fresh
+        # local API. Override via the CLI flags or env vars for any real
+        # deployment.
+        self.auth_email = auth_email or os.environ.get(
+            "DINSIGHT_AUTH_EMAIL", "healthcheck@example.com"
+        )
+        self.auth_password = auth_password or os.environ.get(
+            "DINSIGHT_AUTH_PASSWORD", "HealthCheck123!"
+        )
+        self.access_token: Optional[str] = None
         self.session: Optional[ClientSession] = None
         self.baseline_id: Optional[int] = None
         self.baseline_coordinates: Optional[Tuple[List[float], List[float]]] = None
@@ -67,12 +84,42 @@ class StreamingSimulator:
         self._orig_to_norm: Optional[Dict[str, str]] = None
         self.request_retries: int = 2                  # light retry on transient 5xx
         self.request_timeout = aiohttp.ClientTimeout(total=None, sock_connect=60, sock_read=300)
-        
+
     async def __aenter__(self):
         """Async context manager entry."""
-        # Configure session with extended read timeout for heavy processing
+        # Configure session with extended read timeout for heavy processing.
+        # All analysis/monitoring/streaming routes now require both license
+        # and JWT, so the session opens with an Authorization header populated
+        # from the login round-trip below.
         self.session = aiohttp.ClientSession(timeout=self.request_timeout)
+        await self._authenticate()
         return self
+
+    async def _authenticate(self) -> None:
+        """Exchange the configured credentials for an access token and pin
+        it to every subsequent request as `Authorization: Bearer <token>`.
+
+        Raises an exception on login failure so the simulator fails fast
+        instead of getting 401s for every analysis endpoint."""
+        login_url = f"{self.api_base_url}/auth/login"
+        payload = {"email": self.auth_email, "password": self.auth_password}
+        async with self.session.post(login_url, json=payload) as response:
+            if response.status != 200:
+                body = await response.text()
+                raise RuntimeError(
+                    f"login failed (HTTP {response.status}) against {login_url}: {body[:200]}"
+                )
+            data = await response.json()
+        token = (data.get("data") or {}).get("access_token")
+        if not token:
+            raise RuntimeError(
+                f"login response missing access_token: {str(data)[:200]}"
+            )
+        self.access_token = token
+        # Pin the header for every request from this session forward so we
+        # don't have to thread `headers={}` through every call site.
+        self.session.headers.update({"Authorization": f"Bearer {token}"})
+        logger.info(f"🔐 authenticated as {self.auth_email}")
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
@@ -642,6 +689,14 @@ async def main():
                        help='Number of latest points to highlight with yellow glow during streaming (default: 10)')
     parser.add_argument('--api-url', type=str, default='http://localhost:8080/api/v1',
                        help='Base API URL (default: http://localhost:8080/api/v1)')
+    # Authentication. Analysis / monitoring / streaming routes require a JWT
+    # bearer token; defaults match the seeded healthcheck user that
+    # ./scripts/health-smoke.sh registers. Override via flags or via the
+    # DINSIGHT_AUTH_EMAIL / DINSIGHT_AUTH_PASSWORD env vars for production.
+    parser.add_argument('--auth-email', type=str, default=None,
+                       help='Email used to log in before streaming (default: healthcheck@example.com or $DINSIGHT_AUTH_EMAIL)')
+    parser.add_argument('--auth-password', type=str, default=None,
+                       help='Password for --auth-email (default: HealthCheck123! or $DINSIGHT_AUTH_PASSWORD)')
     # Feature filtering options for streaming stability with very wide datasets
     parser.add_argument('--feature-max-freq', type=float, default=None,
                        help='For freq_* headers, include only features with numeric value <= this (e.g., 1000.0)')
@@ -653,7 +708,11 @@ async def main():
     args = parser.parse_args()
     
     try:
-        async with StreamingSimulator(args.api_url) as simulator:
+        async with StreamingSimulator(
+            api_base_url=args.api_url,
+            auth_email=args.auth_email,
+            auth_password=args.auth_password,
+        ) as simulator:
             # Set options from CLI
             simulator.latest_glow_count = args.latest_glow_count
             simulator.feature_max_freq = args.feature_max_freq
