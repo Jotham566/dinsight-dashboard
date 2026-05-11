@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ScrollText, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { usePermission } from '@/components/auth/require-permission';
+import { Actions } from '@/lib/permissions';
 import { api } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -52,10 +54,14 @@ interface AuditListResponse {
 const PAGE_SIZE = 50;
 
 function AuditPage() {
-  const { currentOrg, currentOrgRole } = useAuth();
+  const { currentOrg } = useAuth();
   const [page, setPage] = useState(0);
 
-  const isAdmin = currentOrgRole === 'admin';
+  // Single source of truth: the same matrix the backend's
+  // middleware.RequireAction(policy.ActionAuditRead) reads. If the
+  // policy table ever grants audit.read to another role, this surface
+  // updates with no code change.
+  const canRead = usePermission(Actions.AuditRead);
 
   const auditQuery = useQuery<AuditListResponse>({
     queryKey: ['audit', currentOrg?.id, page],
@@ -63,10 +69,10 @@ function AuditPage() {
       const res = await api.audit.list({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
       return res.data;
     },
-    enabled: isAdmin && Boolean(currentOrg?.id),
+    enabled: canRead && Boolean(currentOrg?.id),
   });
 
-  if (!isAdmin) {
+  if (!canRead) {
     return (
       <DashboardLayout>
         <div className="space-y-4">

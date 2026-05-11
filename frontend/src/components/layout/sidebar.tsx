@@ -7,6 +7,7 @@ import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { OrgSwitcher } from '@/components/layout/org-switcher';
 import { mainNavItems, bottomNavItems } from '@/lib/navigation';
+import { can } from '@/lib/permissions';
 import { cn } from '@/utils/cn';
 
 interface SidebarProps {
@@ -31,11 +32,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     if (item.requiredRoles && !item.requiredRoles.includes(user.role)) {
       return false;
     }
-    // Per-org role gate (e.g. audit log = admin-only inside this org).
-    // The backend enforces the same gate; this just hides the nav so a
-    // viewer/operator doesn't get a 403 by clicking.
+    // Per-org role gate (legacy entries that name roles directly).
     if (item.requiredOrgRoles && item.requiredOrgRoles.length > 0) {
       if (!currentOrgRole || !item.requiredOrgRoles.includes(currentOrgRole)) {
+        return false;
+      }
+    }
+    // Action-based gate (preferred). Sourced from the same matrix the
+    // backend's middleware.RequireAction reads, so the cosmetic hide
+    // and the authoritative 403 always agree.
+    if (item.requiredAction) {
+      if (!can(currentOrgRole, item.requiredAction)) {
         return false;
       }
     }
