@@ -45,11 +45,7 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead
-    ref={ref}
-    className={cn('border-b border-border [&_tr]:border-0', className)}
-    {...props}
-  />
+  <thead ref={ref} className={cn('border-b border-border [&_tr]:border-0', className)} {...props} />
 ));
 TableHeader.displayName = 'TableHeader';
 
@@ -114,9 +110,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, align = 'left', sorted, ...props }, ref) => (
     <th
       ref={ref}
-      aria-sort={
-        sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined
-      }
+      aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
       className={cn(
         'h-10 px-3 text-xs font-medium uppercase tracking-wide text-fg-muted',
         align === 'left' && 'text-left',

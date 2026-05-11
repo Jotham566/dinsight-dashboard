@@ -77,43 +77,41 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Feature Highlights */}
-      <div className="hidden lg:flex lg:flex-1 bg-gray-50 dark:bg-gray-900/50 border-r border-gray-200 dark:border-gray-800">
+      <div className="hidden lg:flex lg:flex-1 bg-surface-muted/50 border-r border-border">
         <div className="flex-1 flex items-center justify-center p-12">
-          <div className="max-w-md text-gray-900 dark:text-gray-100">
+          <div className="max-w-md text-fg">
             <h1 className="text-4xl font-bold mb-6">Join D'Insight</h1>
-            <p className="text-lg mb-8 text-gray-600 dark:text-gray-400">
+            <p className="text-lg mb-8 text-fg-muted">
               Start your journey to predictive maintenance excellence.
             </p>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                <div className="w-8 h-8 bg-surface-muted rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="h-5 w-5 text-fg" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Register Account</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Simple and quick registration process
-                  </p>
+                  <p className="text-sm text-fg-muted">Simple and quick registration process</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                <div className="w-8 h-8 bg-surface-muted rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="h-5 w-5 text-fg" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Upload & Stream</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-fg-muted">
                     Upload data or Stream direct from your Machines
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                <div className="w-8 h-8 bg-surface-muted rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="h-5 w-5 text-fg" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Detect and Predict</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-fg-muted">
                     Detect anomalies and failures before they occur
                   </p>
                 </div>
@@ -129,19 +127,19 @@ export default function RegisterPage() {
           {/* Logo and Title */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 bg-gray-900 dark:bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white dark:text-gray-900 text-2xl font-bold">D</span>
+              <div className="w-16 h-16 bg-surface dark:bg-surface-muted rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-white dark:text-fg text-2xl font-bold">D</span>
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Account</h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <h2 className="text-3xl font-bold text-fg">Create Account</h2>
+            <p className="mt-2 text-sm text-fg-muted">
               Get started with your free D'Insight account
             </p>
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+            <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               <p className="text-sm">{error}</p>
             </div>
@@ -152,10 +150,7 @@ export default function RegisterPage() {
             <div className="space-y-4">
               {/* Full Name Field */}
               <div>
-                <label
-                  htmlFor="full_name"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
+                <label htmlFor="full_name" className="block text-sm font-medium text-fg">
                   Full Name
                 </label>
                 <input
@@ -164,25 +159,20 @@ export default function RegisterPage() {
                   autoComplete="name"
                   className={cn(
                     'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm',
-                    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                    'focus:outline-none focus:ring-2 focus:ring-focus focus:border-control-border-focus',
                     'transition-colors duration-200',
-                    errors.full_name
-                      ? 'border-red-300 text-red-900 placeholder-red-300'
-                      : 'border-gray-300'
+                    errors.full_name ? 'border-danger-border text-danger-text ' : 'border-strong'
                   )}
                   placeholder="John Doe"
                 />
                 {errors.full_name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
+                  <p className="mt-1 text-sm text-danger-text">{errors.full_name.message}</p>
                 )}
               </div>
 
               {/* Email Field */}
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
+                <label htmlFor="email" className="block text-sm font-medium text-fg">
                   Email Address
                 </label>
                 <input
@@ -191,25 +181,20 @@ export default function RegisterPage() {
                   autoComplete="email"
                   className={cn(
                     'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm',
-                    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                    'focus:outline-none focus:ring-2 focus:ring-focus focus:border-control-border-focus',
                     'transition-colors duration-200',
-                    errors.email
-                      ? 'border-red-300 text-red-900 placeholder-red-300'
-                      : 'border-gray-300'
+                    errors.email ? 'border-danger-border text-danger-text ' : 'border-strong'
                   )}
                   placeholder="you@example.com"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-danger-text">{errors.email.message}</p>
                 )}
               </div>
 
               {/* Password Field */}
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
+                <label htmlFor="password" className="block text-sm font-medium text-fg">
                   Password
                 </label>
                 <div className="mt-1 relative">
@@ -219,11 +204,9 @@ export default function RegisterPage() {
                     autoComplete="new-password"
                     className={cn(
                       'block w-full px-3 py-2 pr-10 border rounded-lg shadow-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                      'focus:outline-none focus:ring-2 focus:ring-focus focus:border-control-border-focus',
                       'transition-colors duration-200',
-                      errors.password
-                        ? 'border-red-300 text-red-900 placeholder-red-300'
-                        : 'border-gray-300'
+                      errors.password ? 'border-danger-border text-danger-text ' : 'border-strong'
                     )}
                     placeholder="Create a strong password"
                   />
@@ -233,9 +216,9 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                      <EyeOff className="h-5 w-5 text-fg-subtle" />
                     ) : (
-                      <Eye className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                      <Eye className="h-5 w-5 text-fg-subtle" />
                     )}
                   </button>
                 </div>
@@ -251,11 +234,11 @@ export default function RegisterPage() {
                             'h-1 flex-1 rounded-full',
                             i < passwordStrength.score
                               ? passwordStrength.score <= 2
-                                ? 'bg-red-500'
+                                ? 'bg-danger'
                                 : passwordStrength.score <= 4
-                                  ? 'bg-yellow-500'
-                                  : 'bg-green-500'
-                              : 'bg-gray-200'
+                                  ? 'bg-warning'
+                                  : 'bg-success'
+                              : 'bg-surface-muted'
                           )}
                         />
                       ))}
@@ -271,17 +254,11 @@ export default function RegisterPage() {
                   {passwordRequirements.map((req, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
                       {req.met ? (
-                        <Check className="h-4 w-4 text-green-500" />
+                        <Check className="h-4 w-4 text-success-text" />
                       ) : (
-                        <X className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                        <X className="h-4 w-4 text-fg-subtle dark:text-fg-muted" />
                       )}
-                      <span
-                        className={
-                          req.met
-                            ? 'text-green-700 dark:text-green-400'
-                            : 'text-gray-500 dark:text-gray-400'
-                        }
-                      >
+                      <span className={req.met ? 'text-success-text ' : 'text-fg-muted'}>
                         {req.text}
                       </span>
                     </div>
@@ -298,24 +275,21 @@ export default function RegisterPage() {
                 {...register('agree_terms')}
                 id="agree-terms"
                 type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mt-0.5"
+                className="h-4 w-4 text-accent focus:ring-focus border-strong rounded mt-0.5"
               />
-              <label
-                htmlFor="agree-terms"
-                className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
-              >
+              <label htmlFor="agree-terms" className="ml-2 block text-sm text-fg">
                 I agree to the{' '}
-                <Link href="/terms" className="text-primary-600 hover:text-primary-500">
+                <Link href="/terms" className="text-accent hover:text-accent">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy" className="text-primary-600 hover:text-primary-500">
+                <Link href="/privacy" className="text-accent hover:text-accent">
                   Privacy Policy
                 </Link>
               </label>
             </div>
             {errors.agree_terms && (
-              <p className="text-sm text-red-600">{errors.agree_terms.message}</p>
+              <p className="text-sm text-danger-text">{errors.agree_terms.message}</p>
             )}
 
             {/* Submit Button */}
@@ -325,8 +299,8 @@ export default function RegisterPage() {
                 disabled={isLoading}
                 className={cn(
                   'w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm',
-                  'text-sm font-medium text-white bg-primary-600 hover:bg-primary-700',
-                  'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500',
+                  'text-sm font-medium text-white bg-accent hover:bg-accent-hover',
+                  'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-focus',
                   'transition-all duration-200',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
@@ -344,9 +318,9 @@ export default function RegisterPage() {
 
             {/* Sign in link */}
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-fg-muted">
                 Already have an account?{' '}
-                <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500">
+                <Link href="/login" className="font-medium text-accent hover:text-accent">
                   Sign in
                 </Link>
               </p>

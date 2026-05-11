@@ -36,7 +36,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm transition-opacity md:hidden"
+          className="fixed inset-0 z-40 bg-surface/50 backdrop-blur-sm transition-opacity md:hidden"
           onClick={onClose}
         />
       )}
@@ -45,30 +45,28 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0',
-          'bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800',
+          'bg-canvas border-r border-border',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-full flex-col">
           {/* Sidebar header */}
-          <div className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-800 px-4">
+          <div className="flex h-16 items-center justify-between border-b border-border px-4">
             <Link href="/dashboard" className="flex items-center space-x-3 group" onClick={onClose}>
               <div className="relative">
-                <div className="relative h-10 w-10 bg-primary-600 rounded-lg flex items-center justify-center shadow-sm">
+                <div className="relative h-10 w-10 bg-accent rounded-lg flex items-center justify-center shadow-sm">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold text-xl text-primary-700 dark:text-primary-300">
-                  D'Insight
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Analytics Platform</span>
+                <span className="font-semibold text-xl text-accent">D'Insight</span>
+                <span className="text-xs text-fg-muted">Analytics Platform</span>
               </div>
             </Link>
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="md:hidden hover:bg-surface-hover rounded-lg transition-colors"
               onClick={onClose}
             >
               <X className="h-5 w-5" />
@@ -80,7 +78,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <nav className="flex-1 space-y-1 p-4 overflow-y-auto scrollbar-thin">
             {/* Main navigation */}
             <div className="space-y-1">
-              <h3 className="px-3 mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+              <h3 className="px-3 mb-2 text-xs font-semibold text-fg-subtle uppercase tracking-wider">
                 Main Menu
               </h3>
               {mainNavItems.filter(hasPermission).map((item) => {
@@ -95,8 +93,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     className={cn(
                       'group flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border-l-4 border-primary-600'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-100 border-l-4 border-transparent'
+                        ? 'bg-surface-selected dark:bg-surface-selected text-accent dark:text-accent border-l-4 border-strong'
+                        : 'text-fg hover:bg-surface-hover/50 hover:text-fg border-l-4 border-transparent'
                     )}
                     title={item.description}
                   >
@@ -104,30 +102,30 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                       className={cn(
                         'mr-3 rounded-lg p-1.5 transition-colors',
                         isActive
-                          ? 'bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-gray-200 dark:group-hover:bg-gray-700'
+                          ? 'bg-surface-selected dark:bg-surface-selected text-accent'
+                          : 'bg-surface-muted text-fg-muted group-hover:bg-surface-hover'
                       )}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-red-500 text-white">
+                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-danger text-white">
                         {item.badge}
                       </span>
                     )}
-                    {isActive && <ChevronRight className="h-4 w-4 text-primary-500" />}
+                    {isActive && <ChevronRight className="h-4 w-4 text-accent" />}
                   </Link>
                 );
               })}
             </div>
 
             {/* Divider */}
-            <div className="my-6 border-t border-gray-200 dark:border-gray-800" />
+            <div className="my-6 border-t border-border" />
 
             {/* Quick Actions */}
             <div className="space-y-3">
-              <h3 className="px-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+              <h3 className="px-3 text-xs font-semibold text-fg-subtle uppercase tracking-wider">
                 Quick Actions
               </h3>
               <div className="grid grid-cols-2 gap-2">
@@ -135,7 +133,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   variant="outline"
                   size="sm"
                   asChild
-                  className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="rounded-lg border-border hover:bg-surface-hover transition-colors"
                 >
                   <Link href="/dashboard/data" onClick={onClose}>
                     Upload
@@ -145,7 +143,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   variant="outline"
                   size="sm"
                   asChild
-                  className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="rounded-lg border-border hover:bg-surface-hover transition-colors"
                 >
                   <Link href="/dashboard/insights" onClick={onClose}>
                     Insights
@@ -156,23 +154,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             {/* Stats Widget */}
             <div className="mt-6">
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-4">
-                <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2">
+              <div className="rounded-lg bg-surface-muted/50 border border-border p-4">
+                <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider mb-2">
                   System Status
                 </h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">API Status</span>
+                    <span className="text-xs text-fg-muted">API Status</span>
                     <span className="flex items-center text-xs">
-                      <span className="h-2 w-2 bg-green-500 rounded-full mr-1"></span>
-                      <span className="text-green-600 dark:text-green-400 font-medium">Online</span>
+                      <span className="h-2 w-2 bg-success rounded-full mr-1"></span>
+                      <span className="text-success-text font-medium">Online</span>
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Processing</span>
-                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                      Ready
-                    </span>
+                    <span className="text-xs text-fg-muted">Processing</span>
+                    <span className="text-xs font-medium text-fg">Ready</span>
                   </div>
                 </div>
               </div>
@@ -180,7 +176,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </nav>
 
           {/* Bottom navigation */}
-          <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+          <div className="border-t border-border p-4">
             <div className="space-y-1 mb-4">
               {bottomNavItems.filter(hasPermission).map((item) => {
                 const isActive = isActiveLink(item.href);
@@ -194,8 +190,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     className={cn(
                       'group flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 border-l-4 border-primary-600'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 border-l-4 border-transparent'
+                        ? 'bg-surface-selected dark:bg-surface-selected text-accent dark:text-accent border-l-4 border-strong'
+                        : 'text-fg hover:bg-surface-hover/50 border-l-4 border-transparent'
                     )}
                     title={item.description}
                   >
@@ -207,24 +203,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
 
             {/* User info */}
-            <div className="rounded-lg bg-gray-100 dark:bg-gray-800/50 p-3">
+            <div className="rounded-lg bg-surface-muted/50 p-3">
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <div className="h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-sm">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="h-10 w-10 rounded-lg bg-surface-muted flex items-center justify-center shadow-sm">
+                    <span className="text-sm font-semibold text-fg">
                       {user?.full_name
                         ?.split(' ')
                         .map((n) => n[0])
                         .join('') || 'U'}
                     </span>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full" />
+                  <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-success border-2 border-white dark:border-canvas rounded-full" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <p className="text-sm font-medium text-fg truncate">
                     {user?.full_name || 'User'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  <p className="text-xs text-fg-muted truncate">
                     {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
                   </p>
                 </div>

@@ -28,10 +28,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  (
-    { className, type, invalid, loading, helperText, errorText, id, readOnly, ...props },
-    ref
-  ) => {
+  ({ className, type, invalid, loading, helperText, errorText, id, readOnly, ...props }, ref) => {
     const reactId = React.useId();
     const inputId = id ?? reactId;
     const isInvalid = invalid || Boolean(errorText) || props['aria-invalid'] === true;

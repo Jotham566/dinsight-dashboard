@@ -682,7 +682,7 @@ export default function DataIngestionPage() {
             </div>
           </div>
 
-          {configError && <p className="text-sm text-red-600">{configError}</p>}
+          {configError && <p className="text-sm text-danger-text">{configError}</p>}
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => void onSaveConfig()} disabled={isSavingConfig}>
@@ -771,7 +771,7 @@ export default function DataIngestionPage() {
           ) : isPreviewLoadingBaseline || isPreviewLoadingMonitoring ? (
             <p className="text-sm text-muted-foreground">Loading visualization...</p>
           ) : previewBaselineError ? (
-            <p className="text-sm text-red-600">{previewBaselineError}</p>
+            <p className="text-sm text-danger-text">{previewBaselineError}</p>
           ) : previewPlot ? (
             <>
               <div className="mx-auto aspect-square w-full max-w-[820px] max-h-[75vh]">
@@ -808,7 +808,7 @@ export default function DataIngestionPage() {
 
       <div className="space-y-6">
         <div className="space-y-6">
-          <Card className="border-gray-200/60 dark:border-gray-800/60">
+          <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="text-lg">Configuration Set</CardTitle>
               <CardDescription>Processing parameters for new uploads.</CardDescription>
@@ -819,7 +819,7 @@ export default function DataIngestionPage() {
               ) : (
                 <div className="space-y-3 rounded-md border border-input p-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
+                    <span className="rounded-full bg-success-bg px-2 py-0.5 text-success-text">
                       Active
                     </span>
                     <span className="text-muted-foreground">
@@ -853,11 +853,11 @@ export default function DataIngestionPage() {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="border-gray-200/60 dark:border-gray-800/60">
+            <Card className="border-border/60">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   {baselineReady ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    <CheckCircle2 className="h-5 w-5 text-success-text" />
                   ) : (
                     <Upload className="h-5 w-5" />
                   )}
@@ -899,17 +899,17 @@ export default function DataIngestionPage() {
                           </p>
                         ) : null}
                         {baselineValidation?.warnings.map((warning) => (
-                          <p key={warning} className="text-amber-600">
+                          <p key={warning} className="text-warning-text">
                             {warning}
                           </p>
                         ))}
                         {baselineValidation?.errors.map((error) => (
-                          <p key={error} className="text-red-600">
+                          <p key={error} className="text-danger-text">
                             {error}
                           </p>
                         ))}
                         {baselineValidation?.valid && (
-                          <p className="text-emerald-600">Baseline file validation passed.</p>
+                          <p className="text-success-text">Baseline file validation passed.</p>
                         )}
                       </div>
                     )}
@@ -941,11 +941,11 @@ export default function DataIngestionPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-gray-200/60 dark:border-gray-800/60">
+            <Card className="border-border/60">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   {monitoringComplete ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    <CheckCircle2 className="h-5 w-5 text-success-text" />
                   ) : (
                     <Upload className="h-5 w-5" />
                   )}
@@ -1011,7 +1011,7 @@ export default function DataIngestionPage() {
                     Effective baseline ID: {suggestedBaselineId ?? 'Not selected'}
                   </p>
                   {manualBaselineError && (
-                    <p className="text-sm text-red-600">{manualBaselineError}</p>
+                    <p className="text-sm text-danger-text">{manualBaselineError}</p>
                   )}
                 </div>
 
@@ -1048,17 +1048,17 @@ export default function DataIngestionPage() {
                           </p>
                         ) : null}
                         {monitoringValidation?.warnings.map((warning) => (
-                          <p key={warning} className="text-amber-600">
+                          <p key={warning} className="text-warning-text">
                             {warning}
                           </p>
                         ))}
                         {monitoringValidation?.errors.map((error) => (
-                          <p key={error} className="text-red-600">
+                          <p key={error} className="text-danger-text">
                             {error}
                           </p>
                         ))}
                         {monitoringValidation?.valid && (
-                          <p className="text-emerald-600">Monitoring file validation passed.</p>
+                          <p className="text-success-text">Monitoring file validation passed.</p>
                         )}
                       </div>
                     )}
@@ -1093,7 +1093,7 @@ export default function DataIngestionPage() {
           </div>
         </div>
 
-        <Card className="border-gray-200/60 dark:border-gray-800/60">
+        <Card className="border-border/60">
           <CardHeader>
             <CardTitle className="text-lg">Results Visualization</CardTitle>
             <CardDescription>
@@ -1125,11 +1125,9 @@ export default function DataIngestionPage() {
         </Card>
 
         {monitoringComplete && (
-          <Card className="border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-900/10">
+          <Card className="border-success-border bg-success-bg/40 ">
             <CardHeader>
-              <CardTitle className="text-lg text-emerald-700 dark:text-emerald-300">
-                Ready for Live Operation
-              </CardTitle>
+              <CardTitle className="text-lg text-success-text">Ready for Live Operation</CardTitle>
               <CardDescription>
                 Baseline and monitoring uploads are complete and validated.
               </CardDescription>

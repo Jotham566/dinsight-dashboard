@@ -33,16 +33,16 @@ export function ConfigDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent
         className={cn(
-          'sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-600 shadow-2xl',
+          'sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-canvas border border-strong shadow-2xl',
           contentClassName
         )}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+          <AlertDialogTitle className="text-2xl font-semibold text-fg flex items-center gap-3">
             {title}
           </AlertDialogTitle>
           {description && (
-            <AlertDialogDescription className="text-gray-600 dark:text-gray-400 mt-1">
+            <AlertDialogDescription className="text-fg-muted mt-1">
               {description}
             </AlertDialogDescription>
           )}

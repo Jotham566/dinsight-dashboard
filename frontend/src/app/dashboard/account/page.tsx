@@ -166,7 +166,7 @@ export default function AccountSecurityPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <UserCog className="h-6 w-6" />
@@ -179,7 +179,7 @@ export default function AccountSecurityPage() {
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="border-gray-200/60 dark:border-gray-800/60">
+        <Card className="border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <User className="h-5 w-5" />
@@ -268,7 +268,7 @@ export default function AccountSecurityPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200/60 dark:border-gray-800/60">
+        <Card className="border-border/60">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <KeyRound className="h-5 w-5" />
@@ -317,12 +317,12 @@ export default function AccountSecurityPage() {
             </Button>
 
             {passwordError && (
-              <p className="text-sm text-red-600" aria-live="polite">
+              <p className="text-sm text-danger-text" aria-live="polite">
                 {passwordError}
               </p>
             )}
             {passwordMessage && (
-              <p className="flex items-center gap-2 text-sm text-emerald-600" aria-live="polite">
+              <p className="flex items-center gap-2 text-sm text-success-text" aria-live="polite">
                 <CheckCircle2 className="h-4 w-4" />
                 {passwordMessage}
               </p>
@@ -331,7 +331,7 @@ export default function AccountSecurityPage() {
         </Card>
       </div>
 
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5" />

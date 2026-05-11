@@ -38,14 +38,14 @@ export function MetadataHoverControls({
     <div className={cn('space-y-3', className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Hover metadata</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-sm font-medium text-fg">Hover metadata</p>
+          <p className="text-xs text-fg-muted">
             Choose which metadata fields appear when hovering over chart points.
           </p>
         </div>
         <input
           type="checkbox"
-          className="mt-1 rounded border-gray-300 dark:border-gray-600"
+          className="mt-1 rounded border-strong"
           checked={metadataEnabled && hasMetadataAvailable && !disabled}
           onChange={(event) => onToggleEnabled(event.target.checked)}
           disabled={!hasMetadataAvailable || disabled}
@@ -61,13 +61,11 @@ export function MetadataHoverControls({
               </Badge>
             ))}
             {remainingCount > 0 && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                +{remainingCount} more
-              </span>
+              <span className="text-xs text-fg-muted">+{remainingCount} more</span>
             )}
           </>
         ) : (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+          <span className="text-xs text-fg-muted">
             {hasMetadataAvailable
               ? 'No metadata fields selected yet.'
               : 'Metadata fields will appear once the dataset is loaded.'}
@@ -106,7 +104,7 @@ export function MetadataHoverControls({
             </Button>
           </div>
 
-          <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-800">
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-border divide-y divide-border">
             {hasMetadataAvailable ? (
               availableKeys.map((key) => {
                 const checked = selectedKeys.includes(key);
@@ -116,14 +114,14 @@ export function MetadataHoverControls({
                     className={cn(
                       'flex items-center justify-between px-4 py-2 text-sm',
                       checked
-                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-200'
-                        : 'text-gray-700 dark:text-gray-300'
+                        ? 'bg-surface-selected dark:bg-surface-selected text-accent '
+                        : 'text-fg'
                     )}
                   >
                     <span className="truncate pr-3">{key}</span>
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300 dark:border-gray-600"
+                      className="rounded border-strong"
                       checked={checked}
                       onChange={() => onToggleKey(key)}
                     />
@@ -131,13 +129,13 @@ export function MetadataHoverControls({
                 );
               })
             ) : (
-              <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="px-4 py-6 text-center text-sm text-fg-muted">
                 Metadata fields will become available once data is loaded.
               </div>
             )}
           </div>
 
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-xs text-fg-muted">
             Tip: Limit selected fields to the most relevant information to keep hover cards concise.
           </div>
         </div>

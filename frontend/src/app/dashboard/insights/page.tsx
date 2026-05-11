@@ -1303,7 +1303,7 @@ export default function HealthInsightsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardContent className="space-y-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -1395,7 +1395,7 @@ export default function HealthInsightsPage() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {!isControlsCollapsed && (
-          <Card className="border-gray-200/60 dark:border-gray-800/60 xl:col-span-3 xl:sticky xl:top-20 xl:h-fit">
+          <Card className="border-border/60 xl:col-span-3 xl:sticky xl:top-20 xl:h-fit">
             <CardHeader>
               <CardTitle className="text-lg">Controls</CardTitle>
               <CardDescription>
@@ -1508,7 +1508,7 @@ export default function HealthInsightsPage() {
                   intervals selected.
                 </p>
                 {hasPartialClusterRange && (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-warning-text">
                     Enter both range start and range end to use cluster range filtering.
                   </p>
                 )}
@@ -1547,7 +1547,7 @@ export default function HealthInsightsPage() {
         <div
           className={`${isControlsCollapsed ? 'xl:col-span-12' : 'xl:col-span-9'} min-w-0 space-y-6`}
         >
-          <Card className="border-gray-200/60 dark:border-gray-800/60">
+          <Card className="border-border/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <TrendingDown className="h-5 w-5" />
@@ -1581,7 +1581,7 @@ export default function HealthInsightsPage() {
                   Baseline selection changed. Click <strong>Run wear trend</strong> to update plots.
                 </p>
               ) : wearError ? (
-                <p className="text-sm text-red-600">{wearError}</p>
+                <p className="text-sm text-danger-text">{wearError}</p>
               ) : wearResult ? (
                 <>
                   {isUpdatingWearTrend && (
@@ -1988,7 +1988,7 @@ export default function HealthInsightsPage() {
         </div>
       </div>
 
-      <Card className="border-gray-200/60 dark:border-gray-800/60">
+      <Card className="border-border/60">
         <CardContent className="flex flex-wrap gap-3 py-4">
           <Button asChild>
             <Link href="/dashboard/live">

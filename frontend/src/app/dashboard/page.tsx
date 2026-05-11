@@ -21,11 +21,9 @@ import { buildSparklinePath } from '@/lib/dashboard-overview';
 import { cn } from '@/utils/cn';
 
 const stateTone: Record<'OK' | 'Deteriorating' | 'Failing', string> = {
-  OK: 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200',
-  Deteriorating:
-    'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
-  Failing:
-    'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200',
+  OK: 'border-success-border bg-success-bg text-success-text   ',
+  Deteriorating: 'border-warning-border bg-warning-bg text-warning-text   ',
+  Failing: 'border-danger-border bg-danger-bg text-danger-text   ',
 };
 const WEAR_PREVIEW_BASE_MAX = 2;
 
@@ -444,9 +442,7 @@ export default function DashboardPage() {
                 {wearSnapshot ? wearSnapshot.transitionMean.toFixed(3) : 'N/A'}
               </span>
             </p>
-            {wearError && (
-              <p className="text-red-600 dark:text-red-300">Wear trend error: {wearError}</p>
-            )}
+            {wearError && <p className="text-danger-text ">Wear trend error: {wearError}</p>}
           </CardContent>
         </Card>
       </div>
@@ -495,7 +491,7 @@ export default function DashboardPage() {
           )}
           {!isLoading && !isRefreshingWear && (
             <div className="ml-auto flex items-center text-sm text-muted-foreground">
-              <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="mr-2 h-4 w-4 text-success-text" />
               Dashboard synced
             </div>
           )}
@@ -503,14 +499,14 @@ export default function DashboardPage() {
       </Card>
 
       {alerts.some((alert) => alert.severity === 'critical' && alert.status === 'active') && (
-        <Card className="border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
+        <Card className="border-danger-border bg-danger-bg ">
           <CardContent className="flex items-start gap-3 py-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 text-red-600" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-danger-text" />
             <div>
-              <p className="font-semibold text-red-800 dark:text-red-200">
+              <p className="font-semibold text-danger-text">
                 Critical alerts require immediate action.
               </p>
-              <p className="text-sm text-red-700 dark:text-red-300">
+              <p className="text-sm text-danger-text">
                 Open Live Monitor and Health Insights now to validate abnormal behavior and wear
                 trend.
               </p>

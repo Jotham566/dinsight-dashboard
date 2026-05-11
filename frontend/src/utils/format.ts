@@ -68,43 +68,43 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
 export function getMachineStatusColor(status: string): string {
   switch (status) {
     case 'active':
-      return 'text-green-600 bg-green-100';
+      return 'text-success-text bg-success-bg';
     case 'maintenance':
-      return 'text-yellow-600 bg-yellow-100';
+      return 'text-warning-text bg-warning-bg';
     case 'inactive':
-      return 'text-red-600 bg-red-100';
+      return 'text-danger-text bg-danger-bg';
     default:
-      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+      return 'text-fg-muted bg-surface-muted';
   }
 }
 
 export function getAlertSeverityColor(severity: string): string {
   switch (severity) {
     case 'low':
-      return 'text-blue-600 bg-blue-100';
+      return 'text-info-text bg-info-bg';
     case 'medium':
-      return 'text-yellow-600 bg-yellow-100';
+      return 'text-warning-text bg-warning-bg';
     case 'high':
       return 'text-orange-600 bg-orange-100';
     case 'critical':
-      return 'text-red-600 bg-red-100';
+      return 'text-danger-text bg-danger-bg';
     default:
-      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+      return 'text-fg-muted bg-surface-muted';
   }
 }
 
 export function getAnalysisStatusColor(status: string): string {
   switch (status) {
     case 'completed':
-      return 'text-green-600 bg-green-100';
+      return 'text-success-text bg-success-bg';
     case 'processing':
-      return 'text-blue-600 bg-blue-100';
+      return 'text-info-text bg-info-bg';
     case 'pending':
-      return 'text-yellow-600 bg-yellow-100';
+      return 'text-warning-text bg-warning-bg';
     case 'failed':
-      return 'text-red-600 bg-red-100';
+      return 'text-danger-text bg-danger-bg';
     default:
-      return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
+      return 'text-fg-muted bg-surface-muted';
   }
 }
 
@@ -157,13 +157,13 @@ export function getPasswordStrength(password: string): {
 
   if (score <= 2) {
     strength.label = 'Weak';
-    strength.color = 'text-red-600';
+    strength.color = 'text-danger-text';
   } else if (score <= 4) {
     strength.label = 'Medium';
-    strength.color = 'text-yellow-600';
+    strength.color = 'text-warning-text';
   } else {
     strength.label = 'Strong';
-    strength.color = 'text-green-600';
+    strength.color = 'text-success-text';
   }
 
   return strength;

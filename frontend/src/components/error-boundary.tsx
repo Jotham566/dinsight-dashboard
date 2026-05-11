@@ -33,13 +33,13 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-          <h2 className="text-lg font-semibold text-red-800 mb-2">Something went wrong</h2>
-          <p className="text-red-600 mb-4">An error occurred while rendering this component.</p>
+        <div className="p-6 bg-danger-bg border border-danger-border rounded-lg">
+          <h2 className="text-lg font-semibold text-danger-text mb-2">Something went wrong</h2>
+          <p className="text-danger-text mb-4">An error occurred while rendering this component.</p>
           {this.state.error && (
-            <details className="text-sm text-red-500">
+            <details className="text-sm text-danger-text">
               <summary className="cursor-pointer font-medium">Error Details</summary>
-              <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-auto">
+              <pre className="mt-2 p-2 bg-danger-bg rounded text-xs overflow-auto">
                 {this.state.error.message}
                 {this.state.error.stack && `\n\n${this.state.error.stack}`}
               </pre>
@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
           )}
           <button
             onClick={() => this.setState({ hasError: false, error: undefined })}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 bg-danger text-white rounded hover:bg-danger"
           >
             Try Again
           </button>
