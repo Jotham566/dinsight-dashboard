@@ -372,13 +372,6 @@ export const api = {
     run: (data: { dataset_id: number; validation_rule_ids?: number[] }) =>
       apiClient.post('/data-validation/validate', data),
   },
-
-  exampleDatasets: {
-    listTypes: () => apiClient.get('/example-datasets/types'),
-    list: () => apiClient.get('/example-datasets'),
-    load: (exampleType: string) =>
-      apiClient.post('/example-datasets/load', { example_type: exampleType }),
-  },
 };
 
 // Catalog request shapes. Keep field names in sync with the BE handler

@@ -9,7 +9,9 @@ import {
   Database,
   GitBranch,
   Loader2,
+  Pencil,
   ShieldCheck,
+  ShieldQuestion,
   Tag,
   X,
 } from 'lucide-react';
@@ -28,6 +30,11 @@ import {
   TableLoading,
   TableRow,
 } from '@/components/ui/table';
+import { CompatibilityCheckDialog } from '@/components/datasets/compatibility-check-dialog';
+import { EditMetadataDialog } from '@/components/datasets/edit-metadata-dialog';
+import { ValidationRulesPanel } from '@/components/datasets/validation-rules-panel';
+import { RequirePermission, usePermission } from '@/components/auth/require-permission';
+import { Actions } from '@/lib/permissions';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
 
@@ -263,6 +270,10 @@ interface ValidationResult {
 }
 
 function DetailDrawer({ datasetId, onClose }: DetailDrawerProps) {
+  const [editingMetadata, setEditingMetadata] = useState(false);
+  const [compatibilityOpen, setCompatibilityOpen] = useState(false);
+  const canUpdateMetadata = usePermission(Actions.DatasetUpdate);
+
   const metadataQuery = useQuery<DetailMetadata | null>({
     queryKey: ['dataset', datasetId, 'metadata'],
     queryFn: async () => {
@@ -302,19 +313,31 @@ function DetailDrawer({ datasetId, onClose }: DetailDrawerProps) {
             <h2 className="text-lg font-semibold text-fg">Dataset details</h2>
             <p className="text-xs text-fg-muted">Dataset #{datasetId}</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCompatibilityOpen(true)}>
+              <ShieldQuestion className="mr-2 h-4 w-4" />
+              Check compatibility
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-6 p-6">
           {/* Metadata card */}
           <Card className="border-border/60">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Tag className="h-4 w-4" />
                 Metadata
               </CardTitle>
+              {metadataQuery.data && canUpdateMetadata && (
+                <Button variant="ghost" size="sm" onClick={() => setEditingMetadata(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {metadataQuery.isLoading ? (
@@ -484,8 +507,47 @@ function DetailDrawer({ datasetId, onClose }: DetailDrawerProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Validation rules — list + create + run against this dataset. */}
+          <Card className="border-border/60">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="h-4 w-4" />
+                Validation rules
+              </CardTitle>
+              <CardDescription>
+                Org-wide rules. Run any subset against this dataset; results land in the history
+                above.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ValidationRulesPanel datasetId={datasetId} />
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {editingMetadata && metadataQuery.data && (
+        <EditMetadataDialog
+          open
+          onOpenChange={setEditingMetadata}
+          meta={{
+            dataset_id: metadataQuery.data.dataset_id,
+            name: metadataQuery.data.name,
+            description: metadataQuery.data.description,
+            processing_stage: metadataQuery.data.processing_stage,
+            sampling_frequency: metadataQuery.data.sampling_frequency,
+            version: metadataQuery.data.version,
+            tags: metadataQuery.data.tags,
+          }}
+        />
+      )}
+
+      <CompatibilityCheckDialog
+        open={compatibilityOpen}
+        onOpenChange={setCompatibilityOpen}
+        initialDatasetId={datasetId}
+      />
     </div>
   );
 }

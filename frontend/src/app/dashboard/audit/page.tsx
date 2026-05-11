@@ -53,9 +53,29 @@ interface AuditListResponse {
 
 const PAGE_SIZE = 50;
 
+// Resource types observed in audit_log — drives the filter dropdown.
+// Sourced from the backend's resource_type literals across the
+// handler write paths. Not all rows have a resource_type (a few
+// auth events like login don't), so "(all)" is the default.
+const RESOURCE_TYPE_FILTERS: { value: string; label: string }[] = [
+  { value: '', label: 'All resources' },
+  { value: 'alert', label: 'Alerts' },
+  { value: 'alert_rule', label: 'Alert rules' },
+  { value: 'analysis', label: 'Analyses' },
+  { value: 'anomaly_classification', label: 'Anomaly classifications' },
+  { value: 'dataset', label: 'Datasets' },
+  { value: 'dataset_metadata', label: 'Dataset metadata' },
+  { value: 'data_lineage', label: 'Data lineage' },
+  { value: 'data_validation_rule', label: 'Validation rules' },
+  { value: 'data_validation_result', label: 'Validation results' },
+  { value: 'file_upload', label: 'File uploads' },
+  { value: 'config', label: 'Configuration' },
+];
+
 function AuditPage() {
   const { currentOrg } = useAuth();
   const [page, setPage] = useState(0);
+  const [resourceType, setResourceType] = useState('');
 
   // Single source of truth: the same matrix the backend's
   // middleware.RequireAction(policy.ActionAuditRead) reads. If the
@@ -64,13 +84,24 @@ function AuditPage() {
   const canRead = usePermission(Actions.AuditRead);
 
   const auditQuery = useQuery<AuditListResponse>({
-    queryKey: ['audit', currentOrg?.id, page],
+    queryKey: ['audit', currentOrg?.id, page, resourceType],
     queryFn: async () => {
-      const res = await api.audit.list({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      const res = await api.audit.list({
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+        resource_type: resourceType || undefined,
+      });
       return res.data;
     },
     enabled: canRead && Boolean(currentOrg?.id),
   });
+
+  // Reset to the first page whenever the filter changes — staying on
+  // page 5 with a new filter usually shows an empty page.
+  const handleFilterChange = (value: string) => {
+    setResourceType(value);
+    setPage(0);
+  };
 
   if (!canRead) {
     return (
@@ -117,15 +148,37 @@ function AuditPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent activity</CardTitle>
-            <CardDescription>
-              Showing{' '}
-              {items.length > 0
-                ? `${page * PAGE_SIZE + 1}–${page * PAGE_SIZE + items.length}`
-                : '0'}
-              {' of '}
-              {total.toLocaleString()} entries.
-            </CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>Recent activity</CardTitle>
+                <CardDescription>
+                  Showing{' '}
+                  {items.length > 0
+                    ? `${page * PAGE_SIZE + 1}–${page * PAGE_SIZE + items.length}`
+                    : '0'}
+                  {' of '}
+                  {total.toLocaleString()} entries
+                  {resourceType ? ` for ${resourceType}` : ''}.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="audit-resource-filter" className="text-sm text-fg-muted">
+                  Resource
+                </label>
+                <select
+                  id="audit-resource-filter"
+                  value={resourceType}
+                  onChange={(e) => handleFilterChange(e.target.value)}
+                  className="rounded-md border border-strong bg-surface px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+                >
+                  {RESOURCE_TYPE_FILTERS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="px-0 pb-0">
             <Table>

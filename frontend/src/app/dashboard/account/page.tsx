@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
-import { readScoped, writeScoped } from '@/lib/scoped-storage';
 
 // LicenseInfo mirrors the backend's LicenseInfoResponse. Keep the field
 // names in sync with internal/handler/license.go.
@@ -34,12 +33,6 @@ interface LicenseInfo {
   is_valid: boolean;
   last_validated_at: string;
 }
-
-// User-scoped suffixes. The helper prefixes with `dinsight:u<userId>:` so
-// the email-notification toggle from one user doesn't bleed into another's
-// session on the same browser.
-const PREF_EMAIL_NOTIFICATIONS = 'prefs:email_notifications';
-const PREF_SYSTEM_UPDATES = 'prefs:system_updates';
 
 interface UserSession {
   id: string;
@@ -56,7 +49,6 @@ export default function AccountSecurityPage() {
   const { user, refreshUser } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [language, setLanguage] = useState('en');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
 
@@ -66,9 +58,6 @@ export default function AccountSecurityPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [systemUpdates, setSystemUpdates] = useState(false);
 
   const {
     data: sessions,
@@ -106,31 +95,6 @@ export default function AccountSecurityPage() {
     setEmail(user.email ?? '');
   }, [user]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const persistedEmail = readScoped(PREF_EMAIL_NOTIFICATIONS, user?.id);
-    const persistedUpdates = readScoped(PREF_SYSTEM_UPDATES, user?.id);
-
-    if (persistedEmail != null) {
-      setEmailNotifications(persistedEmail === 'true');
-    }
-    if (persistedUpdates != null) {
-      setSystemUpdates(persistedUpdates === 'true');
-    }
-  }, [user?.id]);
-
-  const persistPreferences = () => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    writeScoped(PREF_EMAIL_NOTIFICATIONS, user?.id, String(emailNotifications));
-    writeScoped(PREF_SYSTEM_UPDATES, user?.id, String(systemUpdates));
-  };
-
   const saveProfile = async () => {
     setIsSavingProfile(true);
     setProfileMessage(null);
@@ -149,7 +113,6 @@ export default function AccountSecurityPage() {
         await refreshUser();
       }
 
-      persistPreferences();
       setProfileMessage('Account settings saved.');
     } catch (error: any) {
       setProfileMessage(error?.response?.data?.message || 'Failed to save account settings.');
@@ -243,41 +206,6 @@ export default function AccountSecurityPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
-                <select
-                  id="language"
-                  value={language}
-                  onChange={(event) => setLanguage(event.target.value)}
-                  className="w-full rounded-md border border-border bg-control-bg px-3 py-2 text-sm"
-                >
-                  <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="de">German</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-2 rounded-lg border border-input p-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={emailNotifications}
-                  onChange={(event) => setEmailNotifications(event.target.checked)}
-                />
-                Email notifications
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={systemUpdates}
-                  onChange={(event) => setSystemUpdates(event.target.checked)}
-                />
-                System update notifications
-              </label>
             </div>
 
             <Button onClick={() => void saveProfile()} disabled={isSavingProfile}>
