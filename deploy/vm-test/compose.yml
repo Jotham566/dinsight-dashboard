@@ -83,12 +83,12 @@ services:
       REQUIRE_EMAIL_VERIFICATION: "false"
       LICENSE_PATH: /app/license.lic
       DEVICES_PATH: /app/devices.json
-      LICENSE_PUBKEY_PATH: /app/public.pem
     volumes:
       # License artifacts live in the BE source tree. Bind-mount them so
-      # the image stays generic and devices.json remains writable.
+      # the image stays generic and devices.json remains writable across
+      # restarts. The license public key is embedded in the binary
+      # (pkg/license/license.go), so there's no public.pem to mount.
       - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/license.lic:/app/license.lic:ro
-      - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/public.pem:/app/public.pem:ro
       - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/devices.json:/app/devices.json
     depends_on:
       postgres:
