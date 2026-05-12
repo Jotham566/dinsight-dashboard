@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cn } from '@/utils/cn';
 
 /**
- * Table primitive — DESIGN.md §11.9.
+ * Table primitive — design-system.md §11.9.
  *
  * Implements the structural and state pieces tables share across the app
  * so pages can compose data tables without reinventing chrome. Pairs with

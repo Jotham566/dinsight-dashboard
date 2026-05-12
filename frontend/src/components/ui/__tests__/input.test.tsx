@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Input } from '@/components/ui/input';
 
-// Input — DESIGN.md §11.5 seven-state model. These tests assert the
+// Input — design-system.md §11.5 seven-state model. These tests assert the
 // behaviour of the state props (invalid, loading, readOnly, disabled,
 // errorText, helperText) rather than snapshotting class strings, because
 // the message + a11y wiring is the part that matters for downstream forms.

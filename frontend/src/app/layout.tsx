@@ -3,7 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import './globals.css';
 
-// DESIGN.md §8.1: IBM Plex Sans for UI, IBM Plex Mono for IDs / timestamps /
+// design-system.md §8.1: IBM Plex Sans for UI, IBM Plex Mono for IDs / timestamps /
 // technical values. CSS variables let Tailwind reference them via the
 // fontFamily config (--font-plex-sans / --font-plex-mono).
 const plexSans = IBM_Plex_Sans({

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { Badge } from '@/components/ui/badge';
 
-// Badge — DESIGN.md §11.7 semantic variants. The codemod that closed the
+// Badge — design-system.md §11.7 semantic variants. The codemod that closed the
 // design audit collapsed many ad-hoc inline status pills to this primitive;
 // these snapshots are the regression net for future variant changes.
 

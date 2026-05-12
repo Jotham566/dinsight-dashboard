@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/utils/cn';
 
 /**
- * Status pill / badge — DESIGN.md §7.5 and §11.7.
+ * Status pill / badge — design-system.md §7.5 and §11.7.
  *
  * Variants are bound to the semantic ramps in globals.css so colour swaps
  * across light/dark are automatic and consistent with every other surface

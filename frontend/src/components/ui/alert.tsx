@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/utils/cn';
 
 /**
- * Alert / notice surface — DESIGN.md §11.8.
+ * Alert / notice surface — design-system.md §11.8.
  *
  * Severities map to the semantic ramps so colour stays consistent with
  * every other surface that consumes the same family (badge, kpi card,

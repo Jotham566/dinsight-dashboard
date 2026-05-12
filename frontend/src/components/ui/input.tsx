@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cn } from '@/utils/cn';
 
 /**
- * Text input — DESIGN.md §11.5 universal state model.
+ * Text input — design-system.md §11.5 universal state model.
  *
  * Implements the seven required states at the primitive level so pages
  * don't reinvent them inline:
@@ -46,7 +46,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-busy={loading || undefined}
             aria-describedby={messageId}
             className={cn(
-              // Base — DESIGN.md §11.5 mandates 40px min height
+              // Base — design-system.md §11.5 mandates 40px min height
               'flex h-10 w-full rounded-lg border bg-control-bg px-3 py-2 text-sm text-fg transition-colors duration-150',
               'placeholder:text-fg-subtle',
               'border-control-border hover:border-control-border-hover',

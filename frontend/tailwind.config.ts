@@ -6,7 +6,7 @@ import type { Config } from 'tailwindcss';
  * Component code should prefer the semantic utilities (`bg-surface`,
  * `text-fg-muted`, `border-strong`, `bg-accent`, `bg-success-bg`, ...) over
  * raw Tailwind families like `gray-500`/`blue-600`. The raw families are
- * retained as a backward-compat shim during the migration in DESIGN.md §17
+ * retained as a backward-compat shim during the migration in design-system.md §17
  * and will be removed once every call site uses the semantic API.
  */
 const config: Config = {
@@ -119,7 +119,7 @@ const config: Config = {
           950: '#020617',
         },
       },
-      // DESIGN.md §8.1 — IBM Plex Sans for UI, IBM Plex Mono for technical
+      // design-system.md §8.1 — IBM Plex Sans for UI, IBM Plex Mono for technical
       // values. The CSS variables are injected by next/font in app/layout.tsx.
       fontFamily: {
         sans: ['var(--font-plex-sans)', 'system-ui', 'sans-serif'],
@@ -144,7 +144,7 @@ const config: Config = {
         '128': '32rem',
         '144': '36rem',
       },
-      // Radius capped at 12px per DESIGN.md §9.2. Pill ('full') stays for badges.
+      // Radius capped at 12px per design-system.md §9.2. Pill ('full') stays for badges.
       borderRadius: {
         none: '0',
         sm: '0.375rem', // 6px
@@ -153,7 +153,7 @@ const config: Config = {
         lg: '0.75rem', // 12px
         full: '9999px',
       },
-      // Forbidden decorative animations stripped per DESIGN.md §10.3.
+      // Forbidden decorative animations stripped per design-system.md §10.3.
       // Only functional motion remains.
       animation: {
         'fade-in': 'fadeIn 0.15s ease-out',

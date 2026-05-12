@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Alert — DESIGN.md §11.8 four required severities (info / success /
+// Alert — design-system.md §11.8 four required severities (info / success /
 // warning / danger). 'destructive' is the back-compat alias kept until the
 // codemod sweep clears existing call sites.
 

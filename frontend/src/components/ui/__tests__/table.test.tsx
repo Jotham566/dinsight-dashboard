@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-// Table — DESIGN.md §11.9 mandates row states (default / hover / selected),
+// Table — design-system.md §11.9 mandates row states (default / hover / selected),
 // header sort, alignment, mono numeric cells, plus empty / loading / error
 // state surfaces. These tests anchor the behaviour the primitive promises.
 

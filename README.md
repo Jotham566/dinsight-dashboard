@@ -1,410 +1,209 @@
-# 🔬 Dinsight Dashboard
+# Dinsight Dashboard
 
-> **Advanced Data Analytics Platform for Dimensionality Reduction and Anomaly Detection**
+> Industrial monitoring + anomaly-detection platform for CSV-based sensor data.
 
 [![License](https://img.shields.io/badge/license-Custom-blue.svg)](#license)
-[![Go Version](https://img.shields.io/badge/go-1.23.2-blue.svg)](https://golang.org/)
-[![Node Version](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
+[![Go](https://img.shields.io/badge/go-1.23.2-blue.svg)](https://golang.org/)
+[![Node](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.9+-blue.svg)](https://typescriptlang.org/)
 
-Dinsight Dashboard is a comprehensive data analytics platform that specializes in dimensionality reduction, monitoring, and anomaly detection for CSV datasets. Built with a Go backend and Next.js frontend, it provides real-time analytics capabilities for data scientists and engineers.
+Dinsight ingests sensor CSVs, runs a custom dimensionality-reduction pass (the "DInsight" algorithm), surfaces anomalies via Mahalanobis distance, and presents the result through an operator-first dashboard. Built for plant operators and maintenance teams who need a live read on equipment health without a data-science workflow.
 
-## 🚀 Features
+## Features
 
-- **📊 CSV File Processing**: Upload and analyze CSV datasets with advanced preprocessing
-- **🔍 Dimensionality Reduction**: Custom DInsight algorithm for data visualization
-- **📈 Real-time Monitoring**: Live data monitoring with configurable parameters
-- **🎬 Streaming Simulation**: Python-based real-time data streaming simulator
-- **🚨 Anomaly Detection**: Mahalanobis Distance-based anomaly classification
-- **🏢 Multi-tenancy**: Organizations + teams + memberships. Records are tenant-isolated at the database level (`organization_id NOT NULL` on every records-side table). Active org per request via the `X-Org-ID` header. See [`Dinsight_API/docs/TENANCY_AND_RBAC.md`](Dinsight_API/docs/TENANCY_AND_RBAC.md).
-- **🔑 RBAC**: Three-role capability matrix (admin / operator / viewer). Backend `middleware.RequireAction` gates server-side; frontend `RequirePermission` mirrors the same matrix to hide UI affordances.
-- **🪪 OIDC SSO** (optional): Plug an external identity provider via four env vars. Configured? The `/login` page shows an SSO button. Unset? Endpoints return 404 and password flow stays the only option.
-- **📋 Audit Log**: Every write request to org-scoped routes is recorded with actor, action, resource, outcome, IP. Async writer (buffered channel + background goroutine) keeps the request path cheap. Admin-only viewer at `/dashboard/audit`.
-- **🔒 JWT-based authentication**: Access + refresh tokens. JWT carries the user's full membership list so per-request org resolution is one parse, not one DB round-trip.
-- **⚙️ Configuration Management**: Flexible parameter tuning for analysis algorithms
-- **📱 Modern UI**: Responsive Next.js frontend with real-time visualizations
-- **🔐 Enterprise Security**: Custom license verification system
+- **CSV upload + processing** — baseline + monitoring datasets, async pipeline with progress polling.
+- **Dimensionality reduction** — DInsight algorithm for 2D scatter visualizations of high-dimensional feature vectors.
+- **Anomaly detection** — Mahalanobis distance, configurable sensitivity, persisted classifications.
+- **Wear-trend analysis** — deterioration scoring against a chosen baseline cluster, time-series view.
+- **Live monitor** — polls the BE for the latest monitoring points; emphasis styling on the trailing window.
+- **Multi-tenancy** — organizations, teams, memberships. Records are tenant-isolated at the DB level (`organization_id NOT NULL` on every records-side table). Active org per-request via `X-Org-ID`. See [`Dinsight_API/docs/TENANCY_AND_RBAC.md`](Dinsight_API/docs/TENANCY_AND_RBAC.md).
+- **RBAC** — three roles (admin / operator / viewer). BE `middleware.RequireAction` is authoritative; FE `RequirePermission` mirrors the matrix to hide affordances.
+- **OIDC SSO** (optional) — plug an external IdP via four env vars. Configured: `/login` shows an SSO button. Unset: SSO endpoints 404 and password flow stays the only option.
+- **Audit log** — every write to org-scoped routes is recorded (actor, action, resource, outcome, IP). Async writer. Admin-only viewer under Account & Security.
+- **JWT auth** — access + refresh tokens. JWT carries the user's full membership list so per-request org resolution is one parse, not a DB round-trip.
+- **License verification** — JWT-signed deployment license; device-count enforcement.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend API   │    │   Database      │
-│   (Next.js)     │◄──►│   (Go + Gin)    │◄──►│  (PostgreSQL)   │
-│   Port 3000     │    │   Port 8080     │    │   Port 5432     │
+│   (Next.js 15)  │◄──►│   (Go + Gin)    │◄──►│  (PostgreSQL)   │
+│   :3000         │    │   :8080         │    │   :5432         │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### Core Components
+- **Backend** — Go 1.23, Gin, GORM, PostgreSQL with JSONB for flexible payloads.
+- **Frontend** — Next.js 15 (App Router), TypeScript, Tailwind, React Query, Plotly.
+- **Background processing** — file uploads + DInsight runs happen in goroutines; FE polls `/analyze/:id/status`.
 
-- **Backend**: Go API with Gin framework, GORM ORM, and PostgreSQL
-- **Frontend**: Next.js 15+ with TypeScript, Tailwind CSS, and React Query
-- **Database**: PostgreSQL with JSONB support for flexible data storage
-- **Licensing**: Custom JWT-based license verification system
-- **Processing**: Background goroutines for file processing and analysis
+## Prerequisites
 
-## 📋 Prerequisites
+- Go 1.23.2+ — [download](https://golang.org/dl/)
+- Node.js 20+ — [download](https://nodejs.org/)
+- pnpm 10+ — `npm install -g pnpm`
+- PostgreSQL 14+ — [download](https://postgresql.org/download/)
 
-- **Go 1.23.2+** - [Download](https://golang.org/dl/)
-- **Node.js 20+** - [Download](https://nodejs.org/)
-- **PostgreSQL 14+** - [Download](https://postgresql.org/download/)
-- **Python 3.8+** - [Download](https://python.org/) (for streaming simulator)
-- **Git** - [Download](https://git-scm.com/)
-
-## 🔧 Installation
-
-### 1. Clone the Repository
+## Setup
 
 ```bash
 git clone https://github.com/Jotham566/dinsight-dashboard.git
 cd dinsight-dashboard
-```
 
-### 2. Database Setup
+# 1. Database
+createdb dinsight   # or: psql -c "CREATE DATABASE dinsight;"
 
-Ensure PostgreSQL is running. The application will automatically create tables on startup, but you need to create the database first:
-
-```sql
-CREATE DATABASE dinsight;
-```
-
-Update database credentials in `Dinsight_API/config/config.go` if needed.
-
-### 3. Backend Setup
-
-```bash
+# 2. Backend
 cd Dinsight_API
-
-# Install dependencies
 go mod download
-
-# Build the API server
 go build -o dist/api-server ./cmd/api
-```
+go run ./cmd/migrate up   # apply schema
+./dist/api-server         # serves :8080
 
-### 4. Frontend Setup
-
-```bash
+# 3. Frontend (separate terminal)
 cd frontend
-
-# Install dependencies
-npm install
-
-# Build for production (optional)
-npm run build
+pnpm install
+pnpm dev                  # serves :3000
 ```
 
-### 5. License Configuration
+The seed admin account (`admin@disum.com` / `DInsight123!`) is provisioned by migrations in dev. Set `DISABLE_SEED_ADMIN=true` for production.
 
-The application requires a valid license file. For development:
+### License
 
-1. Place `license.lic` in the `Dinsight_API/` directory
-2. Ensure `devices.json` exists (will be created automatically)
+Place `license.lic` in `Dinsight_API/`. `devices.json` is created automatically on first device registration.
 
-### 6. Streaming Simulator Setup (Optional)
+## API documentation
 
-For real-time streaming simulation:
+Swagger UI: <http://localhost:8080/swagger/index.html> (source of truth — generated from handler annotations).
 
-```bash
-# Set up Python virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+Key routes:
 
-# Install Python dependencies
-pip install -r requirements.txt
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v1/auth/login` | Returns access + refresh tokens. |
+| POST | `/api/v1/analyze` | Upload baseline CSV (multipart). |
+| POST | `/api/v1/monitor/:dinsight_id` | Upload monitoring CSV against an existing baseline. |
+| GET | `/api/v1/dinsight/:id` | Get reduced 2D coordinates. |
+| GET | `/api/v1/monitor/:dinsight_id/coordinates` | Latest monitoring coordinates. |
+| POST | `/api/v1/anomaly/detect` | Mahalanobis-distance scoring. |
+| POST | `/api/v1/deterioration/:dinsight_id/analyze` | Wear-trend analysis. |
+| GET | `/api/v1/audit` | Admin-only audit log feed. |
 
-# Or use the setup script
-./setup_streaming.sh
-```
+All non-auth routes require `Authorization: Bearer <jwt>` and the active org via `X-Org-ID` (or fall back to the user's first membership in the JWT).
 
-## 🚀 Running the Application
-
-### Start Backend (Development)
-
-```bash
-cd Dinsight_API
-./dist/api-server
-```
-
-Or run directly without building:
-
-```bash
-cd Dinsight_API
-go run ./cmd/api
-```
-
-The API will be available at `http://localhost:8080`
-
-### Start Frontend (Development)
-
-```bash
-cd frontend
-npm run dev
-```
-
-The frontend will be available at `http://localhost:3000`
-
-### Real-time Streaming Simulation
-
-To simulate real-time data streaming:
-
-```bash
-# Activate virtual environment first
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Using existing baseline data
-python3 streaming_simulator.py --baseline-id 1
-
-# Upload new baseline and stream monitoring data
-python3 streaming_simulator.py --baseline-file "test-data/Store D Line A - Baseline.csv"
-
-# Custom streaming parameters with all options
-python3 streaming_simulator.py \
-  --baseline-file "test-data/Store D Line A - Baseline.csv" \
-  --monitor-file "test-data/Store D Line A - Monitor.csv" \
-  --delay 1.5 \
-  --batch-size 3 \
-  --latest-glow-count 2 \
-  --api-url "http://localhost:8080/api/v1"
-
-# View all available options
-python3 streaming_simulator.py --help
-```
-
-#### Streaming Simulator Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--baseline-id` | Use existing baseline dinsight_id from database | - |
-| `--baseline-file` | Upload new baseline file and use its dinsight_id | - |
-| `--monitor-file` | Path to monitor CSV file | `test-data/Store D Line A - Monitor.csv` |
-| `--delay` | Delay in seconds between data points | `2.0` |
-| `--batch-size` | Number of points to send per batch | `1` |
-| `--latest-glow-count` | Number of latest points to highlight with yellow glow | `10` |
-| `--api-url` | Base API URL | `http://localhost:8080/api/v1` |
-
-### Production Deployment
-
-```bash
-# Backend
-cd Dinsight_API
-go build -o dist/api-server ./cmd/api
-./dist/api-server
-
-# Frontend
-cd frontend
-npm run build
-npm start
-```
-
-## 📡 API Documentation
-
-The API includes Swagger documentation available at:
-- **Swagger UI**: `http://localhost:8080/swagger/index.html`
-- **API Spec**: [api_endpoints.md](./api_endpoints.md)
-
-### Key Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/analyze` | Upload CSV files for analysis |
-| `GET` | `/api/v1/dinsight/:id` | Get dimensionality reduction results |
-| `GET` | `/api/v1/monitor/:id` | Get monitoring data |
-| `POST` | `/auth/login` | User authentication |
-| `GET` | `/api/v1/config` | Get current configuration |
-
-## 🛠️ Development
-
-### Project Structure
+## Project structure
 
 ```
-├── Dinsight_API/              # Go backend
-│   ├── cmd/                   # Application entry points
-│   │   ├── api/               # Main API server
-│   │   └── reset-db/          # Database reset utility
-│   ├── internal/              # Internal application code
+.
+├── Dinsight_API/              # Go backend (separate repo, gitignored here)
+│   ├── cmd/
+│   │   ├── api/               # Server entry point
+│   │   └── migrate/           # Goose migrations CLI
+│   ├── internal/
 │   │   ├── handler/           # HTTP handlers
-│   │   ├── model/             # Database models
-│   │   ├── database/          # Database logic
-│   │   ├── routes/            # Route definitions
-│   │   ├── middleware/        # HTTP middleware
-│   │   ├── processor/         # Data processing
-│   │   └── dinsightmon/       # Monitoring logic
-│   ├── pkg/                   # Public packages
-│   │   ├── license/           # License verification
-│   │   └── response/          # HTTP response helpers
-│   ├── config/                # Configuration
-│   ├── docs/                  # Swagger documentation
+│   │   ├── middleware/        # JWT, ResolveOrg, Audit, CORS, License
+│   │   ├── model/             # GORM models
+│   │   ├── database/migrations/  # Goose migration files
+│   │   ├── routes/            # Route registration
+│   │   ├── dinsightmon/       # Monitoring + DInsight algorithm
+│   │   └── service/           # Domain services (deterioration, etc.)
+│   ├── docs/                  # Swagger + ops runbooks
 │   └── dist/                  # Build output
-├── frontend/                  # Next.js frontend
-│   ├── src/                   # Source code
-│   │   ├── app/               # App Router pages
-│   │   ├── components/        # React components
-│   │   ├── context/           # React contexts
-│   │   ├── lib/               # Utilities
-│   │   ├── styles/            # Global styles
-│   │   ├── types/             # TypeScript types
-│   │   └── utils/             # Helper functions
-│   └── public/                # Static assets
-├── specs/                     # Technical specifications
-├── test-data/                 # Sample CSV files
-├── .github/                   # GitHub configuration
-├── .venv/                     # Python virtual environment
-├── streaming_simulator.py     # Real-time data streaming simulator
-├── requirements.txt           # Python dependencies
-├── setup_streaming.sh         # Streaming environment setup script
-├── reset-db.sh               # Database reset utility
-└── STREAMING_GUIDE.md        # Streaming feature documentation
+├── frontend/                  # Next.js dashboard
+│   └── src/                   # See frontend/README.md for layout
+├── specs/                     # Architecture + design specs
+│   ├── api/                   # API spec notes
+│   ├── auth/                  # Auth flows
+│   ├── data/                  # Data contracts
+│   ├── database/              # Schema notes
+│   └── frontend/              # Design system, team brief
+├── test-data/                 # Sample CSVs (gitignored)
+├── reset-db.sh                # Drop + recreate the dinsight database
+└── README.md
 ```
 
-### Backend Development
+## Development
+
+### Backend
 
 ```bash
 cd Dinsight_API
 
-# Run with automatic restart on changes
-go run ./cmd/api
-
-# Run tests
-go test ./...
-
-# Generate Swagger docs
-swag init -g cmd/api/main.go
-
-# Format code
-go fmt ./...
+go run ./cmd/api                    # dev server (port 8080)
+go run ./cmd/migrate up             # apply pending migrations
+go run ./cmd/migrate down           # roll back one migration
+go test ./...                       # unit + integration tests
+swag init -g cmd/api/main.go        # regenerate Swagger
+gofmt -w .                          # format
 ```
 
-### Frontend Development
+### Frontend
 
 ```bash
 cd frontend
 
-# Development server with turbo
-npm run dev
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-
-# Format code
-npm run format
+pnpm dev              # dev server with Turbopack (port 3000)
+pnpm type-check       # tsc --noEmit
+pnpm lint             # next lint
+pnpm test             # vitest
+pnpm test:e2e         # playwright
+pnpm format           # prettier --write
+pnpm build            # production build
 ```
 
-### Database Migrations
-
-The application automatically runs migrations on startup. To reset the database:
+### Reset the database
 
 ```bash
-# Use the reset database script
-./reset-db.sh
+./reset-db.sh         # drops + recreates the dinsight DB; re-run migrations after
 ```
 
-### Streaming Setup
+## Troubleshooting
 
-To set up the complete streaming environment:
-
+**Database connection failed**
 ```bash
-# Run the streaming setup script
-./setup_streaming.sh
-```
-
-### Sample Data
-
-Use the provided test data for development:
-
-```bash
-# Test files are in test-data/
-curl -X POST http://localhost:8080/api/v1/analyze \
-  -F "files=@test-data/test-baseline.csv"
-
-# Test real-time streaming (activate venv first)
-source .venv/bin/activate
-python3 streaming_simulator.py --baseline-file "test-data/Store D Line A - Baseline.csv"
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Database Connection Failed**
-```bash
-# Check PostgreSQL is running
-brew services start postgresql  # macOS
-sudo systemctl start postgresql  # Linux
-
-# Verify connection
+brew services start postgresql        # macOS
+sudo systemctl start postgresql       # Linux
 psql -h localhost -U postgres -d dinsight
 ```
 
-**License Validation Failed**
-- Ensure `license.lic` is in the correct location
-- Check file permissions
-- Verify license hasn't expired
+**License validation failed** — check `license.lic` is present in `Dinsight_API/`, file permissions are readable, and the license hasn't expired.
 
-**Python Dependencies Missing**
+**Port already in use**
 ```bash
-# Set up virtual environment and install dependencies
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Or run the setup script
-./setup_streaming.sh
-```
-
-**Streaming Simulation Issues**
-- Ensure virtual environment is activated: `source .venv/bin/activate`
-- Ensure backend is running on port 8080
-- Check baseline ID exists or upload baseline file first
-- Monitor `streaming_simulator.log` for detailed error messages
-- Use `python3 streaming_simulator.py --help` to see all options
-
-**Frontend Build Errors**
-```bash
-# Clear dependencies and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-**Port Already in Use**
-```bash
-# Find and kill process using port 8080
 lsof -ti:8080 | xargs kill -9
+lsof -ti:3000 | xargs kill -9
 ```
 
-### Debug Mode
+**Frontend build errors**
+```bash
+cd frontend
+rm -rf node_modules .next
+pnpm install
+```
 
-Enable debug logging:
+**Stale BE response shape after a schema migration** — Go pgx caches prepared statements. Restart the BE after running migrations that change column counts.
+
+### Debug mode
 
 ```bash
 # Backend
-export GIN_MODE=debug
-go run ./cmd/api
+GIN_MODE=debug go run ./cmd/api
 
 # Frontend
-export NODE_ENV=development
-npm run dev
+NODE_ENV=development pnpm dev
 ```
 
-## 📊 Monitoring & Performance
+## Documentation
 
-- **Logging**: Structured logging with configurable levels
-- **Database**: Query optimization with proper indexing
-- **Performance**: Background processing for file uploads
+- [Frontend overview](./frontend/README.md)
+- [Architecture specs](./specs/README.md)
+- [Design system](./specs/frontend/design-system.md)
+- [Team design brief](./specs/frontend/team-design-brief.md)
+- [Backend changelog](./Dinsight_API/CHANGELOG.md) — per-week breakdown of the foundation arc
+- [Frontend changelog](./frontend/CHANGELOG.md) — frontend half of the same arc
+- [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API/docs/TENANCY_AND_RBAC.md) — data model, JWT memberships, role matrix, SSO setup, audit log schema
+- [NOT NULL migration runbook](./Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md) — deploy-day ops runbook for the Week 4 `organization_id NOT NULL` enforcement
 
-## 📚 Documentation
+## License
 
-- [API Documentation](./api_endpoints.md)
-- [Architecture Specs](./specs/README.md)
-- [Streaming Guide](./STREAMING_GUIDE.md)
-- [Backend CHANGELOG](./Dinsight_API/CHANGELOG.md) — Per-week breakdown of the foundation arc
-- [Frontend CHANGELOG](./frontend/CHANGELOG.md) — Frontend half of the same arc
-- [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API/docs/TENANCY_AND_RBAC.md) — Data model, JWT memberships, role matrix, SSO setup, audit log schema
-- [NOT NULL migration runbook](./Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md) — Deploy-day ops runbook for the Week 4 `organization_id NOT NULL` enforcement
-
-## 📄 License
-
-This project uses a custom license. Contact the project maintainers for licensing details.
+Custom commercial license. Contact the project maintainers for terms.
