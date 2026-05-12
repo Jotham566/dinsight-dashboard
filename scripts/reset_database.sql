@@ -1,30 +1,27 @@
--- Database Reset Script for D'insight Dashboard
--- This script resets all data and restarts auto-increment sequences from 1
+-- Database reset (raw-SQL fallback for the dinsight DB).
+--
+-- Use this when you have a psql shell but no Go toolchain handy. The
+-- canonical reset path is `./scripts/reset-db.sh`, which builds and
+-- runs cmd/reset-db so it can also re-apply migrations and seed the
+-- admin account in one step.
+--
+-- This file ONLY drops the schema. After running it, re-apply
+-- migrations from a Go shell:
+--
+--   cd Dinsight_API
+--   go run ./cmd/migrate up
+--
+-- The seed migrations (202605180001 / _190001 / _200001) provision
+-- admin@disum.com / DInsight123! automatically. Set
+-- DISABLE_SEED_ADMIN=true before re-running migrations to skip that.
+--
+-- Hand-curating a DROP TABLE list rots on every new migration. The
+-- schema-level DROP CASCADE handles every current and future table,
+-- plus orphans from old migrations, with no maintenance.
 
--- WARNING: This will delete ALL data in the database!
--- Make sure you have backups if needed.
+\echo 'Dropping public schema (CASCADE)...'
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO public;
 
--- Drop tables in reverse dependency order to avoid foreign key constraints
-DROP TABLE IF EXISTS data_validation_results CASCADE;
-DROP TABLE IF EXISTS data_validation_rules CASCADE;
-DROP TABLE IF EXISTS data_lineage CASCADE;
-DROP TABLE IF EXISTS dataset_metadata CASCADE;
-DROP TABLE IF EXISTS alerts CASCADE;
-DROP TABLE IF EXISTS alert_rules CASCADE;
-DROP TABLE IF EXISTS anomaly_classifications CASCADE;
-DROP TABLE IF EXISTS password_reset_tokens CASCADE;
-DROP TABLE IF EXISTS refresh_tokens CASCADE;
-DROP TABLE IF EXISTS analyses CASCADE;
-DROP TABLE IF EXISTS machines CASCADE;
-DROP TABLE IF EXISTS user_organizations CASCADE;
-DROP TABLE IF EXISTS organizations CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS monitor_data CASCADE;
-DROP TABLE IF EXISTS experiments CASCADE;
-DROP TABLE IF EXISTS feature_data CASCADE;
-DROP TABLE IF EXISTS dinsight_data CASCADE;
-DROP TABLE IF EXISTS config_data CASCADE;
-DROP TABLE IF EXISTS file_uploads CASCADE;
-
--- Re-run migrations to recreate all tables
--- This will be handled by the Go application when it starts up
+\echo 'Done. Now run: (cd Dinsight_API && go run ./cmd/migrate up)'

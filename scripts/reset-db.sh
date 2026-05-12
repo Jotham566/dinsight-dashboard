@@ -41,17 +41,10 @@ echo "🏗️  Building reset utility..."
 go build -o ./dist/reset-db ./cmd/reset-db/main.go
 
 echo "🗑️  Resetting database..."
+# The Go binary prints its own ✅ summary on success, including the
+# admin credentials. Wrapper just propagates the exit code so callers
+# can chain it (`./scripts/reset-db.sh && ./dist/api-server`).
 ./dist/reset-db
 status=$?
 rm -f ./dist/reset-db
-
-if [ $status -eq 0 ]; then
-    echo ""
-    echo "✅ Database reset completed successfully!"
-    echo "📊 All ID sequences now start from 1"
-    echo "🔑 You can login with: admin@disum.com / DInsight123!"
-    echo "🏢 Organization: D'ISUM Inc. with 2 machines"
-else
-    echo "❌ Database reset failed"
-    exit $status
-fi
+exit $status
