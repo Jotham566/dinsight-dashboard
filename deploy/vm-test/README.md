@@ -4,18 +4,21 @@ Step-by-step guide for deploying the full Dinsight stack (backend + frontend + P
 
 ## Contents
 
-- [What gets deployed](#what-gets-deployed)
-- [Before you start](#before-you-start)
-- [Step 1 — Clone the two repos](#step-1--clone-the-two-repos)
-- [Step 2 — Drop in the license artifacts](#step-2--drop-in-the-license-artifacts)
-- [Step 3 — Configure `.env`](#step-3--configure-env)
-- [Step 4 — Build and start](#step-4--build-and-start)
-- [Step 5 — Verify it works](#step-5--verify-it-works)
-- [About the env files](#about-the-env-files)
-- [Day-to-day operations](#day-to-day-operations)
-- [Updating to a newer build](#updating-to-a-newer-build)
-- [Going to HTTPS](#going-to-https)
-- [Troubleshooting](#troubleshooting)
+- [VM smoke-test deployment](#vm-smoke-test-deployment)
+  - [Contents](#contents)
+  - [What gets deployed](#what-gets-deployed)
+  - [Before you start](#before-you-start)
+  - [Step 1 — Clone the two repos](#step-1--clone-the-two-repos)
+  - [Step 2 — Drop in the license artifacts](#step-2--drop-in-the-license-artifacts)
+  - [Step 3 — Configure `.env`](#step-3--configure-env)
+  - [Step 4 — Build and start](#step-4--build-and-start)
+  - [Step 5 — Verify it works](#step-5--verify-it-works)
+  - [About the env files](#about-the-env-files)
+  - [Common operations](#common-operations)
+  - [Updating to a newer build](#updating-to-a-newer-build)
+  - [Going to HTTPS](#going-to-https)
+  - [Troubleshooting](#troubleshooting)
+  - [Next Steps](#next-steps)
 
 ## What gets deployed
 
@@ -39,7 +42,7 @@ On the VM:
 - **~2 GB free RAM, ~5 GB free disk** (Postgres data + cached image layers grow over time).
 - **Network access** to GitHub (to clone the repos), Docker Hub, and `gcr.io` (to pull the distroless base images), unless you're air-gapped — that's a different path not covered here.
 
-You also need two things from whoever runs the project:
+You also need two things in the project:
 
 - `license.lic` — the deployment license file.
 - The backend repo URL and the dashboard repo URL.
@@ -63,7 +66,7 @@ ls
 The backend reads `license.lic` at startup and writes `devices.json` to record registered devices. Put them in the backend clone's root:
 
 ```sh
-# Drop the license file (you got it from the project owner)
+# Drop the license file
 cp /path/to/license.lic ~/dinsight/Dinsight_API/license.lic
 
 # Create an empty devices.json (the backend will populate it)
@@ -141,7 +144,7 @@ Mailpit (captured outbound email) is at `http://YOUR_VM_IP:8025`. Useful for con
 
 ## About the env files
 
-You'll find three `.env`-style files across the two repos. They serve different purposes and **never share values**. This trips people up — here's the map:
+You'll find three `.env`-style files across the two repos. They serve different purposes and **never share values**. Here's the map:
 
 | File | Read by | When it matters |
 |---|---|---|
@@ -151,7 +154,7 @@ You'll find three `.env`-style files across the two repos. They serve different 
 
 Rule of thumb: **for this VM deploy, only edit `deploy/vm-test/.env`**. Setting `JWT_SECRET` in `Dinsight_API/.env` does nothing for the containerized stack — the compose-side env is what reaches the container.
 
-## Day-to-day operations
+## Common operations
 
 ```sh
 cd ~/dinsight/dinsight-dashboard/deploy/vm-test
@@ -243,8 +246,6 @@ docker compose exec mailpit sh
 ```
 For the distroless ones, use `docker compose logs` instead.
 
-## What this isn't
+## Next Steps
 
-- **Not the customer install path.** Customers won't `git clone` either repo. The compose file's `build:` blocks become `image: ghcr.io/.../...:vX.Y.Z` pulls once we wire up the registry + CI. Same file structure.
-- **Not air-gapped.** If a site has no internet, we'll ship a `docker save`-d tarball of both images alongside the compose file. Not built yet.
-- **Not production-hardened.** No resource limits, no log rotation, no metrics, no backup of the Postgres volume. Add those before hosting real workloads.
+After the VM test, then we can plan for registry image pulls via a chosen container registery and setup proper CI/CD.
