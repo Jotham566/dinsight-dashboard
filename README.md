@@ -203,7 +203,3 @@ NODE_ENV=development pnpm dev
 - [Frontend changelog](./frontend/CHANGELOG.md) — frontend half of the same arc
 - [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API/docs/TENANCY_AND_RBAC.md) — data model, JWT memberships, role matrix, SSO setup, audit log schema
 - [NOT NULL migration runbook](./Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md) — deploy-day ops runbook for the Week 4 `organization_id NOT NULL` enforcement
-
-## License
-
-Custom commercial license. Contact the project maintainers for terms.
