@@ -111,12 +111,10 @@ All non-auth routes require `Authorization: Bearer <jwt>` and the active org via
 │   └── dist/                  # Build output
 ├── frontend/                  # Next.js dashboard
 │   └── src/                   # See frontend/README.md for layout
-├── specs/                     # Architecture + design specs
-│   ├── api/                   # API spec notes
-│   ├── auth/                  # Auth flows
-│   ├── data/                  # Data contracts
-│   ├── database/              # Schema notes
-│   └── frontend/              # Design system, team brief
+├── docs/                      # Two living docs + an index pointing at the
+│   ├── README.md              # authoritative sources for everything else
+│   ├── design-system.md       # FE design system (tokens, primitives, states)
+│   └── team-design-brief.md   # Cross-team product + brand brief
 ├── test-data/                 # Sample CSVs (gitignored)
 ├── reset-db.sh                # Drop + recreate the dinsight database
 └── README.md
@@ -196,9 +194,9 @@ NODE_ENV=development pnpm dev
 ## Documentation
 
 - [Frontend overview](./frontend/README.md)
-- [Architecture specs](./specs/README.md)
-- [Design system](./specs/frontend/design-system.md)
-- [Team design brief](./specs/frontend/team-design-brief.md)
+- [Docs index](./docs/README.md)
+- [Design system](./docs/design-system.md)
+- [Team design brief](./docs/team-design-brief.md)
 - [Backend changelog](./Dinsight_API/CHANGELOG.md) — per-week breakdown of the foundation arc
 - [Frontend changelog](./frontend/CHANGELOG.md) — frontend half of the same arc
 - [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API/docs/TENANCY_AND_RBAC.md) — data model, JWT memberships, role matrix, SSO setup, audit log schema

@@ -2,7 +2,7 @@
 
 The Dinsight dashboard — Next.js 15 (App Router), TypeScript, Tailwind, React Query, Plotly. Talks to the Go API at `:8080`.
 
-For project-wide setup, prerequisites, and architecture, see the [root README](../README.md). For the design system, see [`specs/frontend/design-system.md`](../specs/frontend/design-system.md).
+For project-wide setup, prerequisites, and architecture, see the [root README](../README.md). For the design system, see [`docs/design-system.md`](../docs/design-system.md).
 
 ## Quick start
 
@@ -68,8 +68,8 @@ src/
 - **Permissions** — gate UI on `usePermission(Actions.X)` from `@/components/auth/require-permission`. The vocabulary mirrors `Dinsight_API/internal/policy/policy.go`. The BE is authoritative; the FE is cosmetic.
 - **API calls** — go through `@/lib/api-client`. The axios instance stamps `Authorization: Bearer …` and `X-Org-ID` from the `current_org_id` cookie.
 - **Active org** — `useAuth().currentOrg` and `currentOrgRole`. `setCurrentOrg(id)` updates the cookie and re-renders.
-- **Tokens for design** — use the semantic Tailwind tokens (`bg-surface`, `text-fg`, `border-strong`, `text-success-text`, `bg-warning-bg`, `border-focus`, etc.) — never raw `text-gray-900` / `bg-blue-500`. See [design system §4 + §5](../specs/frontend/design-system.md).
-- **Component states** — every primitive ships the seven-state model from [design system §11.5](../specs/frontend/design-system.md): default, hover, focus, active, disabled, loading, error.
+- **Tokens for design** — use the semantic Tailwind tokens (`bg-surface`, `text-fg`, `border-strong`, `text-success-text`, `bg-warning-bg`, `border-focus`, etc.) — never raw `text-gray-900` / `bg-blue-500`. See [design system §4 + §5](../docs/design-system.md).
+- **Component states** — every primitive ships the seven-state model from [design system §11.5](../docs/design-system.md): default, hover, focus, active, disabled, loading, error.
 
 ## Testing
 
