@@ -13,6 +13,8 @@ pnpm dev          # http://localhost:3000
 
 The dev server uses Turbopack. The BE must be running on `:8080` (or set `NEXT_PUBLIC_API_URL`).
 
+For the containerized full stack (FE + BE + Postgres + reverse proxy in one `docker compose up`), see [`../deploy/vm-test/`](../deploy/vm-test/README.md).
+
 ## Scripts
 
 ```bash

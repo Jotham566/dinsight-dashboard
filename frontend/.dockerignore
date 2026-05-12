@@ -1,0 +1,43 @@
+# Anything in this file is excluded from the Docker build context. Keeps
+# the context small (faster builds) and prevents host state from leaking
+# into the image.
+
+# --- VCS, IDE, OS noise -----------------------------------------------------
+.git
+.github
+.gitignore
+.gitattributes
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# --- Node / Next.js build outputs and caches --------------------------------
+node_modules
+.next
+out
+dist
+build
+.turbo
+.swc
+*.tsbuildinfo
+
+# --- Test artifacts ---------------------------------------------------------
+coverage
+test-results
+playwright-report
+playwright/.auth
+
+# --- Env files (NEXT_PUBLIC_API_URL is set via build-arg, not bind-mount) ---
+.env
+.env.local
+.env.*.local
+
+# --- Container artifacts (avoid recursive context) --------------------------
+Dockerfile
+.dockerignore
+
+# --- Docs that the runtime doesn't need -------------------------------------
+README.md
+CHANGELOG.md

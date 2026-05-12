@@ -68,6 +68,8 @@ pnpm dev                  # serves :3000
 
 The seed admin account (`admin@disum.com` / `DInsight123!`) is provisioned by migrations in dev. Set `DISABLE_SEED_ADMIN=true` for production.
 
+For a single-VM container deploy of the full stack, see [`deploy/vm-test/`](./deploy/vm-test/README.md).
+
 ### License
 
 Place `license.lic` in `Dinsight_API/`. `devices.json` is created automatically on first device registration.
@@ -115,6 +117,12 @@ All non-auth routes require `Authorization: Bearer <jwt>` and the active org via
 │   ├── README.md              # authoritative sources for everything else
 │   ├── design-system.md       # FE design system (tokens, primitives, states)
 │   └── team-design-brief.md   # Cross-team product + brand brief
+├── deploy/
+│   └── vm-test/               # Full-stack compose for single-VM deploys
+│       ├── compose.yml        # api + frontend + postgres + caddy + mailpit
+│       ├── Caddyfile          # /api/* -> BE, everything else -> FE
+│       ├── .env.example       # Copy to .env, set JWT_SECRET + paths
+│       └── README.md          # Walkthrough for the cloud engineer
 ├── test-data/                 # Sample CSVs (gitignored)
 ├── scripts/                   # Operational shell scripts
 │   ├── reset-db.sh            # Wipe + reseed the dinsight database

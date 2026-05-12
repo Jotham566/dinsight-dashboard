@@ -1,0 +1,147 @@
+# Dinsight full-stack VM smoke-test compose.
+#
+# Brings up the whole app on a single VM:
+#
+#   - postgres   (postgres:16-alpine, internal :5432, persisted volume)
+#   - api        (built from $DINSIGHT_API_PATH/Dockerfile, internal :8080)
+#   - frontend   (built from $DINSIGHT_FE_PATH/Dockerfile, internal :3000)
+#   - caddy      (caddy:2-alpine, host :80, reverse proxy)
+#   - mailpit    (axllent/mailpit, captures email; UI on host :8025)
+#
+# Build contexts point at TWO SEPARATE source trees because the BE and
+# FE are independent repos. The cloud engineer's layout has them in
+# sibling folders, e.g.:
+#
+#   ~/work/
+#     ├── Dinsight_API/        <-- BE clone
+#     └── dinsight-dashboard/  <-- FE clone (this file lives in here)
+#
+# Set $DINSIGHT_API_PATH in the .env file alongside this compose. See
+# .env.example for defaults that work for the layout above.
+#
+# Quickstart on the VM:
+#   git clone <api-repo>          # produces Dinsight_API/
+#   git clone <dashboard-repo>    # produces dinsight-dashboard/
+#   cd dinsight-dashboard/deploy/vm-test
+#   cp .env.example .env          # then edit .env to set JWT_SECRET etc.
+#   docker compose up -d --build
+#   curl http://localhost/api/v1/health
+#   open http://localhost          # FE login page
+#
+# Tear down:
+#   docker compose down            # data persists in named volumes
+#   docker compose down -v         # wipes the database too
+#
+# This file uses build contexts (the engineer is building from source on
+# the VM). For real customer deploys this becomes `image: ghcr.io/...`
+# pulls from a registry; the rest of the structure stays the same.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dinsight-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: dinsight
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dinsight"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ${DINSIGHT_API_PATH:-../../../Dinsight_API}
+      dockerfile: Dockerfile
+    image: dinsight-api:vm-test
+    container_name: dinsight-api
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (openssl rand -hex 32)}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: dinsight
+      DB_SSLMODE: disable
+      SERVER_PORT: "8080"
+      # Same-origin via Caddy means the FE never sends a cross-origin
+      # request, but the BE's CORS middleware still requires the Origin
+      # to be allow-listed. Set ALLOWED_ORIGINS to the public URL.
+      ALLOWED_ORIGINS: ${PUBLIC_URL:-http://localhost}
+      GIN_MODE: release
+      EMAIL_PROVIDER: smtp
+      EMAIL_FROM: "noreply@dinsight.local"
+      EMAIL_FROM_NAME: "Dinsight"
+      APP_BASE_URL: ${PUBLIC_URL:-http://localhost}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_TLS: "false"
+      REQUIRE_EMAIL_VERIFICATION: "false"
+      LICENSE_PATH: /app/license.lic
+      DEVICES_PATH: /app/devices.json
+      LICENSE_PUBKEY_PATH: /app/public.pem
+    volumes:
+      # License artifacts live in the BE source tree. Bind-mount them so
+      # the image stays generic and devices.json remains writable.
+      - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/license.lic:/app/license.lic:ro
+      - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/public.pem:/app/public.pem:ro
+      - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/devices.json:/app/devices.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    restart: on-failure:5
+
+  frontend:
+    build:
+      context: ${DINSIGHT_FE_PATH:-../../frontend}
+      dockerfile: Dockerfile
+      args:
+        # Same-origin: the FE calls /api/v1/* and Caddy routes those
+        # to the api service. No cross-origin, no CORS dance.
+        NEXT_PUBLIC_API_URL: /api/v1
+    image: dinsight-frontend:vm-test
+    container_name: dinsight-frontend
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: dinsight-caddy
+    ports:
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: dinsight-mailpit
+    ports:
+      # SMTP isn't exposed on the host (the api container reaches it via
+      # the compose network); the web UI is, so the engineer can browse
+      # captured email at http://VM-IP:8025
+      - "8025:8025"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

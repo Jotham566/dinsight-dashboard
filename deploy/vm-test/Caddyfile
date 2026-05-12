@@ -1,0 +1,38 @@
+# Caddy reverse-proxy config for the Dinsight VM smoke-test.
+#
+# Routes /api/* to the BE container, everything else to the FE container.
+# Same-origin = no CORS, cookies behave correctly, single TLS endpoint
+# when we eventually swap :80 for a real hostname.
+#
+# Default site is :80 (HTTP, no TLS). For the VM smoke test that's fine.
+# To switch to HTTPS once a real hostname exists:
+#
+#   1. Replace `:80` below with the hostname (e.g. `dinsight.example.com`).
+#   2. Make sure the VM is reachable on :80 + :443 from the public internet
+#      so Caddy can complete the Let's Encrypt HTTP-01 challenge.
+#   3. `docker compose up -d caddy` — Caddy will provision and renew.
+#
+# For air-gapped or "bring your own cert" setups, drop the cert + key
+# into a host directory and add `tls /path/cert.pem /path/key.pem` to
+# the site block.
+
+:80 {
+    # /api/* -> api:8080 (preserve the path; the BE actually serves at
+    # /api/v1/*, so we want the /api prefix kept on the wire).
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+
+    # Everything else -> frontend:3000 (Next.js standalone server).
+    handle {
+        reverse_proxy frontend:3000
+    }
+
+    encode gzip zstd
+
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
