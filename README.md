@@ -116,7 +116,9 @@ All non-auth routes require `Authorization: Bearer <jwt>` and the active org via
 │   ├── design-system.md       # FE design system (tokens, primitives, states)
 │   └── team-design-brief.md   # Cross-team product + brand brief
 ├── test-data/                 # Sample CSVs (gitignored)
-├── reset-db.sh                # Drop + recreate the dinsight database
+├── scripts/                   # Operational shell scripts
+│   ├── reset-db.sh            # Wipe + reseed the dinsight database
+│   └── reset_database.sql     # Equivalent manual SQL (for psql users)
 └── README.md
 ```
 
@@ -152,7 +154,7 @@ pnpm build            # production build
 ### Reset the database
 
 ```bash
-./reset-db.sh         # drops + recreates the dinsight DB; re-run migrations after
+./scripts/reset-db.sh   # wipes + reseeds the dinsight DB; runnable from any cwd
 ```
 
 ## Troubleshooting
