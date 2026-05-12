@@ -1,6 +1,6 @@
 # VM smoke-test deployment
 
-The full Dinsight stack (BE + FE + Postgres + reverse proxy + email-capture) on a single VM. This is the "does it work?" deploy, not the production story. Real customer deploys will pull pre-built images from a registry instead of building from source on the box.
+The full Dinsight stack (BE + FE + Postgres + reverse proxy + email-capture) on a single VM.
 
 ## What's in here
 
@@ -22,7 +22,7 @@ The full Dinsight stack (BE + FE + Postgres + reverse proxy + email-capture) on 
 
   Different layout? Set `DINSIGHT_API_PATH` and `DINSIGHT_FE_PATH` in `.env` to wherever you put them.
 
-- The BE clone needs `license.lic` and `public.pem` at its root (talk to whoever has them). `devices.json` is auto-created on first boot if it doesn't exist:
+- The BE clone needs `license.lic` and `public.pem` at its root. `devices.json` is auto-created on first boot if it doesn't exist:
 
   ```sh
   touch <DINSIGHT_API_PATH>/devices.json
@@ -83,12 +83,6 @@ git pull
 cd ../dinsight-dashboard/deploy/vm-test
 docker compose up -d --build       # rebuilds whichever images changed
 ```
-
-## What this isn't
-
-- **Not production.** Caddy serves on `:80` (HTTP only) by default. For HTTPS, change `:80` in `Caddyfile` to a real hostname; Caddy auto-provisions Let's Encrypt as long as the VM is internet-reachable on `:80` + `:443`.
-- **Not the customer install path.** Customers won't have `git clone` access to either repo. The compose file becomes `image: ghcr.io/dinsight/api:vX.Y.Z` (and same for FE) once we wire up the registry + CI builds. Same compose structure, different sources.
-- **Not air-gapped.** If a customer site has no internet, we'll ship a `docker save`-d tarball of both images alongside the compose file. Not built yet.
 
 ## Troubleshooting
 
