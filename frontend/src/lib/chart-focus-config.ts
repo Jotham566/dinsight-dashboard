@@ -1,4 +1,5 @@
-export const STREAMING_FOCUS_WINDOW_POINTS = 120;
+// Number of trailing monitoring points rendered with emphasis styling
+// on the live insights chart. The other focus-window / timeline-window
+// constants that used to live here had no consumers and were dropped
+// during the cleanup pass.
 export const STREAMING_MONITORING_EMPHASIS_POINTS = 60;
-export const DASHBOARD_STREAMING_TIMELINE_WINDOW = 120;
-export const DASHBOARD_IDLE_TIMELINE_WINDOW = 240;

@@ -6,7 +6,7 @@ import { X, ChevronRight, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { OrgSwitcher } from '@/components/layout/org-switcher';
-import { mainNavItems, bottomNavItems } from '@/lib/navigation';
+import { mainNavItems, bottomNavItems } from '@/lib/nav-config';
 import { can } from '@/lib/permissions';
 import { cn } from '@/utils/cn';
 

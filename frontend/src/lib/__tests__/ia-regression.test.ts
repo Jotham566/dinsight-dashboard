@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { mainNavItems, quickActions } from '@/lib/navigation';
+import { mainNavItems, quickActions } from '@/lib/nav-config';
 
 const dashboardRoot = path.resolve(process.cwd(), 'src/app/dashboard');
 

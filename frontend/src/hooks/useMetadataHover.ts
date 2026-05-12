@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { MetadataEntry } from '@/types/metadata';
+import { MetadataEntry } from '@/types';
 
-export type { MetadataEntry } from '@/types/metadata';
+export type { MetadataEntry } from '@/types';
 
 export interface UseMetadataHoverOptions {
   metadataSources: Array<MetadataEntry[] | undefined>;

@@ -1,4 +1,4 @@
-import { MetadataEntry } from '@/types/metadata';
+import { MetadataEntry } from '@/types';
 import {
   alignMetadataLength,
   normalizeMetadataArray,

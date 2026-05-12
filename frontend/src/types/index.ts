@@ -1,5 +1,11 @@
 // User and Authentication Types
 
+// MetadataEntry is the loose shape we accept for arbitrary point /
+// dataset metadata blobs (raw JSON payloads from the backend that
+// vary across endpoints). Lives here so consumers don't need a
+// separate import path for a one-line type.
+export type MetadataEntry = Record<string, unknown> | null | undefined;
+
 // Role the caller holds inside an organization. Mirrors model.Role* on
 // the backend; the global User.role field above is identity-level, this
 // one is per-organization.

@@ -1,4 +1,4 @@
-import { MetadataEntry } from '@/types/metadata';
+import { MetadataEntry } from '@/types';
 
 export const normalizeMetadataArray = (input: unknown): MetadataEntry[] => {
   if (!input) {
