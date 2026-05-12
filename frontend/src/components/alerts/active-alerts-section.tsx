@@ -63,8 +63,14 @@ export function ActiveAlertsSection() {
   const alertsQuery = useQuery<AlertItem[]>({
     queryKey: ['alerts', currentOrg?.id],
     queryFn: async () => {
+      // GET /api/v1/alerts is paginated:
+      //   { data: { alerts: [...], total, page, limit }, success: true }
+      // We only render the rows here; if the BE response shape changes
+      // back to a bare array later, the second branch keeps things safe.
       const res = await api.alerts.list();
-      return (res?.data?.data ?? []) as AlertItem[];
+      const payload = res?.data?.data;
+      if (Array.isArray(payload)) return payload as AlertItem[];
+      return (payload?.alerts ?? []) as AlertItem[];
     },
     enabled: Boolean(currentOrg?.id),
     refetchInterval: 30_000,

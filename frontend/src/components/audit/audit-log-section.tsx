@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { usePermission } from '@/components/auth/require-permission';
 import { Actions } from '@/lib/permissions';
@@ -54,6 +54,44 @@ interface AuditListResponse {
 }
 
 const PAGE_SIZE = 50;
+
+// OUTCOME_TOOLTIP is shown next to the Outcome column header. Plain
+// English so a non-engineer reading the audit log understands that
+// "failure" is just "the request returned 4xx/5xx" — not a security
+// alert. The Status column carries the raw HTTP code.
+const OUTCOME_TOOLTIP =
+  'success = the request returned a 2xx/3xx status. failure = the request returned 4xx (client error: bad input, missing permission, resource not found) or 5xx (server error). Hover the badge for what the specific code means.';
+
+// Per-status hover hint for failure rows. Picks the most common reason
+// users actually see; non-listed codes fall back to the generic family.
+function failureHint(status?: number): string {
+  switch (status) {
+    case 400:
+      return 'HTTP 400 — Bad Request. The payload was rejected by validation (missing field, invalid value, empty selection).';
+    case 401:
+      return 'HTTP 401 — Unauthorized. Token expired or missing.';
+    case 403:
+      return "HTTP 403 — Forbidden. Your role doesn't permit this action in this org.";
+    case 404:
+      return "HTTP 404 — Not Found. The target resource doesn't exist or isn't visible in your org scope.";
+    case 409:
+      return 'HTTP 409 — Conflict. Duplicate name, version mismatch, or concurrent edit.';
+    case 422:
+      return "HTTP 422 — Unprocessable. Payload was well-formed but couldn't be acted on (semantic validation failed).";
+    case 429:
+      return 'HTTP 429 — Too Many Requests. Rate limit hit; retry after a short backoff.';
+    case 500:
+      return 'HTTP 500 — Server error. The BE crashed or hit an unexpected condition. Check server logs.';
+    case 502:
+    case 503:
+    case 504:
+      return `HTTP ${status} — Upstream/availability error. A dependency was unreachable or slow.`;
+    default:
+      if (status && status >= 500) return `HTTP ${status} — server-side failure.`;
+      if (status && status >= 400) return `HTTP ${status} — client-side rejection.`;
+      return 'Request failed. See Status column for the HTTP code.';
+  }
+}
 
 const RESOURCE_TYPE_FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'All resources' },
@@ -151,7 +189,18 @@ export function AuditLogSection() {
               <TableHead>Who</TableHead>
               <TableHead>Action</TableHead>
               <TableHead>Resource</TableHead>
-              <TableHead align="center">Outcome</TableHead>
+              <TableHead align="center">
+                <span className="inline-flex items-center gap-1">
+                  Outcome
+                  <span
+                    title={OUTCOME_TOOLTIP}
+                    aria-label={OUTCOME_TOOLTIP}
+                    className="cursor-help text-fg-muted"
+                  >
+                    <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </span>
+              </TableHead>
               <TableHead align="right">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -179,9 +228,17 @@ export function AuditLogSection() {
                   <TableCell mono>{entry.action}</TableCell>
                   <TableCell>{resourceLabel(entry)}</TableCell>
                   <TableCell align="center">
-                    <Badge variant={entry.outcome === 'success' ? 'success' : 'danger'}>
-                      {entry.outcome}
-                    </Badge>
+                    <span
+                      title={
+                        entry.outcome === 'failure'
+                          ? failureHint(entry.response_status)
+                          : 'HTTP 2xx/3xx — request completed normally.'
+                      }
+                    >
+                      <Badge variant={entry.outcome === 'success' ? 'success' : 'danger'}>
+                        {entry.outcome}
+                      </Badge>
+                    </span>
                   </TableCell>
                   <TableCell align="right" mono>
                     {entry.response_status ?? '—'}

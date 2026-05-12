@@ -455,7 +455,15 @@ export function useDashboardOverview() {
     totalPoints: number;
   }>({
     queryKey: ['dashboard-realtime-anomaly', activeDatasetId],
-    enabled: !!activeDatasetId && streamingStatus?.status !== 'not_started',
+    // Anomaly detection needs at least one monitoring point for the
+    // baseline; the BE returns 404 (MONITORING_DATA_EMPTY) otherwise.
+    // Gate on streamed_points so the dashboard doesn't fire the request
+    // in the gap between "stream started" and "first point arrived",
+    // which used to log a failure row in the audit log on every poll.
+    enabled:
+      !!activeDatasetId &&
+      streamingStatus?.status !== 'not_started' &&
+      (streamingStatus?.streamed_points ?? 0) > 0,
     queryFn: async () => {
       if (!activeDatasetId) {
         return { anomalyPercentage: null, anomalyCount: 0, totalPoints: 0 };
@@ -641,7 +649,17 @@ export function useDashboardOverview() {
       wearRange ? `${wearRange.start}:${wearRange.end}` : '',
       resolvedWearConfig?.appliedAt ?? '',
     ],
-    enabled: Boolean(wearDatasetId && wearColumn && resolvedWearConfig),
+    // The deterioration service rejects requests with an empty cluster
+    // selection (no values AND no range) with HTTP 400, since it can't
+    // anchor the wear-trend computation. Gate the query so a saved
+    // wear config that hasn't picked a cluster yet doesn't pollute the
+    // audit log with failure rows on every dashboard mount.
+    enabled: Boolean(
+      wearDatasetId &&
+      wearColumn &&
+      resolvedWearConfig &&
+      (wearClusterValues.length > 0 || (wearRange?.start && wearRange?.end))
+    ),
     queryFn: async () => {
       if (!wearDatasetId || !wearColumn || !resolvedWearConfig) {
         return null;
@@ -719,7 +737,12 @@ export function useDashboardOverview() {
     queryKey: ['dashboard-active-alerts'],
     queryFn: async () => {
       const res = await api.alerts.list({ status: 'active' });
-      const items = (res?.data?.data ?? []) as Array<{
+      // GET /api/v1/alerts is paginated:
+      //   { data: { alerts: [...], total, page, limit }, success: true }
+      // Tolerate both shapes so the hook keeps working if the BE
+      // ever returns a bare array again.
+      const payload = res?.data?.data;
+      const items = (Array.isArray(payload) ? payload : (payload?.alerts ?? [])) as Array<{
         id: number;
         title: string;
         message: string;
