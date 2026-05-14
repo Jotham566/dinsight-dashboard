@@ -4,7 +4,7 @@ All notable changes to the Dinsight Dashboard frontend are recorded in this file
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres loosely to [Semantic Versioning](https://semver.org/). Until we cut a tagged release the changes below live under **Unreleased** and group the foundation work that pairs the frontend with the four-week backend hardening.
 
-The backend's matching CHANGELOG lives at [`Dinsight_API/CHANGELOG.md`](../Dinsight_API/CHANGELOG.md). Backend and frontend ship in lockstep across the foundation arc — every backend feature here has a frontend counterpart and vice versa.
+The backend's matching CHANGELOG lives at [`Dinsight_API_Enhanced/CHANGELOG.md`](../Dinsight_API_Enhanced/CHANGELOG.md). Backend and frontend ship in lockstep across the foundation arc — every backend feature here has a frontend counterpart and vice versa.
 
 ## [Unreleased]
 
@@ -41,7 +41,7 @@ Foundational hardening pass before the multi-tenancy work landed. Cleanups that 
 
 Multi-tenancy landed on the frontend in Week 2: an org switcher in the sidebar, a `currentOrg` slice on the auth context, and an axios interceptor that stamps `X-Org-ID` on every request.
 
-See the backend's [`docs/TENANCY_AND_RBAC.md`](../Dinsight_API/docs/TENANCY_AND_RBAC.md) for the matching server-side flow.
+See the backend's [`docs/TENANCY_AND_RBAC.md`](../Dinsight_API_Enhanced/docs/TENANCY_AND_RBAC.md) for the matching server-side flow.
 
 #### Added
 
@@ -83,7 +83,7 @@ Week 4 brought RBAC primitives that mirror the backend's `policy.Can` matrix, pl
 
 #### Added
 
-- **`src/lib/permissions.ts`** — frontend mirror of the backend's [`policy.go`](../Dinsight_API/internal/policy/policy.go) capability matrix. Action vocabulary + role capabilities duplicated by name so a grep across both codebases surfaces every gate. Authoritative gating still lives on the backend; this mirror is cosmetic — hides UI affordances the caller can't use.
+- **`src/lib/permissions.ts`** — frontend mirror of the backend's [`policy.go`](../Dinsight_API_Enhanced/internal/policy/policy.go) capability matrix. Action vocabulary + role capabilities duplicated by name so a grep across both codebases surfaces every gate. Authoritative gating still lives on the backend; this mirror is cosmetic — hides UI affordances the caller can't use.
 - **10 tests for `permissions.ts`** including superset assertions (admin ⊇ operator ⊇ viewer), the high-leverage gates (audit read, alert rule delete, dataset delete = admin only), and the fail-closed contract on null role.
 - **`<RequirePermission perm={...} fallback={...}>` component** and **`usePermission(action)` hook** in `src/components/auth/require-permission.tsx`. Reads `currentOrgRole` from `AuthContext`. Pre-hydration (`currentOrgRole === null`) returns false so we never flash forbidden affordances during the auth bootstrap. 7 tests cover the allowed / denied / pre-hydration / fallback paths.
 - **`useDebouncedRemotePrefs<T>` hook** in `src/hooks/useDebouncedRemotePrefs.ts`. Extracts the four-step canonical pattern from `live/page.tsx` where it was entangled with 30+ other state slices:
@@ -137,6 +137,36 @@ The live and insights pages still inline their own pref-sync logic. The hooks ar
 
 - **`CHANGELOG.md`** created — frontend was missing a per-repo changelog. This file covers the full four-week arc + closeout.
 - Root **`README.md`** features list updated to reflect multi-tenancy, RBAC, SSO, and the audit log. Pre-foundation it only mentioned "JWT-based authentication with role-based access control" — now lists the full capability set.
+
+---
+
+### Deploy hardening — vm-test multi-dev isolation + backend folder rename
+
+Three follow-up tweaks landed in `deploy/vm-test/`, plus a working-tree rename of the backend folder. No frontend source touched — docs and compose only.
+
+#### Changed
+
+- **Backend folder rebadged on disk** `Dinsight_API` → `Dinsight_API_Enhanced`. Working-tree-only rename; the backend's git remote and repo name are unchanged. Doc + compose references updated across:
+  - Root [`README.md`](../README.md), [`docs/README.md`](../docs/README.md)
+  - [`frontend/README.md`](README.md), this file
+  - [`deploy/vm-test/README.md`](../deploy/vm-test/README.md), [`.env.example`](../deploy/vm-test/.env.example), [`compose.yml`](../deploy/vm-test/compose.yml)
+- **[`deploy/vm-test/compose.yml`](../deploy/vm-test/compose.yml)** dropped hardcoded `container_name:` fields on all five services (postgres, api, frontend, caddy, mailpit). Container names now resolve to `<COMPOSE_PROJECT_NAME>-<service>-<index>` — two devs on one VM each pick a distinct `COMPOSE_PROJECT_NAME` in their `.env` and run side-by-side without collisions.
+- **Image tags + Mailpit port parameterized**: `dinsight-api:${IMAGE_TAG:-vm-test}`, `dinsight-frontend:${IMAGE_TAG:-vm-test}`, Mailpit web UI on `${MAILPIT_PORT:-8025}:8025`. Defaults preserve the existing single-dev behaviour.
+- **SMTP / email block parameterized**. Previously the api container hardcoded `EMAIL_PROVIDER`, `EMAIL_FROM`, `EMAIL_FROM_NAME`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, and `REQUIRE_EMAIL_VERIFICATION` to mailpit-shaped values, and `SMTP_USERNAME` / `SMTP_PASSWORD` were never passed through at all — meaning the stack couldn't reach a real SMTP relay even if `.env` provided credentials. Each setting now reads from `.env` with the mailpit defaults preserved when unset:
+  - `EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}`
+  - `EMAIL_FROM: "${EMAIL_FROM:-noreply@dinsight.local}"`
+  - `EMAIL_FROM_NAME: "${EMAIL_FROM_NAME:-Dinsight}"`
+  - `SMTP_HOST: ${SMTP_HOST:-mailpit}` / `SMTP_PORT: "${SMTP_PORT:-1025}"` / `SMTP_TLS: "${SMTP_TLS:-false}"`
+  - `SMTP_USERNAME: ${SMTP_USERNAME:-}` / `SMTP_PASSWORD: ${SMTP_PASSWORD:-}` (new pass-throughs)
+  - `REQUIRE_EMAIL_VERIFICATION: "${REQUIRE_EMAIL_VERIFICATION:-false}"`
+- **Postgres user + DB name parameterized for symmetry with the password**. `POSTGRES_PASSWORD` was already env-driven; `POSTGRES_USER` and `POSTGRES_DB` were hardcoded as `postgres` / `dinsight` in four places (postgres service env, healthcheck `pg_isready` test, api container `DB_USER` / `DB_NAME`). All four now reference `${POSTGRES_USER:-postgres}` / `${POSTGRES_DB:-dinsight}`, so overriding either flows through the whole stack.
+
+#### Added
+
+- **"Multi-dev isolation" block in [`deploy/vm-test/.env.example`](../deploy/vm-test/.env.example)** documenting `COMPOSE_PROJECT_NAME`, `IMAGE_TAG`, and `MAILPIT_PORT` with examples.
+- **"Email / SMTP" block in [`deploy/vm-test/.env.example`](../deploy/vm-test/.env.example)** documenting every SMTP knob plus a Resend-shaped production reference section (smtp.resend.com :465 implicit TLS, `REQUIRE_EMAIL_VERIFICATION=true`). The `.env` template gets a commented Postgres + SMTP block matching, so adding a real relay is uncomment-and-edit.
+- **"Multi-dev isolation on a shared VM" section in [`deploy/vm-test/README.md`](../deploy/vm-test/README.md)** covering the three env knobs, the Caddy port reminder, and the auto-namespaced Postgres volume.
+- **"Pointing at a real SMTP relay" + "Postgres user + DB name" sections in [`deploy/vm-test/README.md`](../deploy/vm-test/README.md)** covering provider verification (SPF/DKIM), the verification-gate migration grandfather, and the wipe-volume-to-rotate-creds caveat.
 
 ---
 

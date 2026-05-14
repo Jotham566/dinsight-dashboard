@@ -12,9 +12,9 @@ Two living docs. Anything else has a more authoritative source elsewhere.
 | You want | Look in |
 |---|---|
 | API reference | [Swagger UI](http://localhost:8080/swagger/index.html) (auto-generated from handler annotations) |
-| Backend operations + multi-tenancy data model | [`Dinsight_API/docs/TENANCY_AND_RBAC.md`](../Dinsight_API/docs/TENANCY_AND_RBAC.md) |
-| NOT NULL migration runbook | [`Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md`](../Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md) |
+| Backend operations + multi-tenancy data model | [`Dinsight_API_Enhanced/docs/TENANCY_AND_RBAC.md`](../Dinsight_API_Enhanced/docs/TENANCY_AND_RBAC.md) |
+| NOT NULL migration runbook | [`Dinsight_API_Enhanced/docs/RUNBOOK_NOT_NULL_MIGRATION.md`](../Dinsight_API_Enhanced/docs/RUNBOOK_NOT_NULL_MIGRATION.md) |
 | Frontend setup, scripts, src layout, conventions | [`frontend/README.md`](../frontend/README.md) |
 | Project-wide setup, prerequisites | [`README.md`](../README.md) |
-| Per-week feature arc | [`Dinsight_API/CHANGELOG.md`](../Dinsight_API/CHANGELOG.md) and [`frontend/CHANGELOG.md`](../frontend/CHANGELOG.md) |
-| Database schema | Migration files in [`Dinsight_API/internal/database/migrations/`](../Dinsight_API/internal/database/migrations/) — authoritative. Any standalone schema doc would drift on the first migration. |
+| Per-week feature arc | [`Dinsight_API_Enhanced/CHANGELOG.md`](../Dinsight_API_Enhanced/CHANGELOG.md) and [`frontend/CHANGELOG.md`](../frontend/CHANGELOG.md) |
+| Database schema | Migration files in [`Dinsight_API_Enhanced/internal/database/migrations/`](../Dinsight_API_Enhanced/internal/database/migrations/) — authoritative. Any standalone schema doc would drift on the first migration. |

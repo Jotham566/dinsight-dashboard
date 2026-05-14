@@ -13,14 +13,14 @@
 # sibling folders, e.g.:
 #
 #   ~/work/
-#     ├── Dinsight_API/        <-- BE clone
+#     ├── Dinsight_API_Enhanced/  <-- BE clone
 #     └── dinsight-dashboard/  <-- FE clone (this file lives in here)
 #
 # Set $DINSIGHT_API_PATH in the .env file alongside this compose. See
 # .env.example for defaults that work for the layout above.
 #
 # Quickstart on the VM:
-#   git clone <api-repo>          # produces Dinsight_API/
+#   git clone <api-repo>          # produces Dinsight_API_Enhanced/
 #   git clone <dashboard-repo>    # produces dinsight-dashboard/
 #   cd dinsight-dashboard/deploy/vm-test
 #   cp .env.example .env          # then edit .env to set JWT_SECRET etc.
@@ -39,15 +39,14 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: dinsight-postgres
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: dinsight
+      POSTGRES_DB: ${POSTGRES_DB:-dinsight}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d dinsight"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-dinsight}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -55,17 +54,16 @@ services:
 
   api:
     build:
-      context: ${DINSIGHT_API_PATH:-../../../Dinsight_API}
+      context: ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}
       dockerfile: Dockerfile
-    image: dinsight-api:vm-test
-    container_name: dinsight-api
+    image: dinsight-api:${IMAGE_TAG:-vm-test}
     environment:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (openssl rand -hex 32)}
       DB_HOST: postgres
       DB_PORT: "5432"
-      DB_USER: postgres
+      DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DB_NAME: dinsight
+      DB_NAME: ${POSTGRES_DB:-dinsight}
       DB_SSLMODE: disable
       SERVER_PORT: "8080"
       # Same-origin via Caddy means the FE never sends a cross-origin
@@ -73,14 +71,20 @@ services:
       # to be allow-listed. Set ALLOWED_ORIGINS to the public URL.
       ALLOWED_ORIGINS: ${PUBLIC_URL:-http://localhost}
       GIN_MODE: release
-      EMAIL_PROVIDER: smtp
-      EMAIL_FROM: "noreply@dinsight.local"
-      EMAIL_FROM_NAME: "Dinsight"
+      # Email / SMTP. Defaults deliver to the bundled mailpit sidecar (web UI
+      # at :8025). For real outbound mail, set SMTP_HOST/PORT/USERNAME/PASSWORD
+      # to your relay (Resend, SendGrid, Mailgun, SES, ...) in .env and switch
+      # SMTP_TLS to "true". See .env.example for the Resend reference values.
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      EMAIL_FROM: "${EMAIL_FROM:-noreply@dinsight.local}"
+      EMAIL_FROM_NAME: "${EMAIL_FROM_NAME:-Dinsight}"
       APP_BASE_URL: ${PUBLIC_URL:-http://localhost}
-      SMTP_HOST: mailpit
-      SMTP_PORT: "1025"
-      SMTP_TLS: "false"
-      REQUIRE_EMAIL_VERIFICATION: "false"
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: "${SMTP_PORT:-1025}"
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TLS: "${SMTP_TLS:-false}"
+      REQUIRE_EMAIL_VERIFICATION: "${REQUIRE_EMAIL_VERIFICATION:-false}"
       LICENSE_PATH: /app/license.lic
       DEVICES_PATH: /app/devices.json
     volumes:
@@ -88,8 +92,8 @@ services:
       # the image stays generic and devices.json remains writable across
       # restarts. The license public key is embedded in the binary
       # (pkg/license/license.go), so there's no public.pem to mount.
-      - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/license.lic:/app/license.lic:ro
-      - ${DINSIGHT_API_PATH:-../../../Dinsight_API}/devices.json:/app/devices.json
+      - ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}/license.lic:/app/license.lic:ro
+      - ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}/devices.json:/app/devices.json
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,8 +109,7 @@ services:
         # Same-origin: the FE calls /api/v1/* and Caddy routes those
         # to the api service. No cross-origin, no CORS dance.
         NEXT_PUBLIC_API_URL: /api/v1
-    image: dinsight-frontend:vm-test
-    container_name: dinsight-frontend
+    image: dinsight-frontend:${IMAGE_TAG:-vm-test}
     environment:
       NODE_ENV: production
       PORT: "3000"
@@ -118,7 +121,6 @@ services:
 
   caddy:
     image: caddy:2-alpine
-    container_name: dinsight-caddy
     ports:
       - "${CADDY_HTTP_PORT:-80}:80"
       - "${CADDY_HTTPS_PORT:-443}:443"
@@ -133,12 +135,11 @@ services:
 
   mailpit:
     image: axllent/mailpit:latest
-    container_name: dinsight-mailpit
     ports:
       # SMTP isn't exposed on the host (the api container reaches it via
       # the compose network); the web UI is, so the engineer can browse
       # captured email at http://VM-IP:8025
-      - "8025:8025"
+      - "${MAILPIT_PORT:-8025}:8025"
     restart: unless-stopped
 
 volumes:

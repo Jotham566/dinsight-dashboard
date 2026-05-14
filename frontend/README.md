@@ -67,7 +67,7 @@ src/
 
 ## Conventions
 
-- **Permissions** — gate UI on `usePermission(Actions.X)` from `@/components/auth/require-permission`. The vocabulary mirrors `Dinsight_API/internal/policy/policy.go`. The BE is authoritative; the FE is cosmetic.
+- **Permissions** — gate UI on `usePermission(Actions.X)` from `@/components/auth/require-permission`. The vocabulary mirrors `Dinsight_API_Enhanced/internal/policy/policy.go`. The BE is authoritative; the FE is cosmetic.
 - **API calls** — go through `@/lib/api-client`. The axios instance stamps `Authorization: Bearer …` and `X-Org-ID` from the `current_org_id` cookie.
 - **Active org** — `useAuth().currentOrg` and `currentOrgRole`. `setCurrentOrg(id)` updates the cookie and re-renders.
 - **Tokens for design** — use the semantic Tailwind tokens (`bg-surface`, `text-fg`, `border-strong`, `text-success-text`, `bg-warning-bg`, `border-focus`, etc.) — never raw `text-gray-900` / `bg-blue-500`. See [design system §4 + §5](../docs/design-system.md).

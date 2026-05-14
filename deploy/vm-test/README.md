@@ -14,6 +14,9 @@ Step-by-step guide for deploying the full Dinsight stack (backend + frontend + P
   - [Step 4 — Build and start](#step-4--build-and-start)
   - [Step 5 — Verify it works](#step-5--verify-it-works)
   - [About the env files](#about-the-env-files)
+  - [Multi-dev isolation on a shared VM](#multi-dev-isolation-on-a-shared-vm)
+  - [Pointing at a real SMTP relay](#pointing-at-a-real-smtp-relay)
+  - [Postgres user + DB name](#postgres-user--db-name)
   - [Common operations](#common-operations)
   - [Updating to a newer build](#updating-to-a-newer-build)
   - [Going to HTTPS](#going-to-https)
@@ -24,13 +27,15 @@ Step-by-step guide for deploying the full Dinsight stack (backend + frontend + P
 
 Five containers on one private Docker network:
 
-| Container | Role | Host port |
+| Service | Role | Host port |
 |---|---|---|
-| `dinsight-postgres` | Database (Postgres 16) | not exposed |
-| `dinsight-api` | Go backend | not exposed |
-| `dinsight-frontend` | Next.js dashboard | not exposed |
-| `dinsight-caddy` | Reverse proxy. Routes `/api/*` to the backend, everything else to the frontend. | `80`, `443` |
-| `dinsight-mailpit` | Captures outbound email so you can see verification + reset flows | `8025` (web UI) |
+| `postgres` | Database (Postgres 16) | not exposed |
+| `api` | Go backend | not exposed |
+| `frontend` | Next.js dashboard | not exposed |
+| `caddy` | Reverse proxy. Routes `/api/*` to the backend, everything else to the frontend. | `80`, `443` |
+| `mailpit` | Captures outbound email so you can see verification + reset flows | `8025` (web UI) |
+
+Container names resolve to `<COMPOSE_PROJECT_NAME>-<service>-<index>` (default project name is `vm-test`, e.g. `vm-test-api-1`). To run two stacks side-by-side on one VM see [Multi-dev isolation on a shared VM](#multi-dev-isolation-on-a-shared-vm).
 
 The browser talks only to Caddy. Same origin for the app and the API means no CORS, cookies behave correctly, and there's a single TLS endpoint when you swap `:80` for a real hostname later.
 
@@ -53,10 +58,10 @@ The backend and frontend live in separate repos. Clone them as siblings in any p
 
 ```sh
 mkdir -p ~/dinsight && cd ~/dinsight
-git clone <backend-repo-url>      # produces Dinsight_API/
+git clone <backend-repo-url>      # produces Dinsight_API_Enhanced/
 git clone <dashboard-repo-url>    # produces dinsight-dashboard/
 ls
-# Dinsight_API/  dinsight-dashboard/
+# Dinsight_API_Enhanced/  dinsight-dashboard/
 ```
 
 **You can put them anywhere** — `~/dinsight/` is just a suggestion. The default `.env` values assume sibling directories like above. If you use a different layout, you'll override the paths in step 3.
@@ -67,10 +72,10 @@ The backend reads `license.lic` at startup and writes `devices.json` to record r
 
 ```sh
 # Drop the license file
-cp /path/to/license.lic ~/dinsight/Dinsight_API/license.lic
+cp /path/to/license.lic ~/dinsight/Dinsight_API_Enhanced/license.lic
 
 # Create an empty devices.json (the backend will populate it)
-touch ~/dinsight/Dinsight_API/devices.json
+touch ~/dinsight/Dinsight_API_Enhanced/devices.json
 ```
 
 You do **not** need `public.pem` — the license public key is embedded in the backend binary.
@@ -89,7 +94,7 @@ Set these values:
 |---|---|---|
 | `JWT_SECRET` | `$(openssl rand -hex 32)` | Signs auth tokens. Must be unique per deployment. Never reuse across environments. |
 | `PUBLIC_URL` | `http://YOUR_VM_IP` (e.g. `http://10.0.0.42`) or `http://your-host.example.com` | Exact URL the browser hits. The backend allow-lists this for CORS. Must match scheme + host + port. |
-| `DINSIGHT_API_PATH` | Default `../../../Dinsight_API` works for the sibling layout from step 1. Override if you put the repos somewhere else. | Build context + license bind-mounts. |
+| `DINSIGHT_API_PATH` | Default `../../../Dinsight_API_Enhanced` works for the sibling layout from step 1. Override if you put the repos somewhere else. | Build context + license bind-mounts. |
 | `DINSIGHT_FE_PATH` | Default `../../frontend` is correct as long as you're inside the dashboard repo. | Build context. |
 
 `POSTGRES_PASSWORD` defaults to `postgres` — fine for a smoke test, change it for any deployment that talks to real users.
@@ -149,10 +154,62 @@ You'll find three `.env`-style files across the two repos. They serve different 
 | File | Read by | When it matters |
 |---|---|---|
 | `deploy/vm-test/.env` | This `docker compose` setup | **The one you care about for this deploy.** Holds `JWT_SECRET`, `PUBLIC_URL`, source-tree paths. The compose file passes these into the api + frontend containers. |
-| `Dinsight_API/.env` | The backend Go binary when run directly on the host (`go run ./cmd/api`) | Only when you're doing host-side backend development. The containerized backend ignores it — env comes from compose. |
+| `Dinsight_API_Enhanced/.env` | The backend Go binary when run directly on the host (`go run ./cmd/api`) | Only when you're doing host-side backend development. The containerized backend ignores it — env comes from compose. |
 | `frontend/.env.local` | The frontend dev server when run directly on the host (`pnpm dev`) | Only when you're doing host-side frontend development. The containerized frontend ignores it — `NEXT_PUBLIC_API_URL` is baked into the build via Docker build-arg. |
 
-Rule of thumb: **for this VM deploy, only edit `deploy/vm-test/.env`**. Setting `JWT_SECRET` in `Dinsight_API/.env` does nothing for the containerized stack — the compose-side env is what reaches the container.
+Rule of thumb: **for this VM deploy, only edit `deploy/vm-test/.env`**. Setting `JWT_SECRET` in `Dinsight_API_Enhanced/.env` does nothing for the containerized stack — the compose-side env is what reaches the container.
+
+## Multi-dev isolation on a shared VM
+
+Two engineers can run their own end-to-end stacks on the same VM (parallel feature branches, side-by-side smoke tests) without colliding on container names, image tags, or host ports. Three env vars in `deploy/vm-test/.env` cover it:
+
+| Variable | Purpose | Example value |
+|---|---|---|
+| `COMPOSE_PROJECT_NAME` | Namespaces containers + volumes. Default `vm-test`. | `dinsight-jw` → containers like `dinsight-jw-api-1`, volume `dinsight-jw_postgres_data` |
+| `IMAGE_TAG` | Distinguishes locally-built images so `docker images` shows each dev's build separately. Default `vm-test`. | `vm-test-jw` → `dinsight-api:vm-test-jw`, `dinsight-frontend:vm-test-jw` |
+| `MAILPIT_PORT` | Host port for Mailpit's web UI. Default `8025`. | `8026` |
+
+Each dev also needs distinct `CADDY_HTTP_PORT` / `CADDY_HTTPS_PORT` (already in `.env.example`) so the two Caddys don't fight over `:80` / `:443`. Update `PUBLIC_URL` to include the chosen port (`http://VM_IP:8080`).
+
+Postgres data is isolated automatically — each project gets its own `<project>_postgres_data` volume, so the two stacks have separate databases on the same VM.
+
+## Pointing at a real SMTP relay
+
+Out of the box the api container ships outbound mail to the bundled **mailpit** sidecar. Mail never leaves the host — useful for smoke-testing verification + reset flows, useless for letting customers receive email. To swap to a real relay (Resend, SendGrid, Mailgun, AWS SES, etc.), set the SMTP block in `deploy/vm-test/.env`:
+
+```sh
+EMAIL_PROVIDER=smtp
+EMAIL_FROM=noreply@yourdomain.com
+EMAIL_FROM_NAME=Dinsight
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=465                  # 465 = implicit TLS; 587 = STARTTLS
+SMTP_USERNAME=resend           # literal string for Resend; varies per provider
+SMTP_PASSWORD=re_xxxxxxxxxxxx  # API key / app password from your provider
+SMTP_TLS=true
+REQUIRE_EMAIL_VERIFICATION=true
+```
+
+Then `docker compose up -d api` to push the new env in. The api container exits & restarts; the mailpit sidecar stays up but stops receiving traffic.
+
+A few things to know:
+
+- **The sending domain must be verified at your provider** before delivery works (SPF + DKIM DNS records). With unverified domains Resend will accept the API call but never deliver.
+- **`REQUIRE_EMAIL_VERIFICATION=true`** gates `/auth/login` on a verified email address. Migration `202605110002` grandfathers every user that exists at deploy time, so flipping this on never retroactively locks out an operator.
+- **The mailpit sidecar is still running** — it costs ~10 MB and gets no traffic. Leave it, or remove the `mailpit` service from `compose.yml` if you want a leaner stack.
+
+If `SMTP_*` is left unset in `.env`, the compose defaults route everything to mailpit (the smoke-test setup). Mailpit needs no `SMTP_USERNAME` / `SMTP_PASSWORD`.
+
+## Postgres user + DB name
+
+By default the postgres service uses `POSTGRES_USER=postgres` and `POSTGRES_DB=dinsight`. Both feed the api container's `DB_USER` / `DB_NAME` automatically, so you only set them once. Override in `.env` if your environment requires different identifiers:
+
+```sh
+POSTGRES_USER=dinsight_app
+POSTGRES_PASSWORD=<some-strong-password>
+POSTGRES_DB=dinsight_prod
+```
+
+After changing these on an existing stack you'll need a fresh database — `docker compose down -v` wipes the volume, then `docker compose up -d` re-initializes with the new credentials.
 
 ## Common operations
 
@@ -190,7 +247,7 @@ docker compose exec postgres psql -U postgres -d dinsight
 While you're building from source (not pulling pre-built images yet):
 
 ```sh
-cd ~/dinsight/Dinsight_API && git pull
+cd ~/dinsight/Dinsight_API_Enhanced && git pull
 cd ~/dinsight/dinsight-dashboard && git pull
 cd ~/dinsight/dinsight-dashboard/deploy/vm-test
 docker compose up -d --build        # rebuilds only images whose source changed
@@ -211,8 +268,8 @@ For air-gapped or "bring your own cert" setups, drop the cert + key into a host 
 
 ## Troubleshooting
 
-**`Build context not found: ../../../Dinsight_API`**
-Your repos aren't where the defaults expect. Set `DINSIGHT_API_PATH` and `DINSIGHT_FE_PATH` in `.env` to absolute paths (e.g. `/home/ubuntu/dinsight/Dinsight_API`) and re-run `docker compose up -d --build`.
+**`Build context not found: ../../../Dinsight_API_Enhanced`**
+Your repos aren't where the defaults expect. Set `DINSIGHT_API_PATH` and `DINSIGHT_FE_PATH` in `.env` to absolute paths (e.g. `/home/ubuntu/dinsight/Dinsight_API_Enhanced`) and re-run `docker compose up -d --build`.
 
 **`license.lic not found` on api startup**
 The backend container can't read `license.lic` from `$DINSIGHT_API_PATH`. Verify the file exists at that path and is readable. Restart with `docker compose up -d api`.

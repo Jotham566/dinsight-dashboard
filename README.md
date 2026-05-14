@@ -16,7 +16,7 @@ Dinsight ingests sensor CSVs, runs a custom dimensionality-reduction pass (the "
 - **Anomaly detection** — Mahalanobis distance, configurable sensitivity, persisted classifications.
 - **Wear-trend analysis** — deterioration scoring against a chosen baseline cluster, time-series view.
 - **Live monitor** — polls the BE for the latest monitoring points; emphasis styling on the trailing window.
-- **Multi-tenancy** — organizations, teams, memberships. Records are tenant-isolated at the DB level (`organization_id NOT NULL` on every records-side table). Active org per-request via `X-Org-ID`. See [`Dinsight_API/docs/TENANCY_AND_RBAC.md`](Dinsight_API/docs/TENANCY_AND_RBAC.md).
+- **Multi-tenancy** — organizations, teams, memberships. Records are tenant-isolated at the DB level (`organization_id NOT NULL` on every records-side table). Active org per-request via `X-Org-ID`. See [`Dinsight_API_Enhanced/docs/TENANCY_AND_RBAC.md`](Dinsight_API_Enhanced/docs/TENANCY_AND_RBAC.md).
 - **RBAC** — three roles (admin / operator / viewer). BE `middleware.RequireAction` is authoritative; FE `RequirePermission` mirrors the matrix to hide affordances.
 - **OIDC SSO** (optional) — plug an external IdP via four env vars. Configured: `/login` shows an SSO button. Unset: SSO endpoints 404 and password flow stays the only option.
 - **Audit log** — every write to org-scoped routes is recorded (actor, action, resource, outcome, IP). Async writer. Admin-only viewer under Account & Security.
@@ -54,7 +54,7 @@ cd dinsight-dashboard
 createdb dinsight   # or: psql -c "CREATE DATABASE dinsight;"
 
 # 2. Backend
-cd Dinsight_API
+cd Dinsight_API_Enhanced
 go mod download
 go build -o dist/api-server ./cmd/api
 go run ./cmd/migrate up   # apply schema
@@ -72,7 +72,7 @@ For a single-VM container deploy of the full stack, see [`deploy/vm-test/`](./de
 
 ### License
 
-Place `license.lic` in `Dinsight_API/`. `devices.json` is created automatically on first device registration.
+Place `license.lic` in `Dinsight_API_Enhanced/`. `devices.json` is created automatically on first device registration.
 
 ## API documentation
 
@@ -97,7 +97,7 @@ All non-auth routes require `Authorization: Bearer <jwt>` and the active org via
 
 ```
 .
-├── Dinsight_API/              # Go backend (separate repo, gitignored here)
+├── Dinsight_API_Enhanced/              # Go backend (separate repo, gitignored here)
 │   ├── cmd/
 │   │   ├── api/               # Server entry point
 │   │   └── migrate/           # Goose migrations CLI
@@ -135,7 +135,7 @@ All non-auth routes require `Authorization: Bearer <jwt>` and the active org via
 ### Backend
 
 ```bash
-cd Dinsight_API
+cd Dinsight_API_Enhanced
 
 go run ./cmd/api                    # dev server (port 8080)
 go run ./cmd/migrate up             # apply pending migrations
@@ -174,7 +174,7 @@ sudo systemctl start postgresql       # Linux
 psql -h localhost -U postgres -d dinsight
 ```
 
-**License validation failed** — check `license.lic` is present in `Dinsight_API/`, file permissions are readable, and the license hasn't expired.
+**License validation failed** — check `license.lic` is present in `Dinsight_API_Enhanced/`, file permissions are readable, and the license hasn't expired.
 
 **Port already in use**
 ```bash
@@ -207,7 +207,7 @@ NODE_ENV=development pnpm dev
 - [Docs index](./docs/README.md)
 - [Design system](./docs/design-system.md)
 - [Team design brief](./docs/team-design-brief.md)
-- [Backend changelog](./Dinsight_API/CHANGELOG.md) — per-week breakdown of the foundation arc
+- [Backend changelog](./Dinsight_API_Enhanced/CHANGELOG.md) — per-week breakdown of the foundation arc
 - [Frontend changelog](./frontend/CHANGELOG.md) — frontend half of the same arc
-- [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API/docs/TENANCY_AND_RBAC.md) — data model, JWT memberships, role matrix, SSO setup, audit log schema
-- [NOT NULL migration runbook](./Dinsight_API/docs/RUNBOOK_NOT_NULL_MIGRATION.md) — deploy-day ops runbook for the Week 4 `organization_id NOT NULL` enforcement
+- [Multi-tenancy + RBAC + OIDC + Audit](./Dinsight_API_Enhanced/docs/TENANCY_AND_RBAC.md) — data model, JWT memberships, role matrix, SSO setup, audit log schema
+- [NOT NULL migration runbook](./Dinsight_API_Enhanced/docs/RUNBOOK_NOT_NULL_MIGRATION.md) — deploy-day ops runbook for the Week 4 `organization_id NOT NULL` enforcement
