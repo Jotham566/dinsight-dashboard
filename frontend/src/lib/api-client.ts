@@ -26,7 +26,7 @@ const apiClient: AxiosInstance = axios.create({
 // origins, which breaks login on HTTP demo URLs. Deriving from the live
 // page protocol (rather than NODE_ENV) keeps production HTTPS deploys
 // strict while still letting HTTP smoke-test URLs hold a session.
-const useSecureCookie = (): boolean =>
+const shouldUseSecureCookie = (): boolean =>
   typeof window !== 'undefined' && window.location.protocol === 'https:';
 
 export const tokenManager = {
@@ -35,7 +35,7 @@ export const tokenManager = {
   getCurrentOrgId: () => Cookies.get('current_org_id'),
   setTokens: (accessToken: string, refreshToken: string, expiresIn: number) => {
     const expiryDate = new Date(new Date().getTime() + expiresIn * 1000);
-    const secure = useSecureCookie();
+    const secure = shouldUseSecureCookie();
 
     Cookies.set('access_token', accessToken, {
       expires: expiryDate,
@@ -51,7 +51,7 @@ export const tokenManager = {
   setCurrentOrg: (orgId: number | string) => {
     Cookies.set('current_org_id', String(orgId), {
       expires: 365,
-      secure: useSecureCookie(),
+      secure: shouldUseSecureCookie(),
       sameSite: 'strict',
     });
   },
