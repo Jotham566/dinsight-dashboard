@@ -66,17 +66,15 @@ ls
 
 **You can put them anywhere** — `~/dinsight/` is just a suggestion. The default `.env` values assume sibling directories like above. If you use a different layout, you'll override the paths in step 3.
 
-## Step 2 — Drop in the license artifacts
+## Step 2 — Drop in the license file
 
-The backend reads `license.lic` at startup and writes `devices.json` to record registered devices. Put them in the backend clone's root:
+The backend reads `license.lic` at startup. Drop it into the backend clone's root:
 
 ```sh
-# Drop the license file
 cp /path/to/license.lic ~/dinsight/Dinsight_API_Enhanced/license.lic
-
-# Create an empty devices.json (the backend will populate it)
-touch ~/dinsight/Dinsight_API_Enhanced/devices.json
 ```
+
+You do **not** need to create `devices.json` — the api writes it into the git-tracked `runtime/` directory on first device registration, owned by the host user (see `HOST_UID` in `.env.example` if your deploy user isn't UID 1000).
 
 You do **not** need `public.pem` — the license public key is embedded in the backend binary.
 
@@ -273,6 +271,9 @@ Your repos aren't where the defaults expect. Set `DINSIGHT_API_PATH` and `DINSIG
 
 **`license.lic not found` on api startup**
 The backend container can't read `license.lic` from `$DINSIGHT_API_PATH`. Verify the file exists at that path and is readable. Restart with `docker compose up -d api`.
+
+**`permission denied` writing `runtime/devices.json`**
+The api container runs as `${HOST_UID}:${HOST_GID}` (defaults `1000:1000`) so files it writes into `runtime/` end up host-readable. If your deploy user has a different UID, set `HOST_UID` / `HOST_GID` in `.env` to match (`id -u` / `id -g` on the host) and `docker compose up -d --force-recreate api`.
 
 **`port is already allocated` on `:80` or `:443`**
 Something else on the VM is bound to that port (Apache, nginx, another reverse proxy). Uncomment `CADDY_HTTP_PORT=8080` and `CADDY_HTTPS_PORT=8443` in `.env` to move Caddy off the standard ports. Update `PUBLIC_URL` to include the port too (`http://VM_IP:8080`).

@@ -170,6 +170,36 @@ Three follow-up tweaks landed in `deploy/vm-test/`, plus a working-tree rename o
 
 ---
 
+### Deploy hardening — structural fix for the devices.json mount
+
+Two failure modes hit the VM deploy enough times to warrant a structural fix instead of repeated `touch` / `chmod 666`:
+
+1. **Existence** — if `devices.json` didn't pre-exist on the host before `docker compose up`, Docker auto-created it **as a directory**, and the backend exited with `read /app/devices.json: is a directory`.
+2. **Writability** — even as a correct file (host-user, mode 664), the distroless api image runs as UID 65532. The container couldn't write the host-owned file, exited with `permission denied`.
+
+The fix moves the device store into a git-tracked directory and pins the api container to the host user. Both failure modes are now structurally impossible — a clean `git pull` + rebuild needs zero manual `touch` / `chmod` / `chown`.
+
+#### Changed
+
+- **[`deploy/vm-test/compose.yml`](../deploy/vm-test/compose.yml)** api service:
+  - Devices mount switched from a bare file (`./devices.json:/app/devices.json`) to a directory (`./runtime:/app/runtime`). A bind-mounted directory that exists in git can't be auto-created as the wrong type.
+  - `DEVICES_PATH` updated to `/app/runtime/devices.json`. The api creates the file inside the mounted directory on first device registration (`pkg/license/device.go` already handles missing-file via `os.IsNotExist` → empty map → write-on-first-save at mode 0600).
+  - Added `user: "${HOST_UID:-1000}:${HOST_GID:-1000}"`. Files the api writes into `runtime/` now belong to the host user; the host shell can `cat`/`rm`/inspect them without sudo.
+  - `license.lic` bind mount untouched — still `:ro`, still operator-pre-placed.
+
+#### Added
+
+- **`HOST_UID` / `HOST_GID` block in [`deploy/vm-test/.env.example`](../deploy/vm-test/.env.example)** documenting the override (default `1000`, standard first-Linux-user UID; macOS dev typically needs `id -u` → `501`).
+- **README Step 2 rewrite** in [`deploy/vm-test/README.md`](../deploy/vm-test/README.md) — drops the `touch devices.json` line; the api writes its own devices.json into the committed `runtime/` directory. Plus a new troubleshooting entry for the `permission denied` case pointing at `HOST_UID` / `HOST_GID`.
+
+The companion backend change in `Dinsight_API_Enhanced` (branch `fix/devices-runtime-dir`):
+- Adds `runtime/` + `runtime/.gitkeep`, with `.gitignore` rules (`/runtime/*` + `!/runtime/.gitkeep`) so the directory tracks but its contents stay out of git.
+- Same compose pattern applied to the backend's own host-side `docker-compose.yml` so the two stacks stay consistent.
+- Removes the orphan root-level `devices.json` (was untracked; both compose files now mount `runtime/` instead).
+- Drops the now-stale `# touch devices.json` hint from the backend `README.md`.
+
+---
+
 ### Test totals
 
 After Week 4 follow-up close-out: **121 / 121 tests green** (106 Week 4 + 15 new from the two hook variants), `pnpm type-check` clean, `pnpm lint` clean.

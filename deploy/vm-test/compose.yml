@@ -57,6 +57,12 @@ services:
       context: ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}
       dockerfile: Dockerfile
     image: dinsight-api:${IMAGE_TAG:-vm-test}
+    # Run as the host user so files the api writes into the bind-mounted
+    # runtime/ directory (devices.json, ...) are owned by the host user,
+    # not by the image's nonroot UID (65532) which the host can't touch.
+    # Defaults match the standard first-Linux-user UID; override in .env
+    # (or via shell env) for hosts with a different UID, e.g. macOS (501).
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (openssl rand -hex 32)}
       DB_HOST: postgres
@@ -86,14 +92,19 @@ services:
       SMTP_TLS: "${SMTP_TLS:-false}"
       REQUIRE_EMAIL_VERIFICATION: "${REQUIRE_EMAIL_VERIFICATION:-false}"
       LICENSE_PATH: /app/license.lic
-      DEVICES_PATH: /app/devices.json
+      DEVICES_PATH: /app/runtime/devices.json
     volumes:
-      # License artifacts live in the BE source tree. Bind-mount them so
-      # the image stays generic and devices.json remains writable across
-      # restarts. The license public key is embedded in the binary
+      # License + runtime artifacts live in the BE source tree.
+      # - license.lic is operator-supplied per VM, read-only.
+      # - runtime/ ships in git (via runtime/.gitkeep) so the bind target
+      #   exists after a fresh clone and Docker can't auto-create it as a
+      #   directory. The api writes devices.json into it on first device
+      #   registration; combined with the user: directive above, the file
+      #   ends up owned by the host user.
+      # The license public key is embedded in the binary
       # (pkg/license/license.go), so there's no public.pem to mount.
       - ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}/license.lic:/app/license.lic:ro
-      - ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}/devices.json:/app/devices.json
+      - ${DINSIGHT_API_PATH:-../../../Dinsight_API_Enhanced}/runtime:/app/runtime
     depends_on:
       postgres:
         condition: service_healthy
