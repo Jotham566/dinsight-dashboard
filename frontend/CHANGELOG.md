@@ -200,6 +200,44 @@ The companion backend change in `Dinsight_API_Enhanced` (branch `fix/devices-run
 
 ---
 
+### Invite-only onboarding (Pattern B) — closes the public-signup data leak
+
+The on-VM smoke test surfaced a structural multi-tenancy gap: every new registration was auto-joined to a shared `default` organization (via the backend's `ensureDefaultMembership`), so two accounts created on the same deployment could see each other's data. The data-isolation infrastructure (NOT NULL `organization_id`, `ResolveOrg` middleware, `scope.Org` filters, `tenant_isolation_test.go` regression suite) was all working correctly — they were legitimately in the same tenant, by design, pending a Phase 2 onboarding upgrade. Pattern B is that upgrade: invite-only signup, admin-controlled membership.
+
+#### Backend (companion change in `Dinsight_API_Enhanced` branch `feat/invite-only-onboarding`)
+
+- **New `invitations` table** (migration `202605210001`) with `token`, `email`, `organization_id`, `role`, `invited_by`, `status` (`pending` / `accepted` / `revoked` / `expired`), `expires_at`. Partial unique index on `(LOWER(email), organization_id) WHERE status='pending'` blocks duplicate active invites.
+- **`POST /invitations` / `GET /invitations` / `DELETE /invitations/:id`** — admin-only via `policy.ActionOrgInvite`. Scoped to the active org; an admin can't see or revoke another org's invites.
+- **`GET /auth/invitations/redeem/:token`** — public lookup the `/register` page calls to render the "joining \<Org\> as \<Role\>" banner. All invalid states (unknown / expired / revoked / accepted) collapse to a single generic 404 so the endpoint isn't a token-validity oracle.
+- **`POST /auth/register` now requires `?invite=<token>`** and `403 INVITE_REQUIRED`s without it. The legacy `ensureDefaultMembership` call is replaced with `ensureMembershipFromInvite` — new users land in the inviting admin's org with the invitation's role, not a hardcoded operator default.
+- **New `policy.ActionOrgMemberRemove`** action wired into the admin role; combined with the existing `policy.ActionOrgRoleChange`, both gates are now used.
+- **`GET /memberships` / `PATCH /memberships/:id` / `DELETE /memberships/:id`** — list is open to every org member; role-change and remove are admin-only with **last-admin safety rails** (`409 LAST_ADMIN_LOCKOUT` when the request would leave the org without an admin).
+- **23 new tests**: `Invite_AdminCreates_201`, `Invite_NonAdminOperator_403`, `Invite_NonAdminViewer_403`, `Invite_ExistingMember_409`, `Invite_DuplicatePending_409`, `Invite_InvalidRole_400`, `Invite_AdminLists_200`, `Invite_AdminRevokes_200`, `Invite_AdminRevokesOtherOrg_404`, `RedeemLookup_Valid_200`, `RedeemLookup_UnknownToken_404`, `RedeemLookup_Revoked_404`, `Register_NoInvite_403`, `Register_InvalidToken_403`, `Register_ExpiredToken_403`, `Register_EmailMismatch_400`, `Register_AcceptedInviteReplay_403`, `Register_MintsMembershipFromInvite`, `ListMemberships_AnyMemberCan_200`, `UpdateMembership_{Admin_200, NonAdmin_403, LastAdminSelfDemote_409, AdminWithCoAdmin_200, InvalidRole_400}`, `RemoveMembership_{Admin_200, NonAdmin_403, LastAdminSelfRemove_409, SelfRemoveAsNonOnlyAdmin_200, CrossOrg_404}`. `TestRegister_MintsDefaultOrgMembership` deleted.
+
+#### Frontend (this repo)
+
+- **`/register` page rewritten** in [`src/app/register/page.tsx`](src/app/register/page.tsx) to gate on `?invite=<token>`. Three render states:
+  - **No token**: "Registration is invite-only" landing with a link back to `/login`. No form rendered.
+  - **Token present, invalid**: "This invitation is no longer valid" landing. Same shape as the no-token state — never confirms whether the email is registered.
+  - **Token present, valid**: standard form with an inviter banner ("Joining \<Org\> as \<Role\>"), email pre-filled + read-only.
+- **New Members admin section** in [`src/components/members/members-section.tsx`](src/components/members/members-section.tsx) — invite form (admin only), current-members table with inline role dropdown + remove button (admin only) + last-admin row badge, pending-invitations table with revoke (admin only). Mounted as the **Members** tab inside [`/dashboard/account`](src/app/dashboard/account/page.tsx) alongside Profile / Security / Organizations / License / etc. Non-admins still see the members roster (per product policy: build trust inside a tenant) but the write affordances stay hidden.
+- **API client additions** in [`src/lib/api-client.ts`](src/lib/api-client.ts):
+  - `api.auth.register(data, inviteToken?)` — threads the token through as `?invite=<token>`.
+  - `api.auth.lookupInvitation(token)` — public redeem-lookup the `/register` page calls.
+  - `api.invitations.create / list / revoke` — admin surface.
+  - `api.memberships.list / updateRole / remove` — admin surface (list is open to all members).
+- **`Actions.OrgMemberRemove`** added to [`src/lib/permissions.ts`](src/lib/permissions.ts) mirror; admin role gains it. Existing `Actions.OrgInvite` / `Actions.OrgRoleChange` are now actively used (previously reserved-but-unwired). Backend-path reference in the file header updated from the legacy `Dinsight_API` folder name to `Dinsight_API_Enhanced`.
+- **`AuthContext.register`** signature extended to accept the optional token; the post-register redirect now always goes to `/login?registered=true` (since the seed admin path is gone).
+- **Organizations tab description** in [`/dashboard/account`](src/app/dashboard/account/page.tsx) updated to point at the new Members tab for invite / role-change / remove operations.
+
+#### Migration notes for existing deployments
+
+- Existing users in the `default` org keep their membership untouched. The `default` org becomes the platform-admin tenant going forward; new customer orgs are separate rows admins can create out-of-band (org-creation API is a Pattern C follow-up — for now, seed via SQL or migration).
+- The seed admin (`admin@disum.com`) stays in `default`. Rotate the password as a one-time hygiene step since the public deploy made the original known publicly via the README.
+- No data migration is needed — the `invitations` table starts empty and `Register` rejects every walkup attempt the moment the migration lands.
+
+---
+
 ### Auth fix — cookie `secure` flag now tracks page protocol, not NODE_ENV
 
 Login at an HTTP demo URL (e.g. `http://<VM_IP>/`) succeeded at the API layer but the frontend appeared to log out immediately. Root cause: [`src/lib/api-client.ts`](src/lib/api-client.ts) gated the cookie `secure` flag on `process.env.NODE_ENV === 'production'`, and the frontend container ships with `NODE_ENV=production`. Browsers silently drop `Secure` cookies on HTTP origins, so the `access_token` / `refresh_token` / `current_org_id` cookies were never persisted; the next request had no `Authorization` header, returned 401, and the response interceptor bounced the user back to `/login`.

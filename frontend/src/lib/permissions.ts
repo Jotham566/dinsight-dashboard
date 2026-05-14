@@ -7,7 +7,7 @@
  * the backend — the frontend is purely cosmetic; never rely on it for
  * security.
  *
- * Keep this list in sync with Dinsight_API/internal/policy/policy.go.
+ * Keep this list in sync with Dinsight_API_Enhanced/internal/policy/policy.go.
  * The names match exactly so a grep across both codebases surfaces every
  * call site.
  */
@@ -37,9 +37,10 @@ export const Actions = {
   // Data lineage
   LineageCreate: 'lineage.create',
 
-  // Org administration (reserved for Week 5)
+  // Org administration
   OrgInvite: 'org.invite',
   OrgRoleChange: 'org.role.change',
+  OrgMemberRemove: 'org.member.remove',
   OrgSettingEdit: 'org.settings.edit',
 } as const;
 
@@ -75,6 +76,7 @@ const roleCapabilities: Record<OrgRole, ReadonlySet<Action>> = {
     Actions.AuditRead,
     Actions.OrgInvite,
     Actions.OrgRoleChange,
+    Actions.OrgMemberRemove,
     Actions.OrgSettingEdit,
   ]),
 };

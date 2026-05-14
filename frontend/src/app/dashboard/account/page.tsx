@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   User,
   UserCog,
+  Users,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ import { useAuth } from '@/context/auth-context';
 import { api } from '@/lib/api-client';
 import { ActiveAlertsSection } from '@/components/alerts/active-alerts-section';
 import { AlertRulesSection } from '@/components/alerts/alert-rules-section';
+import { MembersSection } from '@/components/members/members-section';
 import { ValidationRulesPanel } from '@/components/datasets/validation-rules-panel';
 import { AuditLogSection } from '@/components/audit/audit-log-section';
 import { usePermission } from '@/components/auth/require-permission';
@@ -53,6 +55,7 @@ const SECTION_VALUES = [
   'profile',
   'security',
   'organizations',
+  'members',
   'license',
   'notifications',
   'active-alerts',
@@ -290,6 +293,10 @@ function AccountSecurityView() {
             <Building2 className="h-4 w-4" />
             Organizations
           </TabsTrigger>
+          <TabsTrigger value="members" className="gap-2">
+            <Users className="h-4 w-4" />
+            Members
+          </TabsTrigger>
           <TabsTrigger value="license" className="gap-2">
             <ScrollText className="h-4 w-4" />
             License
@@ -523,8 +530,8 @@ function AccountSecurityView() {
               </CardTitle>
               <CardDescription>
                 Organizations you belong to and your role in each. Switch the active org via the
-                sidebar switcher. Self-service org management (invite, role change) is a planned
-                admin tool.
+                sidebar switcher. For inviting new people, changing roles, or removing members of
+                the active org, see the Members tab.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -554,6 +561,14 @@ function AccountSecurityView() {
                   </div>
                 ))
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="members" className="space-y-4">
+          <Card className="border-border/60">
+            <CardContent className="pt-6">
+              <MembersSection />
             </CardContent>
           </Card>
         </TabsContent>

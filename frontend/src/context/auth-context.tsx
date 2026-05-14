@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (data: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
+  register: (data: RegisterRequest, inviteToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   // Active organization. Resolved from the current_org_id cookie if set
@@ -101,13 +101,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (data: RegisterRequest) => {
+  const register = async (data: RegisterRequest, inviteToken?: string) => {
     try {
-      const response = await api.auth.register(data);
-      const { user } = response.data.data;
+      await api.auth.register(data, inviteToken);
 
-      // After registration, prompt user to login
-      // You could also auto-login here if the API returns tokens
+      // Pattern B onboarding: registration only succeeds when the user
+      // arrives with a valid invitation token, so post-signup we send
+      // them straight to /login. The /login page handles the
+      // ?registered=true banner ("check your email to verify").
       router.push('/login?registered=true');
     } catch (error: any) {
       console.error('Registration failed:', error);

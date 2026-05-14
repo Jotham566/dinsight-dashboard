@@ -192,12 +192,20 @@ export const api = {
   auth: {
     login: (data: { email: string; password: string; remember_me?: boolean }) =>
       apiClient.post('/auth/login', data),
-    register: (data: {
-      email: string;
-      password: string;
-      full_name: string;
-      organization_code?: string;
-    }) => apiClient.post('/auth/register', data),
+    register: (
+      data: { email: string; password: string; full_name: string },
+      inviteToken?: string
+    ) =>
+      apiClient.post(
+        inviteToken ? `/auth/register?invite=${encodeURIComponent(inviteToken)}` : '/auth/register',
+        data
+      ),
+    // Public invitation-lookup endpoint. The /register page calls this
+    // with the ?invite=<token> query value so it can render the "you've
+    // been invited to join <Org> as <Role>" banner before submitting.
+    // Returns 404 with a generic message for any invalid state.
+    lookupInvitation: (token: string) =>
+      apiClient.get(`/auth/invitations/redeem/${encodeURIComponent(token)}`),
     logout: () => apiClient.post('/auth/logout'),
     forgotPassword: (email: string) => apiClient.post('/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) =>
@@ -223,6 +231,28 @@ export const api = {
   audit: {
     list: (params?: { limit?: number; offset?: number; resource_type?: string }) =>
       apiClient.get('/audit', { params }),
+  },
+
+  // Pattern B onboarding admin surface. Backend gates create/list/revoke
+  // on policy.ActionOrgInvite (admin-only); the FE's <RequirePermission>
+  // gate around the Members page mirrors that.
+  invitations: {
+    create: (data: { email: string; role: 'admin' | 'operator' | 'viewer' }) =>
+      apiClient.post('/invitations', data),
+    list: (status?: 'pending' | 'accepted' | 'revoked' | 'expired' | 'all') =>
+      apiClient.get('/invitations', { params: status ? { status } : undefined }),
+    revoke: (id: number) => apiClient.delete(`/invitations/${id}`),
+  },
+
+  // Membership management. LIST is open to any member of the active org;
+  // PATCH (role change) and DELETE (remove) are admin-only. Backend
+  // enforces a last-admin safety rail — 409 LAST_ADMIN_LOCKOUT if the
+  // request would leave the org without an admin.
+  memberships: {
+    list: () => apiClient.get('/memberships'),
+    updateRole: (id: number, role: 'admin' | 'operator' | 'viewer') =>
+      apiClient.patch(`/memberships/${id}`, { role }),
+    remove: (id: number) => apiClient.delete(`/memberships/${id}`),
   },
 
   // User endpoints

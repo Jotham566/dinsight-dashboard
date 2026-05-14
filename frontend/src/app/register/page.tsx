@@ -1,15 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Eye, EyeOff, Loader2, AlertCircle, Check, X } from 'lucide-react';
+import { AlertCircle, Building2, Check, Eye, EyeOff, Loader2, MailQuestion, X } from 'lucide-react';
+import { api } from '@/lib/api-client';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/utils/cn';
 import { getPasswordStrength } from '@/utils/format';
+
+// Pattern B (invite-only) registration. The accept-URL emailed to an
+// invitee is /register?invite=<token>; this page reads the token,
+// looks it up via the public redeem endpoint, and only renders the
+// form when the lookup succeeds. The email field is pre-filled from
+// the invitation and locked so an attacker who guesses or phishes a
+// token can't redeem it under a different identity.
 
 const registerSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -28,40 +36,108 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+interface InvitationContext {
+  email: string;
+  org_name: string;
+  role: 'admin' | 'operator' | 'viewer';
+  expires_at: string;
+}
+
+type LookupState =
+  | { kind: 'no-token' }
+  | { kind: 'loading' }
+  | { kind: 'valid'; invitation: InvitationContext }
+  | { kind: 'invalid' };
+
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <RegisterPageInner />
+    </Suspense>
+  );
+}
+
+function RegisterPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite')?.trim() ?? '';
+
   const { register: registerUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<LookupState>(
+    inviteToken ? { kind: 'loading' } : { kind: 'no-token' }
+  );
+
+  // Resolve the invitation before rendering the form. The public
+  // /auth/invitations/redeem/:token endpoint returns 404 with a
+  // generic message for any invalid state (unknown / expired /
+  // revoked / already accepted) so we collapse all of those into a
+  // single "invitation invalid" view.
+  useEffect(() => {
+    if (!inviteToken) {
+      setLookup({ kind: 'no-token' });
+      return;
+    }
+    let cancelled = false;
+    setLookup({ kind: 'loading' });
+    api.auth
+      .lookupInvitation(inviteToken)
+      .then((res) => {
+        if (cancelled) return;
+        const invitation = res?.data?.data as InvitationContext | undefined;
+        if (!invitation?.email) {
+          setLookup({ kind: 'invalid' });
+          return;
+        }
+        setLookup({ kind: 'valid', invitation });
+      })
+      .catch(() => {
+        if (!cancelled) setLookup({ kind: 'invalid' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteToken]);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      agree_terms: false,
-    },
+    defaultValues: { agree_terms: false },
   });
+
+  // Pre-fill (and lock) the email field once the invitation resolves.
+  useEffect(() => {
+    if (lookup.kind === 'valid') {
+      setValue('email', lookup.invitation.email);
+    }
+  }, [lookup, setValue]);
 
   const password = watch('password', '');
   const passwordStrength = getPasswordStrength(password);
 
   const onSubmit = async (data: RegisterFormData) => {
+    if (lookup.kind !== 'valid') return;
     setIsLoading(true);
     setError(null);
-
     try {
-      await registerUser({
-        email: data.email,
-        password: data.password,
-        full_name: data.full_name,
-      });
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      await registerUser(
+        {
+          email: data.email,
+          password: data.password,
+          full_name: data.full_name,
+        },
+        inviteToken
+      );
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e.message ?? 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -74,9 +150,43 @@ export default function RegisterPage() {
     { met: /\d/.test(password), text: 'One number' },
   ];
 
+  // ------ Render gates ------
+
+  if (lookup.kind === 'no-token') {
+    return (
+      <InvitePrompt
+        title="Registration is invite-only"
+        body="This deployment doesn't accept public sign-ups. Ask an admin of your organization to send you an invitation — they'll get a link that brings you back here ready to register."
+        cta={{ href: '/login', label: 'Back to sign in' }}
+      />
+    );
+  }
+
+  if (lookup.kind === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2 text-fg-muted">
+          <Loader2 className="h-4 w-4 animate-spin" /> Checking invitation…
+        </div>
+      </div>
+    );
+  }
+
+  if (lookup.kind === 'invalid') {
+    return (
+      <InvitePrompt
+        title="This invitation is no longer valid"
+        body="The link you used has expired, been revoked, or has already been redeemed. Ask the admin who invited you to send a fresh invitation."
+        cta={{ href: '/login', label: 'Back to sign in' }}
+      />
+    );
+  }
+
+  const inv = lookup.invitation;
+
   return (
     <div className="min-h-screen flex">
-      {/* Left side — operator-tone "what happens next" guide */}
+      {/* Left side — what happens next */}
       <div className="hidden lg:flex lg:flex-1 bg-surface-muted border-r border-border">
         <div className="flex-1 flex items-center justify-center p-12">
           <div className="max-w-md text-fg">
@@ -118,7 +228,6 @@ export default function RegisterPage() {
       {/* Right side - Registration Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
-          {/* Logo and Title */}
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
               <div className="w-16 h-16 bg-accent rounded-lg flex items-center justify-center shadow-md">
@@ -127,11 +236,23 @@ export default function RegisterPage() {
             </div>
             <h2 className="text-3xl font-bold text-fg">Create Account</h2>
             <p className="mt-2 text-sm text-fg-muted">
-              Get started with your free D'Insight account
+              You&apos;ve been invited to join D&apos;Insight
             </p>
           </div>
 
-          {/* Error message */}
+          {/* Invitation banner */}
+          <div className="flex items-start gap-3 rounded-lg border border-accent/30 bg-accent/5 p-4">
+            <Building2 className="h-5 w-5 mt-0.5 text-accent" />
+            <div className="text-sm">
+              <p className="font-semibold text-fg">{inv.org_name}</p>
+              <p className="text-fg-muted">
+                Joining as <span className="font-medium text-fg">{inv.role}</span>. The invitation
+                was issued to <span className="font-medium text-fg">{inv.email}</span> and expires{' '}
+                {new Date(inv.expires_at).toLocaleString()}.
+              </p>
+            </div>
+          </div>
+
           {error && (
             <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
@@ -139,10 +260,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Registration Form */}
           <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-4">
-              {/* Full Name Field */}
               <div>
                 <label htmlFor="full_name" className="block text-sm font-medium text-fg">
                   Full Name
@@ -164,7 +283,6 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-fg">
                   Email Address
@@ -173,20 +291,21 @@ export default function RegisterPage() {
                   {...register('email')}
                   type="email"
                   autoComplete="email"
+                  readOnly
+                  aria-readonly="true"
                   className={cn(
-                    'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm',
-                    'focus:outline-none focus:ring-2 focus:ring-focus focus:border-control-border-focus',
-                    'transition-colors duration-200',
+                    'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm bg-surface-muted text-fg-muted cursor-not-allowed',
                     errors.email ? 'border-danger-border text-danger-text ' : 'border-strong'
                   )}
-                  placeholder="you@example.com"
                 />
+                <p className="mt-1 text-xs text-fg-muted">
+                  Locked to the email this invitation was sent to.
+                </p>
                 {errors.email && (
                   <p className="mt-1 text-sm text-danger-text">{errors.email.message}</p>
                 )}
               </div>
 
-              {/* Password Field */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-fg">
                   Password
@@ -217,7 +336,6 @@ export default function RegisterPage() {
                   </button>
                 </div>
 
-                {/* Password strength indicator */}
                 {password && (
                   <div className="mt-2">
                     <div className="flex gap-1 mb-2">
@@ -243,7 +361,6 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                {/* Password requirements */}
                 <div className="mt-2 space-y-1">
                   {passwordRequirements.map((req, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
@@ -259,11 +376,8 @@ export default function RegisterPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Organization Code Field */}
             </div>
 
-            {/* Terms of Service */}
             <div className="flex items-start">
               <input
                 {...register('agree_terms')}
@@ -286,7 +400,6 @@ export default function RegisterPage() {
               <p className="text-sm text-danger-text">{errors.agree_terms.message}</p>
             )}
 
-            {/* Submit Button */}
             <div>
               <button
                 type="submit"
@@ -310,7 +423,6 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            {/* Sign in link */}
             <div className="text-center">
               <p className="text-sm text-fg-muted">
                 Already have an account?{' '}
@@ -321,6 +433,41 @@ export default function RegisterPage() {
             </div>
           </form>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// InvitePrompt renders the no-token / invalid-token landing — a small
+// card that explains the state and points the user to /login. No form,
+// no leak of whether their email is in the system.
+function InvitePrompt({
+  title,
+  body,
+  cta,
+}: {
+  title: string;
+  body: string;
+  cta: { href: string; label: string };
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="max-w-md w-full space-y-6 text-center">
+        <div className="flex items-center justify-center">
+          <div className="w-16 h-16 rounded-lg bg-surface-muted flex items-center justify-center">
+            <MailQuestion className="h-8 w-8 text-fg-muted" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold text-fg">{title}</h1>
+          <p className="text-sm text-fg-muted">{body}</p>
+        </div>
+        <Link
+          href={cta.href}
+          className="inline-flex justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-accent-contrast bg-accent hover:bg-accent-hover"
+        >
+          {cta.label}
+        </Link>
       </div>
     </div>
   );
