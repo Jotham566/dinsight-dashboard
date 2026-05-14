@@ -200,6 +200,18 @@ The companion backend change in `Dinsight_API_Enhanced` (branch `fix/devices-run
 
 ---
 
+### Auth fix — cookie `secure` flag now tracks page protocol, not NODE_ENV
+
+Login at an HTTP demo URL (e.g. `http://<VM_IP>/`) succeeded at the API layer but the frontend appeared to log out immediately. Root cause: [`src/lib/api-client.ts`](src/lib/api-client.ts) gated the cookie `secure` flag on `process.env.NODE_ENV === 'production'`, and the frontend container ships with `NODE_ENV=production`. Browsers silently drop `Secure` cookies on HTTP origins, so the `access_token` / `refresh_token` / `current_org_id` cookies were never persisted; the next request had no `Authorization` header, returned 401, and the response interceptor bounced the user back to `/login`.
+
+#### Changed
+
+- **`tokenManager.setTokens` + `tokenManager.setCurrentOrg`** in [`src/lib/api-client.ts`](src/lib/api-client.ts) now derive `secure` from the live page protocol via a small `useSecureCookie()` helper: `typeof window !== 'undefined' && window.location.protocol === 'https:'`. HTTPS deploys stay strict; HTTP smoke-test URLs can now actually hold a session. The two local `isProduction` declarations are gone.
+
+The fix is intentionally minimal — no behaviour change for HTTPS callers, no new env vars, no auth-flow rework.
+
+---
+
 ### Test totals
 
 After Week 4 follow-up close-out: **121 / 121 tests green** (106 Week 4 + 15 new from the two hook variants), `pnpm type-check` clean, `pnpm lint` clean.

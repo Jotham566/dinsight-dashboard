@@ -20,30 +20,38 @@ const apiClient: AxiosInstance = axios.create({
 // every outbound request so the backend's ResolveOrg middleware can pick
 // the right scope. setCurrentOrg / clearCurrentOrg are called by the auth
 // context when the user switches orgs or signs out.
+
+// secure: true is required when the page is served over HTTPS and must be
+// false on plain HTTP -- browsers silently drop Secure cookies on HTTP
+// origins, which breaks login on HTTP demo URLs. Deriving from the live
+// page protocol (rather than NODE_ENV) keeps production HTTPS deploys
+// strict while still letting HTTP smoke-test URLs hold a session.
+const useSecureCookie = (): boolean =>
+  typeof window !== 'undefined' && window.location.protocol === 'https:';
+
 export const tokenManager = {
   getAccessToken: () => Cookies.get('access_token'),
   getRefreshToken: () => Cookies.get('refresh_token'),
   getCurrentOrgId: () => Cookies.get('current_org_id'),
   setTokens: (accessToken: string, refreshToken: string, expiresIn: number) => {
     const expiryDate = new Date(new Date().getTime() + expiresIn * 1000);
-    const isProduction = process.env.NODE_ENV === 'production';
+    const secure = useSecureCookie();
 
     Cookies.set('access_token', accessToken, {
       expires: expiryDate,
-      secure: isProduction, // Only use secure in production
+      secure,
       sameSite: 'strict',
     });
     Cookies.set('refresh_token', refreshToken, {
       expires: 30,
-      secure: isProduction, // Only use secure in production
+      secure,
       sameSite: 'strict',
     }); // 30 days
   },
   setCurrentOrg: (orgId: number | string) => {
-    const isProduction = process.env.NODE_ENV === 'production';
     Cookies.set('current_org_id', String(orgId), {
       expires: 365,
-      secure: isProduction,
+      secure: useSecureCookie(),
       sameSite: 'strict',
     });
   },
