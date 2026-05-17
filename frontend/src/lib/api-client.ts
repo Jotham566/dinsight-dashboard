@@ -293,6 +293,7 @@ export const api = {
     ) => apiClient.patch(`/devices/${id}`, data),
     delete: (id: number) => apiClient.delete(`/devices/${id}`),
     rotateKey: (id: number) => apiClient.post(`/devices/${id}/rotate-key`),
+    syncNow: (id: number) => apiClient.post(`/devices/${id}/sync-now`),
   },
 
   // User endpoints

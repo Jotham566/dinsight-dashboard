@@ -2,7 +2,16 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, KeyRound, Loader2, PauseCircle, PlayCircle, PlusCircle, Trash2 } from 'lucide-react';
+import {
+  Copy,
+  KeyRound,
+  Loader2,
+  PauseCircle,
+  PlayCircle,
+  PlusCircle,
+  RefreshCcw,
+  Trash2,
+} from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { usePermission } from '@/components/auth/require-permission';
 import { Actions } from '@/lib/permissions';
@@ -309,6 +318,12 @@ function DevicesTable({
     onError: (err) => setErrorMsg(extractApiError(err) ?? 'Failed to rotate API key.'),
   });
 
+  const syncMutation = useMutation({
+    mutationFn: (id: number) => api.devices.syncNow(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['devices'] }),
+    onError: (err) => setErrorMsg(extractApiError(err) ?? 'Sync failed.'),
+  });
+
   return (
     <section className="space-y-3">
       <h3 className="text-sm font-semibold">Current devices</h3>
@@ -376,6 +391,18 @@ function DevicesTable({
                   {(canUpdate || canDelete || canRotate) && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {canUpdate && d.status === 'active' && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1"
+                            disabled={syncMutation.isPending}
+                            title="Trigger an immediate ingestion pass for this device"
+                            onClick={() => syncMutation.mutate(d.id)}
+                          >
+                            <RefreshCcw className="h-4 w-4" /> Sync now
+                          </Button>
+                        )}
                         {canUpdate && d.status === 'active' && (
                           <Button
                             size="sm"

@@ -170,6 +170,21 @@ Three follow-up tweaks landed in `deploy/vm-test/`, plus a working-tree rename o
 
 ---
 
+### Integrations Phase 4 — "Sync now" device action
+
+Fourth slice of integrations. Adds the manual ingestion trigger UI that pairs with the backend's new polling worker. Per-device "Sync now" button runs one immediate ingestion pass without waiting for the next polling tick.
+
+#### Added
+
+- **`api.devices.syncNow(id)`** in [`src/lib/api-client.ts`](src/lib/api-client.ts) — wraps `POST /devices/:id/sync-now`. Admin/operator only on the backend (`policy.ActionDeviceUpdate`).
+- **"Sync now" row action** in the customer Devices table — visible for active devices, disabled while another sync is in flight. Click triggers the mutation; on success, the device row refreshes so the new `last_ingested_at` timestamp shows up.
+
+#### Verification
+
+- Type-check clean; prettier clean; 123/123 tests green.
+
+---
+
 ### Integrations Phase 2 — Devices tab + cross-org platform devices view
 
 Second slice of the integrations branch. Customer admins now manage devices (one per machine being monitored) from a new Devices tab in Account & Security. Vendor admins get a read-only cross-org device roster inside the existing Platform tab. Phase 4 will plug these devices into an ingestion worker that pulls CSVs from Azure; Phase 2 just lands the schema + UI.
