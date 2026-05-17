@@ -12,6 +12,7 @@ import {
   ClipboardList,
   KeyRound,
   Loader2,
+  Monitor,
   ScrollText,
   Shield,
   ShieldAlert,
@@ -32,6 +33,7 @@ import { ActiveAlertsSection } from '@/components/alerts/active-alerts-section';
 import { AlertRulesSection } from '@/components/alerts/alert-rules-section';
 import { MembersSection } from '@/components/members/members-section';
 import { CustomersSection } from '@/components/platform/customers-section';
+import { DevicesSection } from '@/components/devices/devices-section';
 import { ValidationRulesPanel } from '@/components/datasets/validation-rules-panel';
 import { AuditLogSection } from '@/components/audit/audit-log-section';
 import { usePermission, usePlatformAdmin } from '@/components/auth/require-permission';
@@ -57,6 +59,7 @@ const SECTION_VALUES = [
   'security',
   'organizations',
   'members',
+  'devices',
   'license',
   'notifications',
   'active-alerts',
@@ -299,6 +302,10 @@ function AccountSecurityView() {
           <TabsTrigger value="members" className="gap-2">
             <Users className="h-4 w-4" />
             Members
+          </TabsTrigger>
+          <TabsTrigger value="devices" className="gap-2">
+            <Monitor className="h-4 w-4" />
+            Devices
           </TabsTrigger>
           <TabsTrigger value="license" className="gap-2">
             <ScrollText className="h-4 w-4" />
@@ -578,6 +585,14 @@ function AccountSecurityView() {
           <Card className="border-border/60">
             <CardContent className="pt-6">
               <MembersSection />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="devices" className="space-y-4">
+          <Card className="border-border/60">
+            <CardContent className="pt-6">
+              <DevicesSection />
             </CardContent>
           </Card>
         </TabsContent>

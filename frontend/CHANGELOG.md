@@ -170,6 +170,41 @@ Three follow-up tweaks landed in `deploy/vm-test/`, plus a working-tree rename o
 
 ---
 
+### Integrations Phase 2 — Devices tab + cross-org platform devices view
+
+Second slice of the integrations branch. Customer admins now manage devices (one per machine being monitored) from a new Devices tab in Account & Security. Vendor admins get a read-only cross-org device roster inside the existing Platform tab. Phase 4 will plug these devices into an ingestion worker that pulls CSVs from Azure; Phase 2 just lands the schema + UI.
+
+#### Added
+
+- **`api.devices.{list, create, update, delete, rotateKey}`** in [`src/lib/api-client.ts`](src/lib/api-client.ts) — wraps the new `/api/v1/devices/*` routes (read open to any member; writes admin-only on the backend side via the per-action gates).
+- **`api.platform.devices.list`** in [`src/lib/api-client.ts`](src/lib/api-client.ts) — wraps `GET /api/v1/platform/devices` for the vendor cross-org view.
+- **5 device + 1 platform-device action constants** in [`src/lib/permissions.ts`](src/lib/permissions.ts):
+  - `DeviceRead` — added to viewer / operator / admin (all members can read)
+  - `DeviceCreate` / `DeviceUpdate` / `DeviceDelete` / `DeviceRotateKey` — admin only
+  - `PlatformDeviceRead` — admin only (slug check via `usePlatformAdmin` enforces vendor tier)
+- **`DevicesSection` component** in [`src/components/devices/devices-section.tsx`](src/components/devices/devices-section.tsx):
+  - Add-device form (admin only) with auto-slug derivation, blob-prefix preview
+  - **API-key receipt** shown once on creation with copy-button + clear "this will NEVER be shown again" wording
+  - Devices table with status badge (active / paused / retired), API-key hint (`••••a3f7`), last-ingested timestamp + error, per-row Pause/Resume + Rotate + Delete actions
+  - Confirmation prompts on rotate (re-paste workflow) and delete
+- **`PlatformDevicesSection` component** in [`src/components/platform/platform-devices-section.tsx`](src/components/platform/platform-devices-section.tsx) — cross-org table grouped by owning org slug; read-only.
+- **New "Devices" tab** in [`/dashboard/account`](src/app/dashboard/account/page.tsx) for customer-side device CRUD. Visible to all members but the create form / row actions hide for non-admins.
+- **Platform tab gains the cross-org devices view** appended to the existing Customers section (single Platform tab keeps the vendor IA tight).
+
+#### Verification
+
+- Type-check clean
+- Lint clean
+- 123 / 123 tests green (no test-count change — existing permission-matrix test still passes; device-specific tests live in the backend handler tests)
+
+#### Not in scope (deferred)
+
+- Real Azure container provisioning on customer-create → Phase 3
+- The actual sync (`Sync now` button, last-sync-at populated automatically) → Phase 4
+- Per-device data-volume + ingestion-lag analytics → Phase 5
+
+---
+
 ### Integrations Phase 1 — vendor admin "Platform" tab
 
 First slice of the integrations branch (Azure Blob ingestion + vendor admin). Phase 1 ships the FE surface for the new platform-admin HTTP routes that landed in the backend's matching branch. Vendor staff can now onboard new customer organizations + view the platform roster + delete demo accounts from a browser, no SSH needed.

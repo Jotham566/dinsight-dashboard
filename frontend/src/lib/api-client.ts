@@ -270,6 +270,29 @@ export const api = {
           data: opts ?? {},
         }),
     },
+    devices: {
+      list: () => apiClient.get('/platform/devices'),
+    },
+  },
+
+  // Device CRUD for the active organization. LIST open to any member;
+  // CREATE / PATCH / DELETE / ROTATE-KEY admin-only. CREATE and
+  // ROTATE-KEY responses include the plaintext API key — surface it to
+  // the customer admin ONCE (no recovery path).
+  devices: {
+    list: () => apiClient.get('/devices'),
+    create: (data: {
+      name: string;
+      slug: string;
+      blob_path_prefix?: string;
+      description?: string;
+    }) => apiClient.post('/devices', data),
+    update: (
+      id: number,
+      data: { name?: string; description?: string; status?: 'active' | 'paused' | 'retired' }
+    ) => apiClient.patch(`/devices/${id}`, data),
+    delete: (id: number) => apiClient.delete(`/devices/${id}`),
+    rotateKey: (id: number) => apiClient.post(`/devices/${id}/rotate-key`),
   },
 
   // User endpoints

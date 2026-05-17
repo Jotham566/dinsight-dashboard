@@ -52,14 +52,23 @@ export const Actions = {
   PlatformOrgRead: 'platform.org.read',
   PlatformOrgCreate: 'platform.org.create',
   PlatformOrgDelete: 'platform.org.delete',
+  PlatformDeviceRead: 'platform.device.read',
+
+  // Devices (per-org). Read open to any member; writes admin-only.
+  DeviceRead: 'device.read',
+  DeviceCreate: 'device.create',
+  DeviceUpdate: 'device.update',
+  DeviceDelete: 'device.delete',
+  DeviceRotateKey: 'device.rotate_key',
 } as const;
 
 export type Action = (typeof Actions)[keyof typeof Actions];
 
 const roleCapabilities: Record<OrgRole, ReadonlySet<Action>> = {
-  viewer: new Set<Action>([Actions.DatasetRead]),
+  viewer: new Set<Action>([Actions.DatasetRead, Actions.DeviceRead]),
   operator: new Set<Action>([
     Actions.DatasetRead,
+    Actions.DeviceRead,
     Actions.AlertRuleCreate,
     Actions.AlertRuleUpdate,
     Actions.AlertResolve,
@@ -88,9 +97,15 @@ const roleCapabilities: Record<OrgRole, ReadonlySet<Action>> = {
     Actions.OrgRoleChange,
     Actions.OrgMemberRemove,
     Actions.OrgSettingEdit,
+    Actions.DeviceRead,
+    Actions.DeviceCreate,
+    Actions.DeviceUpdate,
+    Actions.DeviceDelete,
+    Actions.DeviceRotateKey,
     Actions.PlatformOrgRead,
     Actions.PlatformOrgCreate,
     Actions.PlatformOrgDelete,
+    Actions.PlatformDeviceRead,
   ]),
 };
 

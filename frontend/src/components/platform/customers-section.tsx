@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Copy, Loader2, ShieldAlert, Trash2, UserPlus } from 'lucide-react';
+import { PlatformDevicesSection } from '@/components/platform/platform-devices-section';
 import { api } from '@/lib/api-client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +67,7 @@ export function CustomersSection() {
 
       <OnboardCustomerForm />
       <CustomersTable />
+      <PlatformDevicesSection />
     </div>
   );
 }
