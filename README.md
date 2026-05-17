@@ -122,7 +122,7 @@ All non-auth routes require `Authorization: Bearer <jwt>` and the active org via
 │       ├── compose.yml        # api + frontend + postgres + caddy + mailpit
 │       ├── Caddyfile          # /api/* -> BE, everything else -> FE
 │       ├── .env.example       # Copy to .env, set JWT_SECRET + paths
-│       └── README.md          # Walkthrough for the cloud engineer
+│       └── README.md          # Walkthrough for Azure Cloud
 ├── test-data/                 # Sample CSVs (gitignored)
 ├── scripts/                   # Operational shell scripts
 │   ├── reset-db.sh            # Wipe + reseed the dinsight database
