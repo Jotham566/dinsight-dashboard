@@ -273,6 +273,18 @@ export const api = {
     devices: {
       list: () => apiClient.get('/platform/devices'),
     },
+    analytics: {
+      list: () => apiClient.get('/platform/analytics'),
+    },
+    support: {
+      list: (opts?: { includeEnded?: boolean }) =>
+        apiClient.get('/platform/support-sessions', {
+          params: opts?.includeEnded ? { include_ended: 'true' } : undefined,
+        }),
+      create: (data: { target_organization_slug: string; justification: string }) =>
+        apiClient.post('/platform/support-sessions', data),
+      end: (id: number) => apiClient.delete(`/platform/support-sessions/${id}`),
+    },
   },
 
   // Device CRUD for the active organization. LIST open to any member;
