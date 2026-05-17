@@ -42,6 +42,16 @@ export const Actions = {
   OrgRoleChange: 'org.role.change',
   OrgMemberRemove: 'org.member.remove',
   OrgSettingEdit: 'org.settings.edit',
+
+  // Platform administration (vendor-side cross-tenant surface).
+  // These resolve true via Can() for any admin role, BUT the backend
+  // also enforces `org_slug == "default"` via RequirePlatformAdmin
+  // middleware. The FE mirrors that gate via usePlatformAdmin()
+  // (see context/auth-context.tsx) — never grant a platform-admin
+  // affordance to a user who isn't admin of the default org.
+  PlatformOrgRead: 'platform.org.read',
+  PlatformOrgCreate: 'platform.org.create',
+  PlatformOrgDelete: 'platform.org.delete',
 } as const;
 
 export type Action = (typeof Actions)[keyof typeof Actions];
@@ -78,6 +88,9 @@ const roleCapabilities: Record<OrgRole, ReadonlySet<Action>> = {
     Actions.OrgRoleChange,
     Actions.OrgMemberRemove,
     Actions.OrgSettingEdit,
+    Actions.PlatformOrgRead,
+    Actions.PlatformOrgCreate,
+    Actions.PlatformOrgDelete,
   ]),
 };
 

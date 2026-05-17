@@ -255,6 +255,23 @@ export const api = {
     remove: (id: number) => apiClient.delete(`/memberships/${id}`),
   },
 
+  // Platform-admin surface (vendor-side cross-tenant ops). All endpoints
+  // gated on the backend by middleware.RequirePlatformAdmin which checks
+  // (org_slug == "default" AND org_role == "admin"). Only the platform-
+  // admin tenant (the seeded `default` org's admins) reaches these
+  // routes; everyone else gets 403 PLATFORM_ADMIN_REQUIRED.
+  platform: {
+    organizations: {
+      list: () => apiClient.get('/platform/organizations'),
+      create: (data: { name: string; slug: string; admin_email: string; admin_name?: string }) =>
+        apiClient.post('/platform/organizations', data),
+      delete: (slug: string, opts?: { purge_orphaned_users?: boolean }) =>
+        apiClient.delete(`/platform/organizations/${encodeURIComponent(slug)}`, {
+          data: opts ?? {},
+        }),
+    },
+  },
+
   // User endpoints
   users: {
     getProfile: () => apiClient.get('/users/profile'),

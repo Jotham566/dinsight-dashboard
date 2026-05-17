@@ -170,6 +170,37 @@ Three follow-up tweaks landed in `deploy/vm-test/`, plus a working-tree rename o
 
 ---
 
+### Integrations Phase 1 — vendor admin "Platform" tab
+
+First slice of the integrations branch (Azure Blob ingestion + vendor admin). Phase 1 ships the FE surface for the new platform-admin HTTP routes that landed in the backend's matching branch. Vendor staff can now onboard new customer organizations + view the platform roster + delete demo accounts from a browser, no SSH needed.
+
+#### Added
+
+- **`api.platform.organizations.{list, create, delete}`** in [`src/lib/api-client.ts`](src/lib/api-client.ts) wrapping the backend's new `/api/v1/platform/organizations` routes (gated by `middleware.RequirePlatformAdmin`).
+- **`Actions.PlatformOrg{Read,Create,Delete}`** in [`src/lib/permissions.ts`](src/lib/permissions.ts), added to the admin role's capability set. The frontend matrix mirrors the backend's `policy.go` exactly. Note: `can()` returning true for these is only half the gate — the slug check in `usePlatformAdmin()` is what restricts the surface to admins of the `default` org.
+- **`usePlatformAdmin()` hook** in [`src/components/auth/require-permission.tsx`](src/components/auth/require-permission.tsx). Returns `true` only when `currentOrg.slug === 'default' && currentOrgRole === 'admin'`. Mirrors `middleware.RequirePlatformAdmin` on the backend verbatim.
+- **`CustomersSection` component** in [`src/components/platform/customers-section.tsx`](src/components/platform/customers-section.tsx):
+  - **Onboard customer form** — name + slug + admin email. Auto-derives slug from name as the user types. On success, shows the invitation accept-URL with a copy-button so the vendor admin can share it out-of-band immediately.
+  - **Customers table** — every org with member counts (admin / operator / viewer breakdown), pending invites, plan + status, created date. The `default` org carries a "platform" badge and its Delete button is disabled (backend would refuse anyway).
+  - **Delete confirmation modal** — type-the-slug-to-confirm pattern matching the `delete-org` CLI. Checkbox to opt into `--purge-orphaned-users` (hard-delete orphan user accounts vs the default deactivate-only path).
+- **New "Platform" tab** in [`/dashboard/account`](src/app/dashboard/account/page.tsx), gated by `usePlatformAdmin()`. Sits next to the existing Members + Audit-log tabs. Visible only to admins of the `default` org; never renders for customer-org admins.
+- **One new permissions test** asserting the platform actions are admin-only at the matrix level (the slug check is verified separately by the backend handler tests).
+
+#### Not in scope (deferred to later phases)
+
+- Azure SDK integration + per-org container provisioning → Phase 3 (the onboarding form will gain a "container provisioned" line in its success message then)
+- Device model + customer-side Devices tab → Phase 2
+- Background ingestion worker UI surfaces (last-sync-at badges, "Sync now" button) → Phase 4
+- Per-customer analytics + support-mode → Phase 5
+
+#### Verification
+
+- Type-check clean
+- Lint clean (after prettier pass)
+- 123 / 123 tests green (+1 new from the platform actions matrix test)
+
+---
+
 ### Deploy hardening — structural fix for the devices.json mount
 
 Two failure modes hit the VM deploy enough times to warrant a structural fix instead of repeated `touch` / `chmod 666`:

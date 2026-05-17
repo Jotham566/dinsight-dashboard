@@ -61,4 +61,12 @@ describe('can()', () => {
       }
     }
   });
+
+  it('reserves platform-admin actions for admin role (slug check enforced separately)', () => {
+    expect(can('admin', Actions.PlatformOrgRead)).toBe(true);
+    expect(can('admin', Actions.PlatformOrgCreate)).toBe(true);
+    expect(can('admin', Actions.PlatformOrgDelete)).toBe(true);
+    expect(can('operator', Actions.PlatformOrgRead)).toBe(false);
+    expect(can('viewer', Actions.PlatformOrgRead)).toBe(false);
+  });
 });
